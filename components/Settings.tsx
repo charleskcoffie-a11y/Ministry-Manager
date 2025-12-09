@@ -62,6 +62,8 @@ const Settings: React.FC = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
           const file = e.target.files[0];
+          console.log("File selected:", file.name);
+          
           if (file.type !== "application/json" && !file.name.endsWith('.json')) {
               alert("Please select a valid .json file");
               return;
@@ -69,54 +71,100 @@ const Settings: React.FC = () => {
           setSelectedFile(file);
           setImportResult(null); 
           setImportStatusText('File ready to process.');
-          e.target.value = ''; // Reset input to allow re-selecting same file if needed
+          // Reset input to allow re-selecting same file if needed
+          e.target.value = ''; 
       }
   };
 
   // --- Execution Logic ---
   const startImport = async () => {
-    if (!selectedFile) return;
+    console.log("Start Import clicked");
+    if (!selectedFile) {
+        alert("No file selected.");
+        return;
+    }
 
+    // 1. Immediate UI Feedback
     setImporting(true);
     setImportProgress({ current: 0, total: 0 });
-    setImportStatusText('Reading file...');
+    setImportStatusText('Initializing import process...');
 
-    const reader = new FileReader();
-    
-    reader.onload = async (event) => {
-      try {
-        const text = event.target?.result as string;
-        setImportStatusText('Parsing JSON...');
+    try {
+        // 2. Read File content (Modern Async Method)
+        setImportStatusText('Reading file from disk...');
+        const text = await selectedFile.text();
         
+        // 3. Parse JSON
+        setImportStatusText('Parsing JSON data...');
         let json;
         try {
             json = JSON.parse(text);
         } catch (e) {
-            setImportStatusText('Error: Invalid JSON syntax');
-            alert("The file contains invalid JSON.");
-            setImporting(false);
-            return;
+            throw new Error("Invalid JSON syntax. Please check the file format.");
         }
 
-        if (!Array.isArray(json)) {
-            setImportStatusText('Error: Root must be an array');
-            alert("JSON must be an array of song objects.");
-            setImporting(false);
-            return;
+        // --- INTELLIGENT SONG HUNTER & TAGGER ---
+        // Recursively finds songs and uses the parent object key as the 'collection' if missing.
+        const findAndTagSongs = (obj: any, parentKey: string | null = null, depth = 0): any[] => {
+            if (depth > 5) return []; // Safety break
+            if (!obj || typeof obj !== 'object') return [];
+
+            // Case 1: Array
+            if (Array.isArray(obj)) {
+                 // Check if it's an array of songs
+                 const hasSongs = obj.length > 0 && (
+                     'title' in obj[0] || 'lyrics' in obj[0] || 'number' in obj[0]
+                 );
+                 
+                 if (hasSongs) {
+                     return obj.map((s: any) => {
+                         // Determine Collection
+                         let col = s.collection;
+                         
+                         // If no collection on object, try to infer from the parent key (e.g. "MHB": [...])
+                         if (!col && parentKey) {
+                             const k = parentKey.toUpperCase();
+                             if (k.includes('MHB')) col = 'MHB';
+                             else if (k.includes('CAN') && !k.includes('CANTICLE')) col = 'CAN';
+                             else if (k.includes('CANTICLE')) col = 'CANTICLES_EN';
+                             else col = parentKey; // Fallback to the key name itself
+                         }
+                         
+                         return { ...s, collection: col || 'General' };
+                     });
+                 }
+                 
+                 // If array of objects (not songs), recurse
+                 return obj.flatMap(item => findAndTagSongs(item, parentKey, depth + 1));
+            }
+
+            // Case 2: Object (Map)
+            // Iterate keys and pass the key name down as the "parentKey" context
+            return Object.keys(obj).flatMap(key => {
+                return findAndTagSongs(obj[key], key, depth + 1);
+            });
+        };
+
+        setImportStatusText('Scanning and categorizing songs...');
+        const songsArray = findAndTagSongs(json);
+
+        const total = songsArray.length;
+        if (total === 0) {
+            console.error("Parsed structure:", json);
+            throw new Error("Could not find any songs in the file.");
         }
 
-        // --- PRE-FLIGHT CHECK ---
+        // 4. DB Connection Check
         setImportStatusText('Checking database connection...');
         const { error: tableCheck } = await supabase.from('songs').select('id').limit(1);
         if (tableCheck && tableCheck.code === '42P01') {
-             throw new Error("The 'songs' table does not exist. Please run the SQL script first.");
+             throw new Error("The 'songs' table does not exist in Supabase. Please run the SQL setup script.");
         }
 
-        const total = json.length;
         setImportProgress({ current: 0, total });
-        setImportStatusText(`Preparing to upload ${total} songs...`);
+        setImportStatusText(`Found ${total} songs. Starting upload...`);
 
-        // Batch insert
+        // 5. Batch Upload Loop
         const BATCH_SIZE = 50;
         let successCount = 0;
         let errorCount = 0;
@@ -126,26 +174,32 @@ const Settings: React.FC = () => {
             const batchNum = Math.floor(i / BATCH_SIZE) + 1;
             setImportStatusText(`Uploading batch ${batchNum} of ${totalBatches}...`);
 
-            const batch = json.slice(i, i + BATCH_SIZE).map((s: any) => ({
-                id: s.id, 
-                collection: s.collection,
-                code: s.code,
-                number: s.number,
-                title: s.title,
-                raw_title: s.raw_title || null,
-                lyrics: s.lyrics,
-                author: s.author || null,
-                copyright: s.copyright || null,
-                tags: s.tags || null,
-                reference_number: s.reference_number || null
-            }));
+            const batchRaw = songsArray.slice(i, i + BATCH_SIZE);
+            
+            // Robust Mapping
+            const batch = batchRaw.map((s: any, idx: number) => {
+                const fallbackId = Math.floor(Date.now() / 1000) + i + idx + Math.floor(Math.random() * 1000);
+                
+                return {
+                    id: typeof s.id === 'number' ? s.id : fallbackId,
+                    collection: s.collection || 'General',
+                    code: s.code || `GEN${s.number || idx}`,
+                    number: typeof s.number === 'number' ? s.number : 0,
+                    title: s.title || 'Untitled Song',
+                    raw_title: s.raw_title || null,
+                    lyrics: s.lyrics || '',
+                    author: s.author || null,
+                    copyright: s.copyright || null,
+                    tags: s.tags || null,
+                    reference_number: s.reference_number || null
+                };
+            });
 
             const { error } = await supabase.from('songs').upsert(batch);
             
             if (error) {
                 console.error('Batch import error:', error);
                 errorCount += batch.length;
-                // If it's a table error, stop completely
                 if (error.code === '42P01') {
                     throw new Error("Songs table missing. Stopping import.");
                 }
@@ -154,26 +208,20 @@ const Settings: React.FC = () => {
             }
             
             setImportProgress(prev => ({ ...prev, current: Math.min(i + BATCH_SIZE, total) }));
+            await new Promise(r => setTimeout(r, 10));
         }
 
         setImportResult({ success: successCount, failed: errorCount });
         setImportStatusText('Import complete!');
-        setSelectedFile(null); // Clear selection on success
+        setSelectedFile(null); 
 
-      } catch (err: any) {
+    } catch (err: any) {
+        console.error("Import Process Error:", err);
         setImportStatusText('Error: ' + err.message);
         alert('Import failed: ' + err.message);
-      } finally {
+    } finally {
         setImporting(false);
-      }
-    };
-    
-    reader.onerror = () => {
-        setImportStatusText('Failed to read file from disk.');
-        setImporting(false);
-    };
-    
-    reader.readAsText(selectedFile);
+    }
   };
 
   const clearSongs = async () => {
@@ -329,6 +377,7 @@ const Settings: React.FC = () => {
                             </div>
                             <div className="flex gap-3">
                                 <button 
+                                    type="button"
                                     onClick={startImport}
                                     className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors shadow-sm"
                                 >

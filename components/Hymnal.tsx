@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Song } from '../types';
-import { Search, Music, BookOpen, ChevronRight, ArrowLeft, Loader2, Database, ZoomIn, ZoomOut, Globe, Filter, AlertCircle } from 'lucide-react';
+import { Search, Music, BookOpen, ChevronRight, ArrowLeft, Loader2, Database, ZoomIn, ZoomOut, Globe, Filter, AlertCircle, List } from 'lucide-react';
 
 const Hymnal: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'hymns' | 'canticles' | 'can'>('hymns');
+  const [activeTab, setActiveTab] = useState<'hymns' | 'canticles' | 'can' | 'all'>('hymns');
   const [searchQuery, setSearchQuery] = useState('');
   
   const [songs, setSongs] = useState<Song[]>([]);
@@ -24,20 +24,25 @@ const Hymnal: React.FC = () => {
     setErrorMsg(null);
     let collections: string[] = [];
 
+    // Inclusive filtering logic
     if (activeTab === 'hymns') {
-        collections = ['MHB'];
+        collections = ['MHB', 'General', 'HYMNS', 'SONGS']; // Include General in main tab
     } else if (activeTab === 'canticles') {
-        collections = ['CANTICLES_EN', 'CANTICLES_FANTE'];
-    } else {
-        collections = ['CAN'];
+        collections = ['CANTICLES_EN', 'CANTICLES_FANTE', 'CANTICLES', 'CANTICLE'];
+    } else if (activeTab === 'can') {
+        collections = ['CAN', 'LOCAL', 'GHANA'];
     }
+    // 'all' tab doesn't use the 'in' filter
 
     try {
-        const { data, error } = await supabase
-            .from('songs')
-            .select('*')
-            .in('collection', collections)
-            .order('number', { ascending: true });
+        let query = supabase.from('songs').select('*');
+        
+        if (activeTab !== 'all') {
+            query = query.in('collection', collections);
+        }
+        
+        // Sorting: Try to sort numeric numbers correctly, but standard string sort is default in SQL
+        const { data, error } = await query.order('number', { ascending: true });
 
         if (error) throw error;
         
@@ -177,24 +182,30 @@ const Hymnal: React.FC = () => {
 
       {/* Tabs & Search */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-4">
-          <div className="flex bg-gray-100 p-1 rounded-lg">
+          <div className="flex flex-wrap bg-gray-100 p-1 rounded-lg">
               <button 
                 onClick={() => { setActiveTab('hymns'); setSearchQuery(''); }}
-                className={`flex-1 py-3 rounded-md text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'hymns' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`flex-1 min-w-[120px] py-3 rounded-md text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'hymns' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
               >
-                  <Music className="w-4 h-4"/> Methodist Hymns
+                  <Music className="w-4 h-4"/> MHB
               </button>
               <button 
                 onClick={() => { setActiveTab('canticles'); setSearchQuery(''); }}
-                className={`flex-1 py-3 rounded-md text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'canticles' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`flex-1 min-w-[120px] py-3 rounded-md text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'canticles' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
               >
                   <BookOpen className="w-4 h-4"/> Canticles
               </button>
               <button 
                 onClick={() => { setActiveTab('can'); setSearchQuery(''); }}
-                className={`flex-1 py-3 rounded-md text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'can' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`flex-1 min-w-[120px] py-3 rounded-md text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'can' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
               >
-                  <Globe className="w-4 h-4"/> CAN (Local)
+                  <Globe className="w-4 h-4"/> CAN
+              </button>
+              <button 
+                onClick={() => { setActiveTab('all'); setSearchQuery(''); }}
+                className={`flex-1 min-w-[120px] py-3 rounded-md text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'all' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                  <List className="w-4 h-4"/> All Songs
               </button>
           </div>
 
@@ -260,7 +271,9 @@ const Hymnal: React.FC = () => {
                           >
                               <div className="flex items-center gap-4">
                                   <span className="w-14 h-14 rounded-lg bg-blue-50 text-blue-700 font-bold flex flex-col items-center justify-center text-sm group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
-                                      <span className="text-[10px] uppercase opacity-70 leading-none mb-1">{item.collection === 'CANTICLES_EN' ? 'CANT' : item.collection}</span>
+                                      <span className="text-[10px] uppercase opacity-70 leading-none mb-1">
+                                          {item.collection === 'CANTICLES_EN' ? 'CANT' : (item.collection === 'General' ? 'GEN' : item.collection)}
+                                      </span>
                                       <span className="text-lg leading-none">{item.number}</span>
                                   </span>
                                   <div>
