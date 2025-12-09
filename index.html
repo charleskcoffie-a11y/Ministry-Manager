@@ -16,11 +16,30 @@
             colors: {
               primary: '#2563eb', // Royal Blue suitable for church theme
               secondary: '#475569',
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.8s ease-out forwards',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0', transform: 'translateY(20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              }
             }
           }
         }
       }
     </script>
+    <!-- Document Parsers -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+      // Configure PDF.js worker
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    
   <script type="importmap">
 {
   "imports": {
@@ -35,6 +54,11 @@
   }
 }
 </script>
+<style>
+  /* Global font size boost */
+  html { font-size: 20px; }
+  body { font-size: 1rem; }
+</style>
 </head>
   <body class="bg-gray-50 text-slate-900 antialiased">
     <div id="root"></div>

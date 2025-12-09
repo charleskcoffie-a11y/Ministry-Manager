@@ -1,47 +1,58 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { supabase } from './supabaseClient';
 import Layout from './components/Layout';
-import Auth from './components/Auth';
+import Home from './components/Home';
 import ProgramManager from './components/ProgramManager';
 import StandingOrders from './components/StandingOrders';
 import TaskManager from './components/TaskManager';
 import IdeasJournal from './components/IdeasJournal';
+import Settings from './components/Settings';
+import Devotion from './components/Devotion';
 
 const App: React.FC = () => {
-  const [session, setSession] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (loading) {
-    return <div className="h-screen w-screen flex items-center justify-center bg-gray-50 text-primary">Loading...</div>;
-  }
-
   return (
     <HashRouter>
       <Routes>
-        <Route path="/login" element={!session ? <Auth /> : <Navigate to="/" />} />
+        <Route 
+          path="/" 
+          element={<Layout><Home /></Layout>} 
+        />
         
-        <Route path="/" element={session ? <Layout><ProgramManager /></Layout> : <Navigate to="/login" />} />
-        <Route path="/standing-orders" element={session ? <Layout><StandingOrders /></Layout> : <Navigate to="/login" />} />
-        <Route path="/tasks" element={session ? <Layout><TaskManager /></Layout> : <Navigate to="/login" />} />
-        <Route path="/ideas" element={session ? <Layout><IdeasJournal /></Layout> : <Navigate to="/login" />} />
+        <Route 
+          path="/programs" 
+          element={<Layout><ProgramManager /></Layout>} 
+        />
+
+        <Route 
+          path="/devotion" 
+          element={<Layout><Devotion /></Layout>} 
+        />
+
+        <Route 
+          path="/standing-orders" 
+          element={<Layout><StandingOrders /></Layout>} 
+        />
         
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route 
+          path="/tasks" 
+          element={<Layout><TaskManager /></Layout>} 
+        />
+        
+        <Route 
+          path="/ideas" 
+          element={<Layout><IdeasJournal /></Layout>} 
+        />
+        
+        <Route 
+          path="/settings" 
+          element={<Layout><Settings /></Layout>} 
+        />
+        
+        {/* Redirect unknown paths to home */}
+        <Route 
+          path="*" 
+          element={<Navigate to="/" replace />} 
+        />
       </Routes>
     </HashRouter>
   );

@@ -51,7 +51,15 @@ create table ideas (
   created_at timestamp with time zone default now()
 );
 
--- 5. Row Level Security (RLS) - Simple Public Access for Demo
+-- 5. Uploaded Documents (For persisting parsed Standing Orders)
+create table if not exists uploaded_documents (
+  id text primary key, -- We will use a fixed ID like 'standing_orders' to ensure singleton storage
+  filename text,
+  content jsonb,
+  updated_at timestamp with time zone default now()
+);
+
+-- 6. Row Level Security (RLS) - Simple Public Access for Demo
 -- In production, replace 'true' with proper auth.uid() checks
 alter table church_programs enable row level security;
 create policy "Public access" on church_programs for all using (true);
@@ -64,6 +72,9 @@ create policy "Public access" on tasks for all using (true);
 
 alter table ideas enable row level security;
 create policy "Public access" on ideas for all using (true);
+
+alter table uploaded_documents enable row level security;
+create policy "Public access" on uploaded_documents for all using (true) with check (true);
 ```
 
 ## 2. Environment Variables
@@ -76,6 +87,21 @@ REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
 API_KEY=your_gemini_api_key
 ```
 
+### How to get these keys:
+
+**1. Supabase Credentials:**
+*   Log in to your [Supabase Dashboard](https://supabase.com/dashboard).
+*   Select your project.
+*   Go to **Project Settings** (gear icon) -> **API**.
+*   Copy the **Project URL** -> `REACT_APP_SUPABASE_URL`.
+*   Copy the **Project API keys** (anon / public) -> `REACT_APP_SUPABASE_ANON_KEY`.
+
+**2. Gemini API Key:**
+*   Go to [Google AI Studio](https://aistudio.google.com/).
+*   Click on **Get API key**.
+*   Create a key in a new or existing Google Cloud project.
+*   Copy the key string -> `API_KEY`.
+
 *Note: If using Vite, use `VITE_SUPABASE_URL` etc., and update `supabaseClient.ts` accordingly.*
 
 ## 3. Running the Web App
@@ -86,7 +112,8 @@ API_KEY=your_gemini_api_key
 ## 4. Features & Usage
 
 *   **Programs:** Import your Excel file (Save as CSV first). The CSV headers must match: `Date`, `Activities-Description`, `Venue`, `Lead`.
-*   **Standing Orders:** You can manually insert data into the `standing_orders` table via Supabase dashboard or build an administrative uploader. Search works by typing "SO 117" (code) or keywords like "discipline".
+*   **Standing Orders:** 
+    *   **Database Mode:** Manual entries in `standing_orders`.
+    *   **Document Mode:** Upload a PDF/DOCX. The app parses it, saves the JSON content to Supabase (`uploaded_documents` table), and auto-loads it on next visit.
 *   **Tasks:** Simple checklist.
 *   **Ideas:** Journals your thoughts. Click "Expand with AI" to use Gemini to generate a sermon outline from your note.
-
