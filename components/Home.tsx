@@ -1,6 +1,11 @@
+
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, CheckCircle2, BookOpen, Lightbulb, ArrowRight, Star, CalendarDays, AlertCircle, Loader2, MapPin, ChevronRight } from 'lucide-react';
+import { 
+  Calendar, CheckCircle2, BookOpen, Lightbulb, ArrowRight, Star, 
+  CalendarDays, AlertCircle, Loader2, MapPin, ChevronRight,
+  Crown, Scroll, Sparkles, ShieldCheck
+} from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Task } from '../types';
 import { explainStandingOrder } from '../services/geminiService';
@@ -350,33 +355,57 @@ const Home: React.FC = () => {
 
   return (
     <div className="space-y-12 animate-fade-in pb-10">
-      {/* Hero Banner */}
-      <div className="relative bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl overflow-hidden shadow-xl text-white">
-        {/* Decorative Background Pattern */}
-        <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1507692049790-de58293a469d?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+      
+      {/* 1. New Hero Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-slate-900 text-white shadow-2xl border border-white/5">
+        {/* Background Gradients & Textures */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-slate-900 to-slate-950"></div>
+        <div className="absolute top-[-50%] left-[-20%] w-[80%] h-[150%] bg-indigo-500/10 blur-[120px] rounded-full mix-blend-screen pointer-events-none"></div>
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[100%] bg-blue-500/10 blur-[100px] rounded-full mix-blend-screen pointer-events-none"></div>
         
-        <div className="relative p-10 md:p-16 flex flex-col justify-center h-full min-h-[400px]">
-          <div className="max-w-3xl space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 text-sm font-semibold uppercase tracking-wider">
-              <Star className="w-4 h-4" /> Ministry Dashboard
-            </div>
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight tracking-tight">
-              Welcome to Rev. Minister's <br />
-              <span className="text-primary text-blue-400">Ministry App</span>
-            </h1>
-            <p className="text-xl md:text-2xl text-slate-200 max-w-2xl font-light">
-              Empowering Kingdom Growth through Vision & Purpose.
-            </p>
-            <div className="pt-4">
-              <Link 
-                to="/programs" 
-                className="inline-flex items-center gap-3 px-8 py-4 bg-primary hover:bg-blue-600 text-white rounded-xl text-xl font-medium transition-all transform hover:translate-y-[-2px] shadow-lg hover:shadow-primary/50"
-              >
-                View Details <ArrowRight className="w-6 h-6" />
+        {/* Subtle Grain/Pattern */}
+        <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
+
+        <div className="relative z-10 px-8 py-12 md:p-16 flex flex-col items-center text-center md:items-start md:text-left">
+           {/* Badge */}
+           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-bold uppercase tracking-widest shadow-sm mb-6 backdrop-blur-md">
+              <Crown className="w-4 h-4" /> 
+              Pastoral Workspace
+           </div>
+
+           {/* Title */}
+           <h1 className="text-4xl md:text-6xl font-serif font-bold leading-tight mb-4 tracking-tight text-white drop-shadow-sm">
+              Welcome to Rev. Minister’s <br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200">
+                 Ministry Suite
+              </span>
+           </h1>
+
+           {/* Subtitle */}
+           <p className="text-lg md:text-xl text-indigo-200/80 font-light max-w-2xl leading-relaxed mb-8">
+              Empowering Kingdom growth through vision, purpose, and organized leadership.
+           </p>
+
+           {/* Buttons */}
+           <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+              <Link to="/programs" className="group relative px-8 py-4 bg-white text-indigo-950 rounded-full font-bold text-lg shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all hover:-translate-y-0.5 flex items-center gap-3 overflow-hidden">
+                  <span className="relative z-10">Open Schedule</span>
+                  <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
+                  <div className="absolute inset-0 bg-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </Link>
-            </div>
-          </div>
+              <Link to="/sermons" className="px-8 py-4 bg-indigo-900/40 border border-indigo-400/20 text-indigo-100 rounded-full font-bold text-lg hover:bg-indigo-800/40 transition-all flex items-center gap-3 backdrop-blur-sm hover:border-indigo-400/40">
+                  <Scroll className="w-5 h-5" />
+                  Sermon Builder
+              </Link>
+           </div>
+
+           {/* Verse */}
+           <div className="mt-10 pt-8 border-t border-white/5 w-full md:w-auto">
+              <p className="text-sm font-serif italic text-slate-400 flex items-center justify-center md:justify-start gap-2">
+                 <Sparkles className="w-3 h-3 text-amber-500/50" />
+                 "Therefore encourage one another and build each other up." — 1 Thessalonians 5:11
+              </p>
+           </div>
         </div>
       </div>
 
