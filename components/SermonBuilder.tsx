@@ -5,7 +5,9 @@ import { Sermon } from '../types';
 import { generateSermonOutline, generateSermonSection } from '../services/geminiService';
 import { 
   BookOpen, Mic, MicOff, Wand2, Save, Trash2,
-  Plus, X, Loader2, ChevronLeft, PenTool, Download
+  Plus, X, Loader2, ChevronLeft, PenTool, Download,
+  Scroll, FileText, Calendar, Sparkles, MoreHorizontal,
+  ChevronRight, Book
 } from 'lucide-react';
 
 declare global {
@@ -287,7 +289,8 @@ const SermonBuilder: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+      e.stopPropagation();
       if(!window.confirm("Delete this sermon?")) return;
       await supabase.from('sermons').delete().eq('id', id);
       fetchSermons();
@@ -331,44 +334,121 @@ const SermonBuilder: React.FC = () => {
 
   if (mode === 'list') {
       return (
-          <div className="max-w-5xl mx-auto space-y-6">
-              <div className="flex justify-between items-center border-b pb-6">
-                  <div>
-                    <h1 className="text-4xl font-bold text-gray-800 flex items-center gap-3">
-                        <PenTool className="w-8 h-8 text-primary" /> Sermon Builder
-                    </h1>
-                    <p className="text-gray-500 mt-2">Methodist Pulpit Planner</p>
+          <div className="max-w-[1600px] mx-auto pb-16 animate-fade-in space-y-10">
+              
+              {/* 1. Inspirational Header */}
+              <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-slate-900 via-violet-950 to-slate-900 text-white shadow-2xl min-h-[220px] flex items-center">
+                  {/* Decorative Texture */}
+                  <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/leather.png')]"></div>
+                  <div className="absolute top-0 right-0 p-12 opacity-5 transform rotate-12 translate-x-10 -translate-y-10">
+                      <Scroll className="w-64 h-64 text-white" />
                   </div>
-                  <button onClick={createNew} className="bg-primary text-white px-6 py-3 rounded-xl flex items-center gap-2 font-medium hover:bg-blue-700">
-                      <Plus className="w-5 h-5" /> New Sermon
-                  </button>
+
+                  <div className="relative z-10 w-full p-8 md:p-12 flex flex-col md:flex-row justify-between items-center gap-6">
+                      <div>
+                          <div className="flex items-center gap-3 mb-3 text-indigo-300 font-medium tracking-widest text-xs uppercase">
+                              <PenTool className="w-4 h-4" /> 
+                              Methodist Pulpit Planner
+                          </div>
+                          <h1 className="text-4xl md:text-5xl font-serif font-bold text-white mb-2 tracking-tight">
+                              Sermon Builder
+                          </h1>
+                          <p className="text-indigo-200 text-lg font-light max-w-xl">
+                              Prepare messages of hope, truth, and transformation.
+                          </p>
+                      </div>
+
+                      <button 
+                          onClick={createNew} 
+                          className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-amber-500 hover:bg-amber-400 text-amber-950 rounded-full font-bold text-lg shadow-lg hover:shadow-amber-500/30 transition-all transform hover:-translate-y-1 active:translate-y-0 overflow-hidden"
+                      >
+                          <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                          <Plus className="w-6 h-6" /> 
+                          <span>Start New Sermon</span>
+                      </button>
+                  </div>
               </div>
 
+              {/* 2. Content Grid */}
               {loading ? (
-                  <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-gray-400"/></div>
+                  <div className="flex flex-col items-center justify-center py-24 gap-4">
+                      <Loader2 className="w-10 h-10 animate-spin text-indigo-600"/>
+                      <p className="text-slate-400 font-serif text-lg">Loading manuscripts...</p>
+                  </div>
               ) : sermons.length === 0 ? (
-                  <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                      <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4"/>
-                      <p className="text-gray-500">No sermons drafted yet.</p>
+                  /* Empty State */
+                  <div className="flex flex-col items-center justify-center py-20 px-6 bg-white rounded-3xl border border-dashed border-slate-200 text-center shadow-sm">
+                      <div className="bg-amber-50 p-6 rounded-full mb-6">
+                          <BookOpen className="w-12 h-12 text-amber-500" />
+                      </div>
+                      <h3 className="text-2xl font-serif font-bold text-slate-800 mb-2">The Pulpit Awaits</h3>
+                      <p className="text-slate-500 text-lg max-w-md mb-8">
+                          "Preach the word; be ready in season and out of season..." <br/> 
+                          <span className="text-sm opacity-70 italic">- 2 Timothy 4:2</span>
+                      </p>
+                      <button onClick={createNew} className="text-indigo-600 font-bold hover:underline hover:text-indigo-800 text-lg">
+                          Create your first sermon draft &rarr;
+                      </button>
                   </div>
               ) : (
-                  <div className="grid gap-4">
-                      {sermons.map(s => (
-                          <div key={s.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center group hover:shadow-md transition-shadow">
-                              <div>
-                                  <h3 className="text-xl font-bold text-gray-800 mb-1">{s.title || 'Untitled Sermon'}</h3>
-                                  <p className="text-sm text-gray-500 flex items-center gap-3">
-                                      <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-bold uppercase">{s.main_scripture || 'No Text'}</span>
-                                      {s.theme && <span className="text-gray-400">|</span>} {s.theme}
-                                  </p>
+                  /* Sermon Cards Grid */
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {sermons.map((s, idx) => (
+                          <div 
+                              key={s.id} 
+                              onClick={() => editSermon(s)}
+                              className="group relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl border border-stone-100 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col"
+                          >
+                              {/* Accent Line */}
+                              <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${idx % 2 === 0 ? 'from-indigo-400 to-violet-600' : 'from-amber-400 to-orange-500'}`}></div>
+                              
+                              <div className="pl-3 mb-4 flex justify-between items-start">
+                                  <div className="flex flex-col">
+                                     <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">
+                                        {new Date(s.created_at || Date.now()).toLocaleDateString()}
+                                     </span>
+                                     <h3 className="text-xl font-serif font-bold text-slate-800 leading-tight group-hover:text-indigo-700 transition-colors line-clamp-2">
+                                         {s.title || 'Untitled Message'}
+                                     </h3>
+                                  </div>
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                     <button 
+                                        onClick={(e) => handleDelete(s.id, e)}
+                                        className="p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                        title="Delete"
+                                     >
+                                        <Trash2 className="w-4 h-4" />
+                                     </button>
+                                  </div>
                               </div>
-                              <div className="flex gap-2">
-                                  <button onClick={() => editSermon(s)} className="p-2 text-gray-400 hover:text-primary hover:bg-blue-50 rounded-lg transition-colors">
-                                      <PenTool className="w-5 h-5" />
-                                  </button>
-                                  <button onClick={() => handleDelete(s.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                                      <Trash2 className="w-5 h-5" />
-                                  </button>
+
+                              <div className="pl-3 flex-1">
+                                  {s.main_scripture ? (
+                                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-sm font-medium border border-slate-100 mb-3">
+                                          <Book className="w-3.5 h-3.5 text-slate-400" />
+                                          {s.main_scripture}
+                                      </div>
+                                  ) : (
+                                      <div className="inline-block px-3 py-1 bg-stone-50 text-stone-400 rounded-lg text-xs italic mb-3">
+                                          No scripture set
+                                      </div>
+                                  )}
+                                  
+                                  {s.theme && (
+                                      <div className="flex items-center gap-2 text-sm text-stone-500">
+                                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                                          <span className="italic">{s.theme}</span>
+                                      </div>
+                                  )}
+                              </div>
+
+                              <div className="pl-3 pt-4 mt-4 border-t border-stone-50 flex justify-between items-center text-xs font-medium text-stone-400">
+                                   <span>
+                                       {s.main_point_1 ? 'Outline Started' : 'Drafting'}
+                                   </span>
+                                   <div className="flex items-center gap-1 group-hover:translate-x-1 transition-transform text-indigo-400">
+                                       Open <ChevronRight className="w-3.5 h-3.5" />
+                                   </div>
                               </div>
                           </div>
                       ))}
@@ -407,7 +487,7 @@ const SermonBuilder: React.FC = () => {
                 </button>
                 <button 
                     onClick={handleSave}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition-colors"
                 >
                     <Save className="w-4 h-4"/> Save
                 </button>
@@ -429,7 +509,7 @@ const SermonBuilder: React.FC = () => {
                   <div className="relative">
                     <input 
                         type="text" 
-                        className="w-full text-4xl font-serif font-bold text-gray-900 border-none border-b-2 border-gray-200 focus:border-primary focus:ring-0 px-0 py-2 placeholder-gray-300"
+                        className="w-full text-4xl font-serif font-bold text-gray-900 border-none border-b-2 border-gray-200 focus:border-indigo-600 focus:ring-0 px-0 py-2 placeholder-gray-300"
                         placeholder="e.g. Walking in the Light"
                         value={currentSermon.title}
                         onChange={e => setCurrentSermon({...currentSermon, title: e.target.value})}
@@ -446,7 +526,7 @@ const SermonBuilder: React.FC = () => {
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">2. Scripture Text</label>
                       <input 
                           type="text" 
-                          className="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-primary text-lg font-serif"
+                          className="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-indigo-600 text-lg font-serif"
                           placeholder="e.g. John 8:12"
                           value={currentSermon.main_scripture}
                           onChange={e => setCurrentSermon({...currentSermon, main_scripture: e.target.value})}
@@ -456,7 +536,7 @@ const SermonBuilder: React.FC = () => {
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Theme</label>
                       <input 
                           type="text" 
-                          className="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-primary text-lg"
+                          className="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-indigo-600 text-lg"
                           placeholder="e.g. Guidance, Hope"
                           value={currentSermon.theme}
                           onChange={e => setCurrentSermon({...currentSermon, theme: e.target.value})}
@@ -471,7 +551,7 @@ const SermonBuilder: React.FC = () => {
                   <div className="relative">
                       <textarea 
                           rows={5}
-                          className="w-full p-4 rounded-xl border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary resize-y"
+                          className="w-full p-4 rounded-xl border border-gray-200 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 resize-y"
                           placeholder="Start with a warm greeting..."
                           value={currentSermon.introduction || ''}
                           onChange={e => setCurrentSermon({...currentSermon, introduction: e.target.value})}
@@ -495,7 +575,7 @@ const SermonBuilder: React.FC = () => {
                   <div className="relative">
                       <textarea 
                           rows={4}
-                          className="w-full p-4 rounded-xl border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary resize-y bg-gray-50/50"
+                          className="w-full p-4 rounded-xl border border-gray-200 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 resize-y bg-gray-50/50"
                           placeholder="Who wrote the text? Historical context..."
                           value={currentSermon.background_context || ''}
                           onChange={e => setCurrentSermon({...currentSermon, background_context: e.target.value})}
@@ -519,7 +599,7 @@ const SermonBuilder: React.FC = () => {
                       <div className="relative">
                         <textarea 
                             rows={4}
-                            className="w-full p-4 rounded-xl border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary resize-y"
+                            className="w-full p-4 rounded-xl border border-gray-200 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 resize-y"
                             placeholder="Break down key phrases..."
                             value={currentSermon.main_point_1 || ''}
                             onChange={e => setCurrentSermon({...currentSermon, main_point_1: e.target.value})}
@@ -537,7 +617,7 @@ const SermonBuilder: React.FC = () => {
                       <div className="relative">
                         <textarea 
                             rows={4}
-                            className="w-full p-4 rounded-xl border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary resize-y"
+                            className="w-full p-4 rounded-xl border border-gray-200 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 resize-y"
                             placeholder="Connect to real-life struggles..."
                             value={currentSermon.main_point_2 || ''}
                             onChange={e => setCurrentSermon({...currentSermon, main_point_2: e.target.value})}
@@ -555,7 +635,7 @@ const SermonBuilder: React.FC = () => {
                       <div className="relative">
                         <textarea 
                             rows={4}
-                            className="w-full p-4 rounded-xl border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary resize-y"
+                            className="w-full p-4 rounded-xl border border-gray-200 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 resize-y"
                             placeholder="Challenge and inspire action..."
                             value={currentSermon.main_point_3 || ''}
                             onChange={e => setCurrentSermon({...currentSermon, main_point_3: e.target.value})}
@@ -601,7 +681,7 @@ const SermonBuilder: React.FC = () => {
                   <div className="relative">
                     <textarea 
                         rows={3}
-                        className="w-full p-4 rounded-xl border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary resize-y"
+                        className="w-full p-4 rounded-xl border border-gray-200 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 resize-y"
                         placeholder="How does Jesus fulfill this?"
                         value={currentSermon.gospel_connection || ''}
                         onChange={e => setCurrentSermon({...currentSermon, gospel_connection: e.target.value})}
@@ -621,7 +701,7 @@ const SermonBuilder: React.FC = () => {
                   <div className="relative">
                     <textarea 
                         rows={4}
-                        className="w-full p-4 rounded-xl border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary resize-y"
+                        className="w-full p-4 rounded-xl border border-gray-200 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 resize-y"
                         placeholder="Summarize and reinforce takeaway..."
                         value={currentSermon.conclusion || ''}
                         onChange={e => setCurrentSermon({...currentSermon, conclusion: e.target.value})}
@@ -639,7 +719,7 @@ const SermonBuilder: React.FC = () => {
               <div className="mb-10">
                   <div className="flex justify-between items-center mb-4">
                       <label className="block text-lg font-bold text-gray-800">11. Closing Prayer Points</label>
-                      <button onClick={() => addToList('prayer_points')} className="text-sm text-primary font-medium hover:underline flex items-center gap-1">
+                      <button onClick={() => addToList('prayer_points')} className="text-sm text-indigo-600 font-medium hover:underline flex items-center gap-1">
                           <Plus className="w-4 h-4"/> Add Point
                       </button>
                   </div>
@@ -648,7 +728,7 @@ const SermonBuilder: React.FC = () => {
                         <li key={idx} className="flex gap-2 items-center">
                             <span className="text-gray-400">•</span>
                             <input 
-                                className="flex-1 bg-gray-50 border-none rounded p-2 focus:ring-1 focus:ring-primary"
+                                className="flex-1 bg-gray-50 border-none rounded p-2 focus:ring-1 focus:ring-indigo-600"
                                 value={item}
                                 onChange={e => updateList('prayer_points', idx, e.target.value)}
                                 placeholder="Prayer focus..."

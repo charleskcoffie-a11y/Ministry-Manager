@@ -1,7 +1,11 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Book, CheckSquare, Lightbulb, Menu, X, Settings, Home, Heart, Calendar, PenTool, Music, Bell, ShieldCheck } from 'lucide-react';
+import { 
+  LayoutDashboard, Book, CheckSquare, Lightbulb, Menu, X, Settings, 
+  Home, Calendar, Music, Bell, Scroll, Flame, HeartHandshake, 
+  Church, ChevronRight 
+} from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,96 +15,171 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const location = useLocation();
 
-  // Navigation Items Config
-  const navItems = [
-    { to: '/', label: 'Home', icon: Home, showOnBottom: true },
-    { to: '/programs', label: 'Programs', icon: LayoutDashboard, showOnBottom: true },
-    { to: '/sermons', label: 'Sermon Builder', icon: PenTool, showOnBottom: true },
-    { to: '/devotion', label: 'Devotion', icon: Heart, showOnBottom: true },
-    { to: '/hymnal', label: 'Canticles & Hymns', icon: Music, showOnBottom: true },
-    { to: '/christian-calendar', label: 'Calendar', icon: Calendar, showOnBottom: false },
-    { to: '/tasks', label: 'Tasks', icon: CheckSquare, showOnBottom: false },
-    { to: '/reminders', label: 'Reminders', icon: Bell, showOnBottom: false },
-    { to: '/counseling', label: 'Counseling', icon: ShieldCheck, showOnBottom: false },
-    { to: '/standing-orders', label: 'Constitution', icon: Book, showOnBottom: false },
-    { to: '/ideas', label: 'Ideas', icon: Lightbulb, showOnBottom: false },
-    { to: '/settings', label: 'Settings', icon: Settings, showOnBottom: false },
-  ];
-
   const isActiveLink = (path: string) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
   };
 
-  const bottomTabs = navItems.filter(i => i.showOnBottom);
+  // Navigation Structure
+  const navGroups = [
+    {
+      title: 'Overview',
+      items: [
+        { to: '/', label: 'Home', icon: Home, showOnBottom: true },
+      ]
+    },
+    {
+      title: 'Pastoral Ministry',
+      items: [
+        { to: '/sermons', label: 'Sermon Builder', icon: Scroll, showOnBottom: true },
+        { to: '/devotion', label: 'Devotion', icon: Flame, showOnBottom: true },
+        { to: '/hymnal', label: 'Canticles & Hymns', icon: Music, showOnBottom: true },
+        { to: '/christian-calendar', label: 'Calendar', icon: Calendar, showOnBottom: false },
+        { to: '/counseling', label: 'Counseling', icon: HeartHandshake, showOnBottom: false },
+        { to: '/ideas', label: 'Ideas Journal', icon: Lightbulb, showOnBottom: false },
+      ]
+    },
+    {
+      title: 'Administration',
+      items: [
+        { to: '/programs', label: 'Programs', icon: LayoutDashboard, showOnBottom: true },
+        { to: '/tasks', label: 'Tasks', icon: CheckSquare, showOnBottom: false },
+        { to: '/reminders', label: 'Reminders', icon: Bell, showOnBottom: false },
+        { to: '/standing-orders', label: 'Constitution', icon: Book, showOnBottom: false },
+        { to: '/settings', label: 'Settings', icon: Settings, showOnBottom: false },
+      ]
+    }
+  ];
+
+  // Flattened items for mobile bottom bar logic
+  const bottomTabs = navGroups.flatMap(g => g.items).filter(i => i.showOnBottom).slice(0, 5); // Limit to 5 for space
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Mobile Sidebar Overlay (Drawer) */}
+    <div className="min-h-screen bg-gray-50 flex font-sans">
+      
+      {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 z-50 bg-black bg-opacity-50"
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm transition-opacity"
           onClick={() => setSidebarOpen(false)}
         ></div>
       )}
 
-      {/* Sidebar (Desktop: Static, Mobile: Drawer) */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static shadow-2xl lg:shadow-none`}>
-        <div className="h-16 flex items-center justify-between px-6 bg-slate-800 font-bold text-2xl tracking-wider">
-          <span>MINISTRY<span className="text-primary ml-1">MGR</span></span>
-          <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-2 text-slate-400 hover:text-white">
+      {/* Sidebar (Desktop & Mobile Drawer) */}
+      <aside 
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 via-[#1e1b4b] to-slate-900 text-white transform transition-transform duration-300 ease-out 
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static shadow-2xl lg:shadow-none border-r border-white/5 flex flex-col`}
+      >
+        {/* Brand Header */}
+        <div className="h-24 flex items-center px-8 border-b border-white/5 bg-white/5">
+          <div className="flex items-center gap-3">
+             <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-lg shadow-indigo-500/30 text-white">
+                <Church className="w-6 h-6" />
+             </div>
+             <div>
+                <h1 className="text-xl font-bold tracking-tight text-white leading-none">
+                  MINISTRY <span className="text-indigo-400">MGR</span>
+                </h1>
+                <p className="text-[10px] text-slate-400 font-medium tracking-widest uppercase mt-1">
+                  Pastoral Suite
+                </p>
+             </div>
+          </div>
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden ml-auto p-2 text-slate-400 hover:text-white">
             <X className="w-6 h-6" />
           </button>
         </div>
         
-        <nav className="mt-6 px-4 space-y-3 pb-24 lg:pb-0 overflow-y-auto max-h-[calc(100vh-4rem)]">
-          {navItems.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center px-5 py-4 text-lg font-medium rounded-xl transition-colors ${isActiveLink(item.to) ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
-            >
-              <item.icon className="w-6 h-6 mr-4" />
-              {item.label}
-            </Link>
+        {/* Scrollable Navigation */}
+        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-8 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+          {navGroups.map((group, idx) => (
+            <div key={idx}>
+              {group.title && (
+                <h3 className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                  {group.title}
+                  <div className="h-px bg-slate-800 flex-1"></div>
+                </h3>
+              )}
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const active = isActiveLink(item.to);
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => setSidebarOpen(false)}
+                      className={`group relative flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 
+                        ${active 
+                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-900/50 translate-x-1' 
+                          : 'text-slate-400 hover:text-slate-100 hover:bg-white/5 hover:translate-x-1'
+                        }`}
+                    >
+                      <item.icon className={`w-5 h-5 mr-3 transition-colors ${active ? 'text-white' : 'text-slate-500 group-hover:text-indigo-400'}`} />
+                      <span className="flex-1">{item.label}</span>
+                      {active && <ChevronRight className="w-4 h-4 opacity-50" />}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           ))}
         </nav>
+
+        {/* User / Footer Area */}
+        <div className="p-4 border-t border-white/5 bg-black/20">
+            <div className="flex items-center gap-3 px-2">
+                <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-bold text-white ring-2 ring-indigo-400/30">
+                    RM
+                </div>
+                <div className="overflow-hidden">
+                    <p className="text-sm font-medium text-white truncate">Rev. Minister</p>
+                    <p className="text-xs text-slate-500 truncate">North America Diocese</p>
+                </div>
+            </div>
+        </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden h-screen relative">
-        {/* Mobile Header (Title & Context) */}
-        <header className="lg:hidden h-16 bg-white shadow-sm flex items-center px-4 justify-between z-10 flex-shrink-0">
-          <span className="font-bold text-xl text-gray-800 truncate">
-             {navItems.find(i => isActiveLink(i.to))?.label || 'Ministry Manager'}
-          </span>
-          {/* We hide the hamburger here because we have the 'Menu' tab in bottom bar, 
-              but keeping it as a secondary option is fine. Let's keep it clean. */}
-          <div className="w-6"></div> 
+      <div className="flex-1 flex flex-col min-w-0 h-screen relative bg-gray-50/50">
+        
+        {/* Mobile Header */}
+        <header className="lg:hidden h-16 bg-white border-b border-gray-100 flex items-center px-4 justify-between z-10 sticky top-0">
+          <div className="flex items-center gap-2">
+              <Church className="w-6 h-6 text-indigo-600" />
+              <span className="font-bold text-lg text-gray-800">
+                Ministry Mgr
+              </span>
+          </div>
+          <button onClick={() => setSidebarOpen(true)} className="p-2 -mr-2 text-gray-500 hover:text-gray-800">
+             <Menu className="w-6 h-6" />
+          </button>
         </header>
 
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8">
-          {children}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-10 pb-24 lg:pb-10 scroll-smooth">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
         </main>
 
         {/* Mobile Bottom Navigation Bar */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 pb-[env(safe-area-inset-bottom)] flex justify-between items-center h-16 px-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-            {bottomTabs.map(item => (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 pb-[env(safe-area-inset-bottom)] flex justify-around items-center h-16 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+            {bottomTabs.map(item => {
+               const active = isActiveLink(item.to);
+               return (
                 <Link 
                     key={item.to} 
                     to={item.to} 
-                    className={`flex flex-col items-center justify-center flex-1 h-full space-y-1 active:scale-95 transition-transform ${isActiveLink(item.to) ? 'text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                    className={`flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-90 transition-transform ${active ? 'text-indigo-600' : 'text-gray-400'}`}
                 >
-                    <item.icon className={`w-6 h-6 ${isActiveLink(item.to) ? 'fill-blue-50' : ''}`} />
-                    <span className="text-[10px] font-medium leading-none">{item.label}</span>
+                    <item.icon className={`w-6 h-6 ${active ? 'fill-indigo-50' : ''}`} />
+                    <span className="text-[10px] font-medium leading-none">{item.label.split(' ')[0]}</span>
                 </Link>
-            ))}
+               );
+            })}
             
-            {/* Menu Tab to open Sidebar */}
             <button 
                 onClick={() => setSidebarOpen(true)}
-                className={`flex flex-col items-center justify-center flex-1 h-full space-y-1 active:scale-95 transition-transform ${sidebarOpen ? 'text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-90 transition-transform ${sidebarOpen ? 'text-indigo-600' : 'text-gray-400'}`}
             >
                 <Menu className="w-6 h-6" />
                 <span className="text-[10px] font-medium leading-none">Menu</span>
