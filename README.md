@@ -90,26 +90,23 @@ create table if not exists uploaded_documents (
   updated_at timestamp with time zone default now()
 );
 
--- 7. Hymns Table
-create table hymns (
-  id uuid primary key default uuid_generate_v4(),
-  number integer not null,
+-- 7. Songs (Unified Hymnal Table)
+create table songs (
+  id integer primary key, -- Explicit ID from JSON
+  collection text not null, -- MHB, CAN, CANTICLES_EN, CANTICLES_FANTE
+  code text,
+  number integer,
   title text not null,
+  raw_title text,
   lyrics text not null,
-  category text, -- e.g. "Adoration", "Sacraments"
+  author text,
+  copyright text,
+  tags text,
+  reference_number text,
   created_at timestamp with time zone default now()
 );
 
--- 8. Canticles Table
-create table canticles (
-  id uuid primary key default uuid_generate_v4(),
-  number integer not null, -- e.g. 1, 2, 3...
-  title text not null, -- e.g. "Te Deum Laudamus"
-  content text not null,
-  created_at timestamp with time zone default now()
-);
-
--- 9. Row Level Security (RLS) - Simple Public Access for Demo
+-- 8. Row Level Security (RLS) - Simple Public Access for Demo
 -- In production, replace 'true' with proper auth.uid() checks
 alter table church_programs enable row level security;
 create policy "Public access" on church_programs for all using (true);
@@ -129,38 +126,8 @@ create policy "Public access" on sermons for all using (true);
 alter table uploaded_documents enable row level security;
 create policy "Public access" on uploaded_documents for all using (true) with check (true);
 
-alter table hymns enable row level security;
-create policy "Public access" on hymns for all using (true);
-
-alter table canticles enable row level security;
-create policy "Public access" on canticles for all using (true);
-```
-
-### **Migration for Existing Database**
-If you already created the database, run this to update it:
-```sql
-create table hymns (
-  id uuid primary key default uuid_generate_v4(),
-  number integer not null,
-  title text not null,
-  lyrics text not null,
-  category text,
-  created_at timestamp with time zone default now()
-);
-
-create table canticles (
-  id uuid primary key default uuid_generate_v4(),
-  number integer not null,
-  title text not null,
-  content text not null,
-  created_at timestamp with time zone default now()
-);
-
-alter table hymns enable row level security;
-create policy "Public access" on hymns for all using (true);
-
-alter table canticles enable row level security;
-create policy "Public access" on canticles for all using (true);
+alter table songs enable row level security;
+create policy "Public access" on songs for all using (true);
 ```
 
 ## 2. Environment Variables
@@ -204,4 +171,4 @@ API_KEY=your_gemini_api_key
     *   **Document Mode:** Upload a PDF/DOCX. The app parses it, saves the JSON content to Supabase (`uploaded_documents` table), and auto-loads it on next visit.
 *   **Tasks:** Simple checklist.
 *   **Ideas:** Journals your thoughts. Click "Expand with AI" to use Gemini to generate a sermon outline from your note.
-*   **Hymnal:** Search and view Methodist Hymns and Canticles. Includes a "Load Sample Data" button to quickly populate the database with common hymns for demonstration.
+*   **Hymnal:** Search and view Methodist Hymns (MHB), Canticles, and Local Hymns (CAN). Includes a "Load Sample Data" button to quickly populate all sections for demonstration.

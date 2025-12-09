@@ -91,19 +91,18 @@ export interface Sermon {
   date_to_preach?: string;
 }
 
-export interface Hymn {
-  id: string;
-  number: number;
+// Unified Song Interface for MHB, Canticles, and CAN
+export interface Song {
+  id: number; // Using explicit integer ID from source
+  collection: 'MHB' | 'CAN' | 'CANTICLES_EN' | 'CANTICLES_FANTE' | string;
+  code: string;
+  number: number | null;
   title: string;
+  raw_title?: string;
   lyrics: string;
-  category?: string;
-  created_at?: string;
-}
-
-export interface Canticle {
-  id: string;
-  number: number;
-  title: string;
-  content: string;
+  author?: string | null;
+  copyright?: string | null;
+  tags?: string | null;
+  reference_number?: string | null;
   created_at?: string;
 }
