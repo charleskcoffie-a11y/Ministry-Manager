@@ -1,4 +1,5 @@
-import { GoogleGenAI } from "@google/genai";
+
+import { GoogleGenAI, Type } from "@google/genai";
 
 const apiKey = process.env.API_KEY || ''; 
 
@@ -147,3 +148,160 @@ calendarTag`;
       return null;
     }
   };
+
+// --- Sermon Builder Service ---
+
+export interface SermonAIResponse {
+  title: string;
+  main_scripture: string;
+  theme: string;
+  introduction: string;
+  background_context: string;
+  main_point_1: string;
+  main_point_2: string;
+  main_point_3: string;
+  application_points: string[];
+  gospel_connection: string;
+  conclusion: string;
+  prayer_points: string[];
+  altar_call: string;
+}
+
+export const generateSermonOutline = async (title: string, theme: string, scripture: string): Promise<SermonAIResponse | null> => {
+  if (!ai) {
+      console.error("API Key missing");
+      return null;
+  }
+
+  const prompt = `
+    You are a Methodist Clergy Assistant for the Methodist Church Ghana, North America Diocese.
+    Create a sermon following this specific 12-point structure.
+    
+    Inputs:
+    Title Idea: ${title}
+    Theme: ${theme}
+    Scripture: ${scripture}
+
+    Format Requirements:
+    1. Title: Short, memorable phrase.
+    2. Scripture Text: Confirm the primary passage.
+    3. Introduction: Warm greeting, state the problem/question, introduce big idea.
+    4. Background / Context: Who wrote it? To whom? Historical context.
+    5. Main Point 1 (Explain): Break down verses, definitions.
+    6. Main Point 2 (Apply): Connect to real-life struggles, stories.
+    7. Main Point 3 (Transformation): Challenge/inspire action, God's power not ours.
+    8. Practical Applications: 3-4 specific action steps.
+    9. Gospel Connection: How Jesus fulfills this text.
+    10. Conclusion: Summarize, reinforce big takeaway.
+    11. Closing Prayer: Inviting transformation.
+    12. Altar Call: Invitation to salvation or recommitment.
+
+    Tone: Pastoral, Wesleyan, Biblical, Warm.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING },
+                main_scripture: { type: Type.STRING },
+                theme: { type: Type.STRING },
+                introduction: { type: Type.STRING },
+                background_context: { type: Type.STRING },
+                main_point_1: { type: Type.STRING },
+                main_point_2: { type: Type.STRING },
+                main_point_3: { type: Type.STRING },
+                application_points: { type: Type.ARRAY, items: { type: Type.STRING } },
+                gospel_connection: { type: Type.STRING },
+                conclusion: { type: Type.STRING },
+                prayer_points: { type: Type.ARRAY, items: { type: Type.STRING } },
+                altar_call: { type: Type.STRING },
+            },
+            required: [
+                'title', 'main_scripture', 'theme', 'introduction', 'background_context', 
+                'main_point_1', 'main_point_2', 'main_point_3', 
+                'application_points', 'gospel_connection', 'conclusion', 'prayer_points', 'altar_call'
+            ]
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) return null;
+    return JSON.parse(text) as SermonAIResponse;
+  } catch (error) {
+    console.error("Sermon Gen Error", error);
+    return null;
+  }
+};
+
+/**
+ * Generates or Polishes a single section of the sermon.
+ */
+export const generateSermonSection = async (
+    title: string, 
+    theme: string, 
+    scripture: string, 
+    sectionLabel: string, 
+    currentContent: string
+): Promise<string | null> => {
+    if (!ai) return null;
+
+    let systemInstruction = '';
+    
+    if (currentContent && currentContent.length > 5) {
+        // Mode: Polish and Expand
+        systemInstruction = `
+            You are a Methodist Minister's editor. 
+            The user has drafted a section for a sermon.
+            
+            Task:
+            1. Polish the language to be more pastoral, theological, and warm.
+            2. Expand on the thought to make it a complete paragraph or section.
+            3. Ensure it aligns with Methodist doctrine (Grace, Holiness).
+            
+            Context:
+            Sermon Title: ${title}
+            Scripture: ${scripture}
+            Section: ${sectionLabel}
+            
+            Original Draft: "${currentContent}"
+            
+            Return ONLY the improved text. Do not add meta-commentary.
+        `;
+    } else {
+        // Mode: Generate from Scratch
+        systemInstruction = `
+            You are a Methodist Minister assistant.
+            Write the specific section '${sectionLabel}' for a sermon.
+            
+            Context:
+            Title: ${title}
+            Theme: ${theme}
+            Scripture: ${scripture}
+            
+            Requirements:
+            - Tone: Warm, Biblical, Encouraging.
+            - Length: 100-150 words.
+            - Focus directly on the scripture and title provided.
+            
+            Return ONLY the text for this section.
+        `;
+    }
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: systemInstruction, // Using the instruction as the prompt content for simplicity in single-turn
+        });
+        return response.text || currentContent;
+    } catch (error) {
+        console.error("Section Gen Error", error);
+        return null;
+    }
+}

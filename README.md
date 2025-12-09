@@ -1,3 +1,4 @@
+
 # Ministry Manager Web App
 
 This is a React application built with TypeScript and Tailwind CSS, using Supabase for the backend.
@@ -51,7 +52,37 @@ create table ideas (
   created_at timestamp with time zone default now()
 );
 
--- 5. Uploaded Documents (For persisting parsed Standing Orders)
+-- 5. Sermons Table
+create table sermons (
+  id uuid primary key default uuid_generate_v4(),
+  title text not null,
+  theme text,
+  main_scripture text,
+  
+  -- New 12-Point Structure Fields
+  introduction text,
+  background_context text,
+  main_point_1 text,
+  main_point_2 text,
+  main_point_3 text,
+  gospel_connection text,
+  conclusion text,
+  altar_call text,
+  
+  -- JSON Arrays
+  application_points jsonb default '[]'::jsonb,
+  prayer_points jsonb default '[]'::jsonb,
+  
+  -- Legacy
+  proposition text,
+  outline_points jsonb default '[]'::jsonb,
+  supporting_scriptures jsonb default '[]'::jsonb,
+  
+  date_to_preach date,
+  created_at timestamp with time zone default now()
+);
+
+-- 6. Uploaded Documents (For persisting parsed Standing Orders)
 create table if not exists uploaded_documents (
   id text primary key, -- We will use a fixed ID like 'standing_orders' to ensure singleton storage
   filename text,
@@ -59,7 +90,26 @@ create table if not exists uploaded_documents (
   updated_at timestamp with time zone default now()
 );
 
--- 6. Row Level Security (RLS) - Simple Public Access for Demo
+-- 7. Hymns Table
+create table hymns (
+  id uuid primary key default uuid_generate_v4(),
+  number integer not null,
+  title text not null,
+  lyrics text not null,
+  category text, -- e.g. "Adoration", "Sacraments"
+  created_at timestamp with time zone default now()
+);
+
+-- 8. Canticles Table
+create table canticles (
+  id uuid primary key default uuid_generate_v4(),
+  number integer not null, -- e.g. 1, 2, 3...
+  title text not null, -- e.g. "Te Deum Laudamus"
+  content text not null,
+  created_at timestamp with time zone default now()
+);
+
+-- 9. Row Level Security (RLS) - Simple Public Access for Demo
 -- In production, replace 'true' with proper auth.uid() checks
 alter table church_programs enable row level security;
 create policy "Public access" on church_programs for all using (true);
@@ -73,8 +123,44 @@ create policy "Public access" on tasks for all using (true);
 alter table ideas enable row level security;
 create policy "Public access" on ideas for all using (true);
 
+alter table sermons enable row level security;
+create policy "Public access" on sermons for all using (true);
+
 alter table uploaded_documents enable row level security;
 create policy "Public access" on uploaded_documents for all using (true) with check (true);
+
+alter table hymns enable row level security;
+create policy "Public access" on hymns for all using (true);
+
+alter table canticles enable row level security;
+create policy "Public access" on canticles for all using (true);
+```
+
+### **Migration for Existing Database**
+If you already created the database, run this to update it:
+```sql
+create table hymns (
+  id uuid primary key default uuid_generate_v4(),
+  number integer not null,
+  title text not null,
+  lyrics text not null,
+  category text,
+  created_at timestamp with time zone default now()
+);
+
+create table canticles (
+  id uuid primary key default uuid_generate_v4(),
+  number integer not null,
+  title text not null,
+  content text not null,
+  created_at timestamp with time zone default now()
+);
+
+alter table hymns enable row level security;
+create policy "Public access" on hymns for all using (true);
+
+alter table canticles enable row level security;
+create policy "Public access" on canticles for all using (true);
 ```
 
 ## 2. Environment Variables
@@ -112,8 +198,10 @@ API_KEY=your_gemini_api_key
 ## 4. Features & Usage
 
 *   **Programs:** Import your Excel file (Save as CSV first). The CSV headers must match: `Date`, `Activities-Description`, `Venue`, `Lead`.
+*   **Sermon Builder:** Create sermon outlines. Use the "AI Generate" button to instantly build a Methodist-themed structure from a Title and Scripture. Use the microphone icon for voice-to-text input.
 *   **Standing Orders:** 
     *   **Database Mode:** Manual entries in `standing_orders`.
     *   **Document Mode:** Upload a PDF/DOCX. The app parses it, saves the JSON content to Supabase (`uploaded_documents` table), and auto-loads it on next visit.
 *   **Tasks:** Simple checklist.
 *   **Ideas:** Journals your thoughts. Click "Expand with AI" to use Gemini to generate a sermon outline from your note.
+*   **Hymnal:** Search and view Methodist Hymns and Canticles. Includes a "Load Sample Data" button to quickly populate the database with common hymns for demonstration.

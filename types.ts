@@ -1,3 +1,4 @@
+
 export interface Program {
   id: string;
   date: string;
@@ -44,4 +45,65 @@ export interface ProgramCSV {
   "Activities-Description": string;
   Venue: string;
   Lead: string;
+}
+
+export interface Sermon {
+  id: string;
+  created_at?: string;
+  
+  // 1. Title
+  title: string;
+  
+  // 2. Scripture Text
+  main_scripture: string;
+  
+  // 3. Introduction
+  introduction: string;
+  
+  // 4. Background / Context
+  background_context: string;
+  
+  // 5, 6, 7. Main Points
+  main_point_1: string;
+  main_point_2: string;
+  main_point_3: string;
+  
+  // 8. Practical Applications
+  application_points: string[]; // Stored as JSON array
+  
+  // 9. Gospel Connection
+  gospel_connection: string;
+  
+  // 10. Conclusion
+  conclusion: string;
+  
+  // 11. Closing Prayer
+  prayer_points: string[]; // Stored as JSON array (using first item as main prayer usually)
+  
+  // 12. Altar Call
+  altar_call: string;
+
+  // Legacy/Optional fields kept for compatibility or extra metadata
+  theme: string;
+  proposition?: string;
+  outline_points?: string[];
+  supporting_scriptures?: string[];
+  date_to_preach?: string;
+}
+
+export interface Hymn {
+  id: string;
+  number: number;
+  title: string;
+  lyrics: string;
+  category?: string;
+  created_at?: string;
+}
+
+export interface Canticle {
+  id: string;
+  number: number;
+  title: string;
+  content: string;
+  created_at?: string;
 }

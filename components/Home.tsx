@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, CheckCircle2, BookOpen, Lightbulb, ArrowRight, Star, CalendarDays, AlertCircle, Loader2, MapPin } from 'lucide-react';
+import { Calendar, CheckCircle2, BookOpen, Lightbulb, ArrowRight, Star, CalendarDays, AlertCircle, Loader2, MapPin, ChevronRight } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Task } from '../types';
 import { explainStandingOrder } from '../services/geminiService';
@@ -20,16 +20,179 @@ interface DailyOrder {
     isAiGenerated?: boolean;
 }
 
+interface LiturgicalSeason {
+  name: string;
+  color: string;
+  bg: string; // Tailwind class
+  accent: string; // Tailwind class for contrast
+  definition: string;
+}
+
+// Helper: Calculate Liturgical Season
+const getSeasonForDate = (date: Date): LiturgicalSeason => {
+    const year = date.getFullYear();
+    
+    // Easter Calculation (Meeus/Jones/Butcher)
+    const f = Math.floor,
+        G = year % 19,
+        C = f(year / 100),
+        H = (C - f(C / 4) - f((8 * C + 13) / 25) + 19 * G + 15) % 30,
+        I = H - f(H / 28) * (1 - f(29 / (H + 1)) * f((21 - G) / 11)),
+        J = (year + f(year / 4) + I + 2 - C + f(C / 4)) % 7,
+        L = I - J,
+        month = 3 + f((L + 40) / 44),
+        day = L + 28 - 31 * f(month / 4);
+    const easter = new Date(year, month - 1, day);
+
+    // Key Dates
+    const christmas = new Date(year, 11, 25);
+    const epiphany = new Date(year, 0, 6);
+    
+    // Ash Wednesday is 46 days before Easter
+    const ashWednesday = new Date(easter);
+    ashWednesday.setDate(easter.getDate() - 46);
+
+    const palmSunday = new Date(easter);
+    palmSunday.setDate(easter.getDate() - 7);
+
+    const pentecost = new Date(easter);
+    pentecost.setDate(easter.getDate() + 49);
+
+    // Advent Start (Sunday nearest Nov 30, or 4th Sunday before Christmas)
+    // Simplified: 4 Sundays before Dec 25
+    const adventStart = new Date(christmas);
+    adventStart.setDate(christmas.getDate() - christmas.getDay() - 21);
+    
+    // Normalize input date to midnight for comparison
+    const current = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    // --- Logic ---
+
+    // 1. Advent
+    if (current >= adventStart && current < christmas) {
+        return { 
+            name: "Advent", 
+            color: "Violet", 
+            bg: "bg-purple-800", 
+            accent: "bg-purple-600",
+            definition: "A season of preparation and expectation." 
+        };
+    }
+
+    // 2. Christmas Season (Dec 25 - Jan 5) OR (Jan 1 - Jan 5 of current year)
+    // Note: Epiphany is Jan 6.
+    const isJanChristmas = (current.getMonth() === 0 && current.getDate() <= 5);
+    if ((current >= christmas) || isJanChristmas) {
+        return { 
+            name: "Christmas Season", 
+            color: "White", 
+            bg: "bg-yellow-600", 
+            accent: "bg-yellow-500",
+            definition: "Celebration of the birth of Christ." 
+        };
+    }
+
+    // 3. Epiphany (Jan 6)
+    if (current.getMonth() === 0 && current.getDate() === 6) {
+         return { 
+             name: "Epiphany", 
+             color: "White", 
+             bg: "bg-yellow-500", 
+             accent: "bg-yellow-400",
+             definition: "Christ revealed to the nations." 
+        };
+    }
+
+    // 4. Season after Epiphany (Jan 7 to Ash Wednesday)
+    const jan7 = new Date(year, 0, 7);
+    if (current >= jan7 && current < ashWednesday) {
+        return { 
+            name: "Season after Epiphany", 
+            color: "Green", 
+            bg: "bg-green-700", 
+            accent: "bg-green-600",
+            definition: "Focus on Christ's early ministry." 
+        };
+    }
+
+    // 5. Lent (Ash Wed to before Palm Sunday/Holy Week)
+    if (current >= ashWednesday && current < palmSunday) {
+        return { 
+            name: "Lent", 
+            color: "Violet", 
+            bg: "bg-purple-800", 
+            accent: "bg-purple-700",
+            definition: "Forty days of penitence and preparation." 
+        };
+    }
+
+    // 6. Holy Week (Palm Sunday to Holy Saturday)
+    if (current >= palmSunday && current < easter) {
+        return { 
+            name: "Holy Week", 
+            color: "Red (or Violet)", 
+            bg: "bg-red-900", 
+            accent: "bg-red-700",
+            definition: "Recalling Christ’s passion and death." 
+        };
+    }
+
+    // 7. Easter Season (Easter to Pentecost)
+    if (current >= easter && current < pentecost) {
+        return { 
+            name: "Easter Season", 
+            color: "White/Gold", 
+            bg: "bg-yellow-500", 
+            accent: "bg-yellow-400",
+            definition: "Celebrating the resurrection of Jesus." 
+        };
+    }
+
+    // 8. Pentecost Day
+    if (current.getTime() === pentecost.getTime()) {
+        return { 
+            name: "Day of Pentecost", 
+            color: "Red", 
+            bg: "bg-red-700", 
+            accent: "bg-red-600",
+            definition: "Outpouring of the Holy Spirit." 
+        };
+    }
+    
+    // 9. Ordinary Time (After Pentecost until Advent)
+    // Note: If current date is between pentecost and advent start
+    if (current > pentecost && current < adventStart) {
+        return { 
+            name: "Ordinary Time", 
+            color: "Green", 
+            bg: "bg-green-700", 
+            accent: "bg-green-600",
+            definition: "The season of growth and teaching." 
+        };
+    }
+
+    // Fallback (shouldn't be reached if logic covers full year, but safe default)
+    return { 
+        name: "Ordinary Time", 
+        color: "Green", 
+        bg: "bg-green-700", 
+        accent: "bg-green-600",
+        definition: "Walking in the light of Christ." 
+    };
+}
+
 const Home: React.FC = () => {
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [loadingHighlights, setLoadingHighlights] = useState(true);
   const [dailyOrder, setDailyOrder] = useState<DailyOrder | null>(null);
+  const [currentSeason, setCurrentSeason] = useState<LiturgicalSeason | null>(null);
 
   useEffect(() => {
     fetchRecentTasks();
     fetchHighlights();
     fetchDailyStandingOrder();
+    setCurrentSeason(getSeasonForDate(new Date()));
   }, []);
 
   const fetchRecentTasks = async () => {
@@ -216,6 +379,38 @@ const Home: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Christian Season Banner (New Feature) */}
+      {currentSeason && (
+        <Link to="/christian-calendar" className="block transform hover:scale-[1.01] transition-transform duration-300">
+            <div className={`relative overflow-hidden rounded-xl shadow-lg ${currentSeason.bg} text-white`}>
+                <div className={`absolute top-0 right-0 w-32 h-full ${currentSeason.accent} transform skew-x-12 translate-x-10 opacity-50`}></div>
+                <div className="relative p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                            <span className="text-sm font-medium opacity-90 uppercase tracking-wider">Today: {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        </div>
+                        <h2 className="text-3xl font-bold mb-2 flex items-center gap-3">
+                            {currentSeason.name}
+                        </h2>
+                        <p className="text-white/90 text-lg max-w-2xl">
+                           <span className="font-semibold opacity-75 mr-2">Season:</span>
+                           {currentSeason.definition}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-4 self-end sm:self-center">
+                        <div className="text-right hidden sm:block">
+                            <span className="block text-xs uppercase opacity-75 font-bold">Liturgical Colour</span>
+                            <span className="text-xl font-bold">{currentSeason.color}</span>
+                        </div>
+                        <div className="bg-white/20 p-2 rounded-full">
+                            <ChevronRight className="w-6 h-6 text-white" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Link>
+      )}
 
       {/* Quick Links Grid */}
       <div>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
@@ -8,6 +9,9 @@ import TaskManager from './components/TaskManager';
 import IdeasJournal from './components/IdeasJournal';
 import Settings from './components/Settings';
 import Devotion from './components/Devotion';
+import ChristianCalendar from './components/ChristianCalendar';
+import SermonBuilder from './components/SermonBuilder';
+import Hymnal from './components/Hymnal';
 
 const App: React.FC = () => {
   return (
@@ -24,8 +28,23 @@ const App: React.FC = () => {
         />
 
         <Route 
+          path="/sermons" 
+          element={<Layout><SermonBuilder /></Layout>} 
+        />
+
+        <Route 
           path="/devotion" 
           element={<Layout><Devotion /></Layout>} 
+        />
+
+        <Route 
+          path="/hymnal" 
+          element={<Layout><Hymnal /></Layout>} 
+        />
+
+        <Route 
+          path="/christian-calendar" 
+          element={<Layout><ChristianCalendar /></Layout>} 
         />
 
         <Route 
