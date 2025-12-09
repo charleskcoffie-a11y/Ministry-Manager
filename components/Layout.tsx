@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Book, CheckSquare, Lightbulb, Menu, X, Settings, Home, Heart, Calendar, PenTool, Music } from 'lucide-react';
+import { LayoutDashboard, Book, CheckSquare, Lightbulb, Menu, X, Settings, Home, Heart, Calendar, PenTool, Music, Bell, ShieldCheck } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -20,6 +20,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { to: '/hymnal', label: 'Canticles & Hymns', icon: Music, showOnBottom: true },
     { to: '/christian-calendar', label: 'Calendar', icon: Calendar, showOnBottom: false },
     { to: '/tasks', label: 'Tasks', icon: CheckSquare, showOnBottom: false },
+    { to: '/reminders', label: 'Reminders', icon: Bell, showOnBottom: false },
+    { to: '/counseling', label: 'Counseling', icon: ShieldCheck, showOnBottom: false },
     { to: '/standing-orders', label: 'Constitution', icon: Book, showOnBottom: false },
     { to: '/ideas', label: 'Ideas', icon: Lightbulb, showOnBottom: false },
     { to: '/settings', label: 'Settings', icon: Settings, showOnBottom: false },

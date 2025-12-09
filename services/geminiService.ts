@@ -305,3 +305,72 @@ export const generateSermonSection = async (
         return null;
     }
 }
+
+// --- NEW: Pastoral Reminder Suggestions ---
+
+export interface ReminderSuggestion {
+  title: string;
+  category: 'Sermon Preparation' | 'Visitation' | 'Counseling' | 'Prayer & Fasting' | 'Meeting' | 'Personal Devotion' | 'Other';
+  frequency: 'One-time' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+  start_date: string;
+  notes: string;
+}
+
+export const suggestPastoralReminders = async (contextData: string): Promise<ReminderSuggestion[]> => {
+  if (!ai) return [];
+
+  const prompt = `
+    You are a specialized pastoral assistant for a Methodist Minister.
+    Analyze the following schedule and tasks summary.
+    Suggest 3-5 specific, high-value pastoral reminders that might be missing or helpful.
+    
+    Focus on:
+    1. Sermon Preparation (needs lead time before Sunday).
+    2. Follow-ups for counseling or visitations mentioned in tasks.
+    3. Spiritual discipline (Prayer & Fasting days).
+    4. Personal devotion time.
+
+    Current Context:
+    ${contextData}
+
+    Return a JSON array of objects with the following schema:
+    {
+       title: string,
+       category: "Sermon Preparation" | "Visitation" | "Counseling" | "Prayer & Fasting" | "Meeting" | "Personal Devotion" | "Other",
+       frequency: "One-time" | "Daily" | "Weekly" | "Monthly" | "Yearly",
+       start_date: string (ISO date format YYYY-MM-DDTHH:MM),
+       notes: string (brief explanation of why this is suggested)
+    }
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+           type: Type.ARRAY,
+           items: {
+             type: Type.OBJECT,
+             properties: {
+               title: { type: Type.STRING },
+               category: { type: Type.STRING },
+               frequency: { type: Type.STRING },
+               start_date: { type: Type.STRING },
+               notes: { type: Type.STRING }
+             },
+             required: ['title', 'category', 'frequency', 'start_date', 'notes']
+           }
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) return [];
+    return JSON.parse(text) as ReminderSuggestion[];
+  } catch (error) {
+    console.error("Reminder Suggestion Error", error);
+    return [];
+  }
+};

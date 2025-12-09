@@ -6,6 +6,8 @@ import Home from './components/Home';
 import ProgramManager from './components/ProgramManager';
 import StandingOrders from './components/StandingOrders';
 import TaskManager from './components/TaskManager';
+import ReminderSystem from './components/ReminderSystem';
+import CounselingManager from './components/CounselingManager';
 import IdeasJournal from './components/IdeasJournal';
 import Settings from './components/Settings';
 import Devotion from './components/Devotion';
@@ -55,6 +57,16 @@ const App: React.FC = () => {
         <Route 
           path="/tasks" 
           element={<Layout><TaskManager /></Layout>} 
+        />
+
+        <Route 
+          path="/reminders" 
+          element={<Layout><ReminderSystem /></Layout>} 
+        />
+        
+        <Route 
+          path="/counseling" 
+          element={<Layout><CounselingManager /></Layout>} 
         />
         
         <Route 

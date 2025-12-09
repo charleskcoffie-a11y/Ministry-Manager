@@ -17,14 +17,60 @@ export interface StandingOrder {
   created_at?: string;
 }
 
+export type TaskCategory = 'Preaching' | 'Visitation' | 'Counseling' | 'Administration' | 'Prayer' | 'Bible Study' | 'Other';
+export type TaskPriority = 'Low' | 'Medium' | 'High' | 'Critical';
+export type TaskStatus = 'Pending' | 'In Progress' | 'Completed';
+
 export interface Task {
   id: string;
-  task_date: string;
-  message: string;
-  is_completed: boolean;
+  title: string;       // Replaces 'message' conceptually
+  category: TaskCategory;
+  description?: string;
+  task_date: string;   // Due date
+  priority: TaskPriority;
+  status: TaskStatus;
+  
+  // Legacy fields kept for compatibility during migration
+  message?: string; 
+  is_completed?: boolean; 
+  
   completed_at?: string | null;
   created_at?: string;
 }
+
+// --- NEW REMINDER TYPES ---
+export type ReminderCategory = 'Sermon Preparation' | 'Visitation' | 'Counseling' | 'Prayer & Fasting' | 'Meeting' | 'Personal Devotion' | 'Other';
+export type ReminderFrequency = 'One-time' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+
+export interface Reminder {
+  id: string;
+  title: string;
+  category: ReminderCategory;
+  frequency: ReminderFrequency;
+  start_date: string; // ISO string (YYYY-MM-DDTHH:mm)
+  notes?: string;
+  is_active: boolean;
+  created_at?: string;
+}
+
+// --- COUNSELING TYPES ---
+export type CaseType = 'Marriage' | 'Family' | 'Addiction' | 'Youth' | 'Bereavement' | 'Spiritual' | 'Other';
+export type CounselingStatus = 'Open' | 'In Progress' | 'Closed';
+
+export interface CounselingSession {
+  id: string;
+  initials: string;
+  case_type: CaseType;
+  summary: string;
+  key_issues?: string;
+  scriptures_used?: string;
+  action_steps?: string;
+  prayer_points?: string;
+  follow_up_date?: string; // ISO string
+  status: CounselingStatus;
+  created_at?: string;
+}
+// --------------------------
 
 export interface Idea {
   id: string;

@@ -33,17 +33,56 @@ create table standing_orders (
   created_at timestamp with time zone default now()
 );
 
--- 3. Tasks Table
-create table tasks (
+-- 3. Tasks Table (Updated for Pastoral Tracker)
+-- Drop table if it already exists
+DROP TABLE IF EXISTS tasks CASCADE;
+
+-- Recreate table
+CREATE TABLE tasks (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title text, -- The main task name
+  category text DEFAULT 'Other', -- Preaching, Visitation, Counseling, etc.
+  description text,
+  task_date date NOT NULL, -- Due Date
+  priority text DEFAULT 'Medium', -- Low, Medium, High, Critical
+  status text DEFAULT 'Pending', -- Pending, In Progress, Completed
+  
+  -- Legacy fields for backward compatibility
+  message text, 
+  is_completed boolean DEFAULT false, 
+  
+  completed_at timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+
+-- 4. Reminders Table (New)
+create table reminders (
   id uuid primary key default uuid_generate_v4(),
-  task_date date not null,
-  message text not null,
-  is_completed boolean default false,
-  completed_at timestamp with time zone,
+  title text not null,
+  category text not null, -- Sermon Prep, Visitation, etc.
+  frequency text not null, -- One-time, Daily, Weekly, Monthly, Yearly
+  start_date timestamp with time zone not null,
+  notes text,
+  is_active boolean default true,
   created_at timestamp with time zone default now()
 );
 
--- 4. Ideas Table
+-- 5. Counseling Sessions Table (New - Confidential)
+create table counseling_sessions (
+  id uuid primary key default uuid_generate_v4(),
+  initials text not null,
+  case_type text not null, -- Marriage, Family, etc.
+  summary text,
+  key_issues text,
+  scriptures_used text,
+  action_steps text,
+  prayer_points text,
+  follow_up_date timestamp with time zone,
+  status text default 'Open',
+  created_at timestamp with time zone default now()
+);
+
+-- 6. Ideas Table
 create table ideas (
   id uuid primary key default uuid_generate_v4(),
   idea_date date not null,
@@ -52,7 +91,7 @@ create table ideas (
   created_at timestamp with time zone default now()
 );
 
--- 5. Sermons Table
+-- 7. Sermons Table
 create table sermons (
   id uuid primary key default uuid_generate_v4(),
   title text not null,
@@ -82,7 +121,7 @@ create table sermons (
   created_at timestamp with time zone default now()
 );
 
--- 6. Uploaded Documents (For persisting parsed Standing Orders)
+-- 8. Uploaded Documents (For persisting parsed Standing Orders)
 create table if not exists uploaded_documents (
   id text primary key, -- We will use a fixed ID like 'standing_orders' to ensure singleton storage
   filename text,
@@ -90,7 +129,7 @@ create table if not exists uploaded_documents (
   updated_at timestamp with time zone default now()
 );
 
--- 7. Songs (Unified Hymnal Table)
+-- 9. Songs (Unified Hymnal Table)
 create table songs (
   id integer primary key, -- Explicit ID from JSON
   collection text not null, -- MHB, CAN, CANTICLES_EN, CANTICLES_FANTE
@@ -106,7 +145,7 @@ create table songs (
   created_at timestamp with time zone default now()
 );
 
--- 8. Row Level Security (RLS) - Simple Public Access for Demo
+-- 10. Row Level Security (RLS) - Simple Public Access for Demo
 -- In production, replace 'true' with proper auth.uid() checks
 alter table church_programs enable row level security;
 create policy "Public access" on church_programs for all using (true);
@@ -116,6 +155,12 @@ create policy "Public access" on standing_orders for all using (true);
 
 alter table tasks enable row level security;
 create policy "Public access" on tasks for all using (true);
+
+alter table reminders enable row level security;
+create policy "Public access" on reminders for all using (true);
+
+alter table counseling_sessions enable row level security;
+create policy "Public access" on counseling_sessions for all using (true);
 
 alter table ideas enable row level security;
 create policy "Public access" on ideas for all using (true);
@@ -161,14 +206,3 @@ API_KEY=your_gemini_api_key
 
 1.  `npm install`
 2.  `npm start` (or `npm run dev`)
-
-## 4. Features & Usage
-
-*   **Programs:** Import your Excel file (Save as CSV first). The CSV headers must match: `Date`, `Activities-Description`, `Venue`, `Lead`.
-*   **Sermon Builder:** Create sermon outlines. Use the "AI Generate" button to instantly build a Methodist-themed structure from a Title and Scripture. Use the microphone icon for voice-to-text input.
-*   **Standing Orders:** 
-    *   **Database Mode:** Manual entries in `standing_orders`.
-    *   **Document Mode:** Upload a PDF/DOCX. The app parses it, saves the JSON content to Supabase (`uploaded_documents` table), and auto-loads it on next visit.
-*   **Tasks:** Simple checklist.
-*   **Ideas:** Journals your thoughts. Click "Expand with AI" to use Gemini to generate a sermon outline from your note.
-*   **Hymnal:** Search and view Methodist Hymns (MHB), Canticles, and Local Hymns (CAN). Includes a "Load Sample Data" button to quickly populate all sections for demonstration.
