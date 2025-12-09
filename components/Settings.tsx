@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { Settings as SettingsIcon, CheckCircle2, XCircle, Loader2, Database, ShieldAlert, Upload, FileJson, Trash2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Settings as SettingsIcon, CheckCircle2, XCircle, Loader2, Database, ShieldAlert, Upload, FileJson, Trash2, AlertTriangle, Play, FileText, RefreshCw } from 'lucide-react';
 
 const Settings: React.FC = () => {
   // Connection Test State
@@ -9,6 +9,7 @@ const Settings: React.FC = () => {
   const [message, setMessage] = useState('');
 
   // Import State
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [importStatusText, setImportStatusText] = useState(''); 
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
@@ -57,25 +58,31 @@ const Settings: React.FC = () => {
     }
   };
 
-  // --- Song Import Logic ---
-  const handleSongImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // --- File Selection ---
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          if (file.type !== "application/json" && !file.name.endsWith('.json')) {
+              alert("Please select a valid .json file");
+              return;
+          }
+          setSelectedFile(file);
+          setImportResult(null); 
+          setImportStatusText('File ready to process.');
+          e.target.value = ''; // Reset input to allow re-selecting same file if needed
+      }
+  };
 
-    // Reset previous results
-    setImportResult(null);
-    setImportStatusText('Initializing import...');
-
-    if (!confirm(`Are you sure you want to import "${file.name}"? This will add or update songs.`)) {
-        e.target.value = '';
-        return;
-    }
+  // --- Execution Logic ---
+  const startImport = async () => {
+    if (!selectedFile) return;
 
     setImporting(true);
     setImportProgress({ current: 0, total: 0 });
     setImportStatusText('Reading file...');
 
     const reader = new FileReader();
+    
     reader.onload = async (event) => {
       try {
         const text = event.target?.result as string;
@@ -85,24 +92,31 @@ const Settings: React.FC = () => {
         try {
             json = JSON.parse(text);
         } catch (e) {
-            setImportStatusText('Error: Invalid JSON file');
-            alert("Invalid JSON file.");
+            setImportStatusText('Error: Invalid JSON syntax');
+            alert("The file contains invalid JSON.");
             setImporting(false);
             return;
         }
 
         if (!Array.isArray(json)) {
-            setImportStatusText('Error: JSON is not an array');
+            setImportStatusText('Error: Root must be an array');
             alert("JSON must be an array of song objects.");
             setImporting(false);
             return;
         }
 
+        // --- PRE-FLIGHT CHECK ---
+        setImportStatusText('Checking database connection...');
+        const { error: tableCheck } = await supabase.from('songs').select('id').limit(1);
+        if (tableCheck && tableCheck.code === '42P01') {
+             throw new Error("The 'songs' table does not exist. Please run the SQL script first.");
+        }
+
         const total = json.length;
         setImportProgress({ current: 0, total });
-        setImportStatusText(`Found ${total} songs. Starting upload...`);
+        setImportStatusText(`Preparing to upload ${total} songs...`);
 
-        // Batch insert to prevent timeouts
+        // Batch insert
         const BATCH_SIZE = 50;
         let successCount = 0;
         let errorCount = 0;
@@ -113,7 +127,7 @@ const Settings: React.FC = () => {
             setImportStatusText(`Uploading batch ${batchNum} of ${totalBatches}...`);
 
             const batch = json.slice(i, i + BATCH_SIZE).map((s: any) => ({
-                id: s.id, // Ensure ID is mapped if present
+                id: s.id, 
                 collection: s.collection,
                 code: s.code,
                 number: s.number,
@@ -131,7 +145,10 @@ const Settings: React.FC = () => {
             if (error) {
                 console.error('Batch import error:', error);
                 errorCount += batch.length;
-                setImportStatusText(`Batch ${batchNum} failed. Retrying next...`);
+                // If it's a table error, stop completely
+                if (error.code === '42P01') {
+                    throw new Error("Songs table missing. Stopping import.");
+                }
             } else {
                 successCount += batch.length;
             }
@@ -141,23 +158,22 @@ const Settings: React.FC = () => {
 
         setImportResult({ success: successCount, failed: errorCount });
         setImportStatusText('Import complete!');
+        setSelectedFile(null); // Clear selection on success
 
       } catch (err: any) {
-        setImportStatusText('Critical Error: ' + err.message);
-        alert('Error parsing or uploading: ' + err.message);
+        setImportStatusText('Error: ' + err.message);
+        alert('Import failed: ' + err.message);
       } finally {
         setImporting(false);
-        e.target.value = ''; // Reset input
       }
     };
     
     reader.onerror = () => {
-        setImportStatusText('Failed to read file.');
+        setImportStatusText('Failed to read file from disk.');
         setImporting(false);
-        e.target.value = '';
     };
     
-    reader.readAsText(file);
+    reader.readAsText(selectedFile);
   };
 
   const clearSongs = async () => {
@@ -173,7 +189,7 @@ const Settings: React.FC = () => {
           setImportStatusText('Error clearing table');
       } else {
           setImportStatusText('Database cleared.');
-          setImportResult(null); // Clear previous results
+          setImportResult(null); 
       }
       
       setImporting(false);
@@ -260,7 +276,7 @@ const Settings: React.FC = () => {
         <div className="space-y-6">
             <div className="bg-orange-50 border border-orange-100 rounded-lg p-6">
                 <h3 className="text-lg font-bold text-orange-900 mb-2">Import Songs Database</h3>
-                <p className="text-orange-800 mb-4 text-base">
+                <p className="text-orange-800 mb-6 text-base">
                     Upload the <code className="bg-white px-1 py-0.5 rounded border border-orange-200">methodist_songs_flat.json</code> file here to populate the Hymnal section. 
                 </p>
 
@@ -281,19 +297,55 @@ const Settings: React.FC = () => {
                 )}
 
                 <div className="flex flex-col gap-4">
-                    {!importing ? (
+                    {/* State 1: Selection Mode */}
+                    {!importing && !selectedFile && (
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             <label className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 shadow-sm font-medium transition-colors">
                                 <Upload className="w-5 h-5 text-gray-600"/>
                                 <span>Select JSON File...</span>
-                                <input type="file" accept=".json" onChange={handleSongImport} className="hidden" />
+                                <input type="file" accept=".json" onChange={handleFileSelect} className="hidden" />
                             </label>
                             
                             <button onClick={clearSongs} className="flex items-center gap-2 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100">
                                 <Trash2 className="w-5 h-5"/> Clear All Songs
                             </button>
                         </div>
-                    ) : (
+                    )}
+
+                    {/* State 2: Ready to Import */}
+                    {!importing && selectedFile && (
+                        <div className="bg-white p-4 rounded-lg border border-blue-200 animate-fade-in">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <FileText className="w-8 h-8 text-blue-500"/>
+                                    <div>
+                                        <p className="font-bold text-gray-800">{selectedFile.name}</p>
+                                        <p className="text-sm text-gray-500">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setSelectedFile(null)} className="text-gray-400 hover:text-red-500">
+                                    <Trash2 className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={startImport}
+                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors shadow-sm"
+                                >
+                                    <Play className="w-5 h-5 fill-white"/> Start Import
+                                </button>
+                                <button 
+                                    onClick={() => setSelectedFile(null)}
+                                    className="px-6 py-3 bg-white text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* State 3: Importing */}
+                    {importing && (
                         <div className="space-y-3 bg-white p-4 rounded-lg border border-orange-200">
                             <div className="flex items-center justify-between text-orange-800 font-medium">
                                 <div className="flex items-center gap-3">
