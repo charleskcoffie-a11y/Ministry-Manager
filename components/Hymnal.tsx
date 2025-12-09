@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Song } from '../types';
-import { Search, Music, BookOpen, ChevronRight, ArrowLeft, Loader2, Database, ZoomIn, ZoomOut, Globe, List, X, AlertCircle, PlayCircle } from 'lucide-react';
+import { Search, Music, BookOpen, ChevronRight, ArrowLeft, Loader2, Database, ZoomIn, ZoomOut, Globe, List, X, AlertCircle, PlayCircle, Star, Heart } from 'lucide-react';
 
 // --- Helper: Lyric Cleaner ---
 const cleanLyrics = (raw: string | undefined | null): string => {
@@ -75,7 +76,7 @@ const getCollectionStyle = (collection: string) => {
 };
 
 const Hymnal: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'hymns' | 'canticles' | 'can' | 'all'>('hymns');
+  const [activeTab, setActiveTab] = useState<'hymns' | 'canticles' | 'can' | 'all' | 'favorites'>('hymns');
   const [searchQuery, setSearchQuery] = useState('');
   
   const [songs, setSongs] = useState<Song[]>([]);
@@ -84,6 +85,9 @@ const Hymnal: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<Song | null>(null);
   const [fontSize, setFontSize] = useState(20);
+
+  // Toast State
+  const [toast, setToast] = useState<{message: string, visible: boolean}>({ message: '', visible: false });
 
   useEffect(() => {
     fetchData();
@@ -102,11 +106,14 @@ const Hymnal: React.FC = () => {
     } else if (activeTab === 'can') {
         collections = ['CAN', 'LOCAL', 'GHANA'];
     }
+    // 'all' and 'favorites' don't use the 'in' filter on collection
 
     try {
         let query = supabase.from('songs').select('*');
         
-        if (activeTab !== 'all') {
+        if (activeTab === 'favorites') {
+            query = query.eq('is_favorite', true);
+        } else if (activeTab !== 'all') {
             query = query.in('collection', collections);
         }
         
@@ -141,6 +148,51 @@ const Hymnal: React.FC = () => {
 
   const filteredItems = getFilteredItems();
 
+  const showToast = (msg: string) => {
+    setToast({ message: msg, visible: true });
+    setTimeout(() => setToast({ ...toast, visible: false }), 2000);
+  };
+
+  const toggleFavorite = async (e: React.MouseEvent, song: Song) => {
+    e.stopPropagation(); // Prevent opening song details
+    
+    const newStatus = !song.is_favorite;
+
+    // 1. Optimistic Update (Local State)
+    const updatedSongs = songs.map(s => 
+        s.id === song.id ? { ...s, is_favorite: newStatus } : s
+    );
+    
+    // If we are in "Favorites" tab and unstarring, remove it from view
+    if (activeTab === 'favorites' && !newStatus) {
+        setSongs(songs.filter(s => s.id !== song.id));
+    } else {
+        setSongs(updatedSongs);
+    }
+    
+    if (selectedItem?.id === song.id) {
+        setSelectedItem({ ...selectedItem, is_favorite: newStatus });
+    }
+
+    // 2. Feedback
+    showToast(newStatus ? "Added to Favorites" : "Removed from Favorites");
+
+    // 3. Database Update
+    try {
+        const { error } = await supabase
+            .from('songs')
+            .update({ is_favorite: newStatus })
+            .eq('id', song.id);
+            
+        if (error) throw error;
+    } catch (err) {
+        console.error("Error updating favorite:", err);
+        // Revert optimistic update on error
+        setSongs(songs);
+        showToast("Error updating favorite");
+    }
+  };
+
   const seedDatabase = async () => {
       setLoading(true);
       setErrorMsg(null);
@@ -149,22 +201,26 @@ const Hymnal: React.FC = () => {
           { 
               id: 4130, collection: "MHB", code: "MHB1", number: 1, 
               title: "O for a thousand tongues to sing", 
-              lyrics: "O for a thousand tongues to sing\nMy great Redeemer's praise,\nThe glories of my God and King,\nThe triumphs of His grace!\n\nMy gracious Master and my God,\nAssist me to proclaim,\nTo spread through all the earth abroad\nThe honours of Thy name."
+              lyrics: "O for a thousand tongues to sing\nMy great Redeemer's praise,\nThe glories of my God and King,\nThe triumphs of His grace!\n\nMy gracious Master and my God,\nAssist me to proclaim,\nTo spread through all the earth abroad\nThe honours of Thy name.",
+              is_favorite: false
           },
           { 
               id: 4200, collection: "MHB", code: "MHB242", number: 242, 
               title: "And Can It Be", 
-              lyrics: "And can it be that I should gain\nAn interest in the Savior's blood?\nDied He for me, who caused His pain—\nFor me, who Him to death pursued?\nAmazing love! How can it be,\nThat Thou, my God, shouldst die for me?" 
+              lyrics: "And can it be that I should gain\nAn interest in the Savior's blood?\nDied He for me, who caused His pain—\nFor me, who Him to death pursued?\nAmazing love! How can it be,\nThat Thou, my God, shouldst die for me?",
+              is_favorite: true 
           },
           { 
               id: 5001, collection: "CANTICLES_EN", code: "CANT1", number: 1, 
               title: "Te Deum Laudamus", 
-              lyrics: "We praise You, O God; we acknowledge You to be the Lord.\nAll the earth worships You, the Father everlasting.\nTo You all Angels cry aloud; the Heavens and all the Powers therein." 
+              lyrics: "We praise You, O God; we acknowledge You to be the Lord.\nAll the earth worships You, the Father everlasting.\nTo You all Angels cry aloud; the Heavens and all the Powers therein.",
+              is_favorite: false 
           },
           { 
               id: 6001, collection: "CAN", code: "CAN1", number: 1, 
               title: "Dɛn na memfa nyi me Nyame ayɛ", 
-              lyrics: "Dɛn na memfa nyi me Nyame ayɛ\nMe Pomfo kɛse no,\nMe Nyame na me Hene, n’enyimnyam,\nNa n’adom nkonim no!" 
+              lyrics: "Dɛn na memfa nyi me Nyame ayɛ\nMe Pomfo kɛse no,\nMe Nyame na me Hene, n’enyimnyam,\nNa n’adom nkonim no!",
+              is_favorite: false 
           }
       ];
 
@@ -189,7 +245,7 @@ const Hymnal: React.FC = () => {
     <button 
         onClick={() => { setActiveTab(id as any); setSearchQuery(''); }}
         className={`
-            relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-full text-sm font-bold transition-all duration-300
+            relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap
             ${activeTab === id 
                 ? `${colorClass} text-white shadow-md transform scale-100` 
                 : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-100 hover:scale-[1.02]'
@@ -215,10 +271,21 @@ const Hymnal: React.FC = () => {
                       <ArrowLeft className="w-4 h-4" /> Back
                   </button>
                   
-                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-full border border-gray-200">
-                      <button onClick={() => setFontSize(Math.max(14, fontSize - 2))} className="p-2 hover:bg-white rounded-full text-slate-600 transition-all"><ZoomOut className="w-4 h-4"/></button>
-                      <span className="text-xs font-bold w-8 text-center text-slate-500">{fontSize}</span>
-                      <button onClick={() => setFontSize(Math.min(48, fontSize + 2))} className="p-2 hover:bg-white rounded-full text-slate-600 transition-all"><ZoomIn className="w-4 h-4"/></button>
+                  <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-full border border-gray-200 mr-2">
+                          <button onClick={() => setFontSize(Math.max(14, fontSize - 2))} className="p-2 hover:bg-white rounded-full text-slate-600 transition-all"><ZoomOut className="w-4 h-4"/></button>
+                          <span className="text-xs font-bold w-8 text-center text-slate-500">{fontSize}</span>
+                          <button onClick={() => setFontSize(Math.min(48, fontSize + 2))} className="p-2 hover:bg-white rounded-full text-slate-600 transition-all"><ZoomIn className="w-4 h-4"/></button>
+                      </div>
+
+                      <button 
+                        onClick={(e) => toggleFavorite(e, selectedItem)}
+                        className={`p-2.5 rounded-full transition-all border ${selectedItem.is_favorite 
+                            ? 'bg-amber-50 text-amber-500 border-amber-200 shadow-sm' 
+                            : 'bg-white text-slate-400 border-gray-200 hover:text-slate-600'}`}
+                      >
+                         <Star className={`w-5 h-5 ${selectedItem.is_favorite ? 'fill-amber-500' : ''}`} />
+                      </button>
                   </div>
               </div>
 
@@ -265,6 +332,14 @@ const Hymnal: React.FC = () => {
                       )}
                   </div>
               </div>
+
+               {/* Toast */}
+                <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ${toast.visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                    <div className="bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 font-medium text-sm">
+                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                        {toast.message}
+                    </div>
+                </div>
           </div>
       )
   }
@@ -305,7 +380,8 @@ const Hymnal: React.FC = () => {
           <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-4">
               <div className="max-w-5xl mx-auto space-y-4">
                   {/* Tabs */}
-                  <div className="flex gap-2 p-1 bg-gray-50 rounded-full border border-gray-100 overflow-x-auto">
+                  <div className="flex gap-2 p-1 bg-gray-50 rounded-full border border-gray-100 overflow-x-auto scrollbar-hide">
+                      <TabButton id="favorites" label="Favorites" icon={Star} colorClass="bg-gradient-to-r from-amber-500 to-yellow-600" />
                       <TabButton id="hymns" label="MHB" icon={BookOpen} colorClass="bg-gradient-to-r from-blue-600 to-indigo-600" />
                       <TabButton id="canticles" label="Canticles" icon={PlayCircle} colorClass="bg-gradient-to-r from-purple-600 to-fuchsia-600" />
                       <TabButton id="can" label="CAN / Local" icon={Globe} colorClass="bg-gradient-to-r from-teal-500 to-emerald-600" />
@@ -361,10 +437,14 @@ const Hymnal: React.FC = () => {
               ) : filteredItems.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-64 text-center px-4">
                       <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                          <Music className="w-8 h-8 text-slate-300" />
+                          {activeTab === 'favorites' ? <Star className="w-8 h-8 text-slate-300" /> : <Music className="w-8 h-8 text-slate-300" />}
                       </div>
-                      <h3 className="text-lg font-bold text-slate-700 mb-1">No songs found</h3>
-                      <p className="text-slate-500 text-sm">Try searching for something else.</p>
+                      <h3 className="text-lg font-bold text-slate-700 mb-1">
+                          {activeTab === 'favorites' ? 'No favorites yet' : 'No songs found'}
+                      </h3>
+                      <p className="text-slate-500 text-sm">
+                          {activeTab === 'favorites' ? 'Star songs to see them here.' : 'Try searching for something else.'}
+                      </p>
                   </div>
               ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-12">
@@ -374,7 +454,7 @@ const Hymnal: React.FC = () => {
                               <div 
                                 key={item.id} 
                                 onClick={() => setSelectedItem(item)}
-                                className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-100 hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex items-start gap-4"
+                                className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-100 hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex items-start gap-4 relative"
                               >
                                   {/* Left: Gradient Badge */}
                                   <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${styles.gradient} text-white shadow-md flex flex-col items-center justify-center flex-shrink-0`}>
@@ -387,7 +467,7 @@ const Hymnal: React.FC = () => {
                                   </div>
 
                                   {/* Center: Info */}
-                                  <div className="flex-1 min-w-0 py-0.5">
+                                  <div className="flex-1 min-w-0 py-0.5 pr-8">
                                       <h3 className={`text-base font-semibold text-gray-800 group-hover:${styles.text} transition-colors truncate mb-1`}>
                                           {item.title}
                                       </h3>
@@ -398,12 +478,17 @@ const Hymnal: React.FC = () => {
                                       )}
                                   </div>
 
-                                  {/* Right: Chevron */}
-                                  <div className="self-center">
-                                      <div className="w-8 h-8 rounded-full bg-gray-50 group-hover:bg-gray-100 flex items-center justify-center transition-colors">
-                                          <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500" />
-                                      </div>
-                                  </div>
+                                  {/* Star Button */}
+                                  <button 
+                                      onClick={(e) => toggleFavorite(e, item)}
+                                      className={`absolute top-4 right-4 p-1.5 rounded-full transition-colors z-10 
+                                        ${item.is_favorite 
+                                            ? 'text-amber-400 hover:bg-amber-50' 
+                                            : 'text-gray-200 hover:text-amber-400 hover:bg-gray-50'
+                                        }`}
+                                  >
+                                      <Star className={`w-5 h-5 ${item.is_favorite ? 'fill-amber-400' : ''}`} />
+                                  </button>
                               </div>
                           );
                       })}
@@ -411,6 +496,15 @@ const Hymnal: React.FC = () => {
               )}
           </div>
       </div>
+
+       {/* Toast */}
+        <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ${toast.visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+            <div className="bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 font-medium text-sm">
+                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                {toast.message}
+            </div>
+        </div>
+
     </div>
   );
 };

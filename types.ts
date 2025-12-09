@@ -150,5 +150,6 @@ export interface Song {
   copyright?: string | null;
   tags?: string | null;
   reference_number?: string | null;
+  is_favorite?: boolean; // New field for favorites
   created_at?: string;
 }
