@@ -14,6 +14,7 @@ export interface StandingOrder {
   title: string;
   content: string;
   tags?: string[];
+  is_favorite?: boolean; // New field
   created_at?: string;
 }
 
