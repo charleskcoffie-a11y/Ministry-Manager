@@ -226,6 +226,51 @@ export interface SermonNote {
   points?: SermonPoint[];
 }
 
+// --- MEETING MINUTES ---
+
+export interface MeetingAgendaItem {
+  number: number;
+  topic: string;
+  discussionNotes: string;
+}
+
+export interface MeetingActionItem {
+  task: string;
+  personResponsible: string;
+  dueDate: string;
+  notes: string;
+}
+
+export interface MeetingMinutesData {
+  id?: string;
+  meetingTitle: string;
+  meetingDatetime: string;
+  facilitator: string;
+  attendees: string;
+  
+  // Structured JSON Fields
+  meetingType: {
+    value: 'Diocesan' | 'Circuit' | 'Society' | 'Other' | string;
+    other: string;
+  };
+  opening: {
+    purpose: string;
+    notes: string;
+  };
+  agendaItems: MeetingAgendaItem[];
+  decisions: string;
+  actionItems: MeetingActionItem[];
+  prayerPoints: string;
+  closingSummary: {
+    keyTakeaways: string;
+    followUpNeeded: string;
+  };
+  nextMeeting: {
+    dateTime: string;
+    agenda: string;
+  };
+}
+
 // --- DAILY VERSE ---
 export interface DailyVerse {
   id: string;

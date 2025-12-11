@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Book, CheckSquare, Lightbulb, Menu, X, Settings, 
   Home, Calendar, Music, Bell, Scroll, Flame, HeartHandshake, 
-  Church, ChevronRight, PenTool
+  Church, ChevronRight, PenTool, ClipboardList
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -45,6 +45,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       items: [
         { to: '/programs', label: 'Programs', icon: LayoutDashboard, showOnBottom: true },
         { to: '/tasks', label: 'Tasks', icon: CheckSquare, showOnBottom: false },
+        { to: '/meetings', label: 'Meeting Minutes', icon: ClipboardList, showOnBottom: true },
         { to: '/reminders', label: 'Reminders', icon: Bell, showOnBottom: false },
         { to: '/standing-orders', label: 'Constitution', icon: Book, showOnBottom: false },
         { to: '/settings', label: 'Settings', icon: Settings, showOnBottom: false },

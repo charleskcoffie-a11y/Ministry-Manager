@@ -16,6 +16,7 @@ import SermonBuilder from './components/SermonBuilder';
 import Hymnal from './components/Hymnal';
 import SermonNotes from './components/SermonNotes';
 import PINLock from './components/PINLock';
+import MeetingMinutes from './components/MeetingMinutes';
 
 const App: React.FC = () => {
   // Check session storage to see if already unlocked in this browser session
@@ -52,6 +53,8 @@ const App: React.FC = () => {
         <Route path="/standing-orders" element={<Layout><StandingOrders /></Layout>} />
         
         <Route path="/tasks" element={<Layout><TaskManager /></Layout>} />
+
+        <Route path="/meetings" element={<Layout><MeetingMinutes /></Layout>} />
 
         <Route path="/reminders" element={<Layout><ReminderSystem /></Layout>} />
         

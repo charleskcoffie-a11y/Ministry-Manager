@@ -254,6 +254,85 @@ create policy "Public access" on daily_verses for all using (true);
 -- alter table ideas add column title text;
 ```
 
+## Meeting Minutes – Supabase SQL Setup
+
+Run the following SQL in your Supabase SQL Editor to set up the Meeting Minutes feature.
+
+```sql
+-- Enable UUID generation extension (if not already enabled)
+create extension if not exists "pgcrypto";
+
+---------------------------------------------------------
+-- TABLE: meeting_minutes
+---------------------------------------------------------
+create table if not exists meeting_minutes (
+  id uuid primary key default gen_random_uuid(),
+
+  -- Basic Meeting Info
+  meeting_title text not null,
+  meeting_datetime timestamptz,
+  meeting_type text,               -- Diocesan, Circuit, Society, Other
+  meeting_type_other text,         -- Only used if meeting_type = 'Other'
+  facilitator text,
+  attendees text,
+
+  -- Full structured minutes stored as JSONB
+  minutes_json jsonb,
+
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Automatically update updated_at on row changes
+create or replace function update_meeting_minutes_timestamp()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger update_meeting_minutes_timestamp
+before update on meeting_minutes
+for each row execute procedure update_meeting_minutes_timestamp();
+
+-- RLS Policy (Public access for demo purposes, restrict in production)
+alter table meeting_minutes enable row level security;
+create policy "Public access" on meeting_minutes for all using (true);
+```
+
+### Storage Setup for Meeting Minutes
+
+Run this to create the bucket for storing JSON backups of meeting minutes.
+
+```sql
+-- Create a storage bucket for exported JSON and Word documents
+insert into storage.buckets (id, name, public)
+values ('meeting-minutes-json', 'meeting-minutes-json', false)
+on conflict (id) do nothing;
+
+-- ALLOW PUBLIC UPLOAD/READ (For Demo Simplicity - In production use Authenticated policies)
+create policy "Allow public upload"
+on storage.objects
+for insert
+with check (bucket_id = 'meeting-minutes-json');
+
+create policy "Allow public read"
+on storage.objects
+for select
+using (bucket_id = 'meeting-minutes-json');
+
+create policy "Allow public delete"
+on storage.objects
+for delete
+using (bucket_id = 'meeting-minutes-json');
+```
+
+**Note on Data Structure:**
+*   Top-level fields (title, type, facilitator) are stored in columns for easy searching.
+*   The detailed content (Agenda items, Action items, text blocks) is stored in the `minutes_json` column.
+*   Every save operation also uploads a `.json` backup file to the `meeting-minutes-json` storage bucket.
+
 ## 2. Environment Variables
 
 Create a `.env` file in the root directory:

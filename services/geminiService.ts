@@ -442,3 +442,44 @@ export const suggestPastoralReminders = async (contextData: string): Promise<Rem
     return [];
   }
 };
+
+/**
+ * AI Assistance for Meeting Minutes
+ */
+export const assistMeetingMinutes = async (
+  meetingTitle: string,
+  meetingType: string,
+  sectionName: string,
+  currentText: string
+): Promise<string> => {
+  if (!ai) return "";
+
+  const systemPrompt = `
+    You are a secretary assistant for a Methodist Church meeting (e.g., Diocesan, Circuit, or Society level).
+    
+    Context:
+    Meeting: ${meetingTitle}
+    Type: ${meetingType}
+    Section: ${sectionName}
+    
+    Current Draft Text: "${currentText}"
+    
+    Task:
+    The user is writing minutes. Based on the context and any text they've already started, suggest 2-3 sentences or bullet points to complete or expand the thought.
+    
+    Tone: Professional, Clear, Respectful, Church-appropriate (Methodist terminology where applicable).
+    
+    Return ONLY the suggested addition text. Do not repeat the input.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: systemPrompt,
+    });
+    return response.text || "";
+  } catch (error) {
+    console.error("Meeting Minute Assist Error", error);
+    return "";
+  }
+};

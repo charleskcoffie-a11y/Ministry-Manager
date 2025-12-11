@@ -53,26 +53,38 @@ const IdeasJournal: React.FC = () => {
         return;
     }
 
-    if (currentIdea.id) {
-        // Update
-        const { error } = await supabase.from('ideas').update(currentIdea).eq('id', currentIdea.id);
-        if (!error) fetchIdeas();
-    } else {
-        // Insert
-        const { error } = await supabase.from('ideas').insert([currentIdea]);
-        if (!error) fetchIdeas();
+    try {
+        if (currentIdea.id) {
+            // Update
+            const { error } = await supabase.from('ideas').update(currentIdea).eq('id', currentIdea.id);
+            if (error) throw error;
+        } else {
+            // Insert
+            const { error } = await supabase.from('ideas').insert([currentIdea]);
+            if (error) throw error;
+        }
+        await fetchIdeas();
+        closeModal();
+    } catch (err: any) {
+        console.error("Error saving idea:", err);
+        alert("Failed to save entry: " + err.message);
     }
-    
-    closeModal();
   };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      if(!confirm("Are you sure you want to delete this entry?")) return;
+      if(!window.confirm("Are you sure you want to permanently delete this entry?")) return;
       
-      const { error } = await supabase.from('ideas').delete().eq('id', id);
-      if(!error) {
+      try {
+          const { error } = await supabase.from('ideas').delete().eq('id', id);
+          
+          if (error) throw error;
+          
           setIdeas(prev => prev.filter(i => i.id !== id));
+          window.alert("Entry deleted successfully.");
+      } catch (err: any) {
+          console.error("Delete error:", err);
+          window.alert("Failed to delete entry: " + (err.message || "Unknown error"));
       }
   };
 
