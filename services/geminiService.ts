@@ -50,12 +50,31 @@ export const explainStandingOrder = async (code: string, content: string): Promi
 
 export const getAiDailyVerse = async (): Promise<{reference: string, text: string, keyword: string} | null> => {
   if (!ai) return null;
-  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
+  // 1. Check Local Storage Cache first to prevent regeneration during the same day
+  const CACHE_KEY = 'ministry_daily_verse_cache';
+  const todayKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+  try {
+    const cachedRaw = localStorage.getItem(CACHE_KEY);
+    if (cachedRaw) {
+      const cached = JSON.parse(cachedRaw);
+      // If cached data exists and matches today's date, use it
+      if (cached.date === todayKey && cached.verse) {
+        return cached.verse;
+      }
+    }
+  } catch (e) {
+    console.warn("Error reading verse cache", e);
+  }
+
+  // 2. Generate new verse if not cached or date changed
+  const todayDisplay = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
   
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: `Generate a short, encouraging bible verse for a Methodist Minister for today (${today}). 
+      contents: `Generate a short, encouraging bible verse for a Methodist Minister for today (${todayDisplay}). 
       Return valid JSON with:
       1. "reference" (e.g. John 3:16)
       2. "text" (The verse text in NIV or NKJV)
@@ -76,7 +95,19 @@ export const getAiDailyVerse = async (): Promise<{reference: string, text: strin
     
     const text = response.text;
     if (!text) return null;
-    return JSON.parse(text);
+    const verseData = JSON.parse(text);
+
+    // 3. Save to Cache
+    try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            date: todayKey,
+            verse: verseData
+        }));
+    } catch (storageErr) {
+        console.warn("Failed to cache verse:", storageErr);
+    }
+
+    return verseData;
   } catch (e) {
     console.error("AI Verse Error:", e);
     return null;
