@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Book, CheckSquare, Lightbulb, Menu, X, Settings, 
   Home, Calendar, Music, Bell, Scroll, Flame, HeartHandshake, 
-  Church, ChevronRight 
+  Church, ChevronRight, PenTool
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -32,6 +32,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       title: 'Pastoral Ministry',
       items: [
         { to: '/sermons', label: 'Sermon Builder', icon: Scroll, showOnBottom: true },
+        { to: '/sermon-notes', label: 'Sermon Notes', icon: PenTool, showOnBottom: true },
         { to: '/devotion', label: 'Devotion', icon: Flame, showOnBottom: true },
         { to: '/hymnal', label: 'Canticles & Hymns', icon: Music, showOnBottom: true },
         { to: '/christian-calendar', label: 'Calendar', icon: Calendar, showOnBottom: false },

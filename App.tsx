@@ -14,6 +14,7 @@ import Devotion from './components/Devotion';
 import ChristianCalendar from './components/ChristianCalendar';
 import SermonBuilder from './components/SermonBuilder';
 import Hymnal from './components/Hymnal';
+import SermonNotes from './components/SermonNotes';
 
 const App: React.FC = () => {
   return (
@@ -32,6 +33,11 @@ const App: React.FC = () => {
         <Route 
           path="/sermons" 
           element={<Layout><SermonBuilder /></Layout>} 
+        />
+
+        <Route 
+          path="/sermon-notes" 
+          element={<Layout><SermonNotes /></Layout>} 
         />
 
         <Route 

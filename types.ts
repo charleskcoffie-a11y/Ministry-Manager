@@ -154,3 +154,73 @@ export interface Song {
   is_favorite?: boolean; // New field for favorites
   created_at?: string;
 }
+
+// --- SERMON / TALK NOTES (Listening) ---
+
+export interface SermonPoint {
+  id?: string;
+  note_id?: string;
+  point_number: number;
+  main_point: string;
+  supporting_scripture: string;
+  key_quotes: string;
+  illustrations: string;
+  ministry_emphasis: string;
+  created_at?: string;
+}
+
+export interface SermonNote {
+  id: string;
+  // 1. Basic Info
+  preacher: string;
+  note_date: string;
+  location: string;
+  sermon_title: string;
+  main_scripture: string;
+
+  // 2. Opening
+  opening_remarks: string;
+  passage_context: string;
+  key_themes: string;
+
+  // 4. Theological
+  key_doctrines: string;
+  theological_strengths: string;
+  theological_questions: string;
+
+  // 5. Preaching Style
+  tone_atmosphere: string;
+  use_of_scripture: string;
+  use_of_stories: string;
+  audience_engagement: string;
+  flow_transitions: string;
+  memorable_phrases: string;
+
+  // 6. Reflections
+  minister_lessons: string;
+  personal_challenge: string;
+  application_to_preaching: string;
+  pastoral_insights: string;
+
+  // 7. Application
+  calls_to_action: string;
+  spiritual_challenges: string;
+  practical_applications: string;
+  prayer_points: string;
+
+  // 8. Closing
+  closing_scripture: string;
+  central_message_summary: string;
+  final_memorable_line: string;
+
+  // 9. Follow Up
+  followup_scriptures: string;
+  followup_topics: string;
+  followup_people: string;
+  followup_ministry_ideas: string;
+
+  created_at?: string;
+  
+  // Virtual field for app logic, not in main table
+  points?: SermonPoint[];
+}

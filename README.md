@@ -30,6 +30,7 @@ create table standing_orders (
   title text not null,
   content text not null,
   tags text[],
+  is_favorite boolean default false,
   created_at timestamp with time zone default now()
 );
 
@@ -142,10 +143,64 @@ create table songs (
   copyright text,
   tags text,
   reference_number text,
+  is_favorite boolean default false,
   created_at timestamp with time zone default now()
 );
 
--- 10. Row Level Security (RLS) - Simple Public Access for Demo
+-- 10. Sermon Talk Notes (For Listening)
+create table if not exists sermon_talk_notes (
+  id uuid primary key default uuid_generate_v4(),
+  preacher text,
+  note_date date,
+  location text,
+  sermon_title text,
+  main_scripture text,
+  opening_remarks text,
+  passage_context text,
+  key_themes text,
+  key_doctrines text,
+  theological_strengths text,
+  theological_questions text, 
+  tone_atmosphere text,
+  use_of_scripture text,
+  use_of_stories text,
+  audience_engagement text,
+  flow_transitions text,
+  memorable_phrases text,
+  minister_lessons text,
+  personal_challenge text,
+  application_to_preaching text,
+  pastoral_insights text,
+  calls_to_action text,
+  spiritual_challenges text,
+  practical_applications text,
+  prayer_points text,
+  closing_scripture text,
+  central_message_summary text,
+  final_memorable_line text,
+  followup_scriptures text,
+  followup_topics text,
+  followup_people text,
+  followup_ministry_ideas text,
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
+);
+
+-- 11. Sermon Talk Points (Child Table for Notes)
+create table if not exists sermon_talk_points (
+  id uuid primary key default uuid_generate_v4(),
+  note_id uuid not null references sermon_talk_notes(id) on delete cascade,
+  point_number int,
+  main_point text,
+  supporting_scripture text,
+  key_quotes text,
+  illustrations text,
+  ministry_emphasis text,
+  created_at timestamp with time zone default now()
+);
+create index if not exists idx_sermon_talk_points_note_id on sermon_talk_points(note_id);
+
+-- 12. Row Level Security (RLS) - Simple Public Access for Demo
 -- In production, replace 'true' with proper auth.uid() checks
 alter table church_programs enable row level security;
 create policy "Public access" on church_programs for all using (true);
@@ -173,6 +228,12 @@ create policy "Public access" on uploaded_documents for all using (true) with ch
 
 alter table songs enable row level security;
 create policy "Public access" on songs for all using (true);
+
+alter table sermon_talk_notes enable row level security;
+create policy "Public access" on sermon_talk_notes for all using (true);
+
+alter table sermon_talk_points enable row level security;
+create policy "Public access" on sermon_talk_points for all using (true);
 ```
 
 ## 2. Environment Variables
