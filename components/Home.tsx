@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { 
   Calendar, CheckCircle2, BookOpen, Lightbulb, ArrowRight, Star, 
   CalendarDays, AlertCircle, Loader2, MapPin, ChevronRight,
-  Crown, Scroll, Sparkles, ShieldCheck
+  Crown, Scroll, Sparkles, ShieldCheck, Clock
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Task } from '../types';
@@ -16,6 +16,8 @@ interface Highlight {
   date: string;
   description: string;
   image: string | null;
+  venue: string;
+  lead: string;
 }
 
 interface DailyOrder {
@@ -230,6 +232,8 @@ const Home: React.FC = () => {
         title: program.activity_description,
         date: program.date,
         description: `Venue: ${program.venue || 'Main Auditorium'} • Lead: ${program.lead || 'Minister'}`,
+        venue: program.venue,
+        lead: program.lead,
         image: getImageForEvent(program.activity_description)
       }));
       setHighlights(mappedHighlights);
@@ -354,10 +358,10 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div className="space-y-12 animate-fade-in pb-10">
+    <div className="space-y-6 md:space-y-12 animate-fade-in pb-10">
       
-      {/* 1. New Hero Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-slate-900 text-white shadow-2xl border border-white/5">
+      {/* 1. Hero Banner */}
+      <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-slate-900 text-white shadow-xl md:shadow-2xl border border-white/5">
         {/* Background Gradients & Textures */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-slate-900 to-slate-950"></div>
         <div className="absolute top-[-50%] left-[-20%] w-[80%] h-[150%] bg-indigo-500/10 blur-[120px] rounded-full mix-blend-screen pointer-events-none"></div>
@@ -366,41 +370,41 @@ const Home: React.FC = () => {
         {/* Subtle Grain/Pattern */}
         <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
 
-        <div className="relative z-10 px-8 py-12 md:p-16 flex flex-col items-center text-center md:items-start md:text-left">
+        <div className="relative z-10 px-6 py-8 md:p-16 flex flex-col items-center text-center md:items-start md:text-left">
            {/* Badge */}
-           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-bold uppercase tracking-widest shadow-sm mb-6 backdrop-blur-md">
-              <Crown className="w-4 h-4" /> 
+           <div className="inline-flex items-center gap-2 px-3 py-1 md:px-4 md:py-1.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-300 text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-sm mb-4 md:mb-6 backdrop-blur-md">
+              <Crown className="w-3 h-3 md:w-4 md:h-4" /> 
               Pastoral Workspace
            </div>
 
            {/* Title */}
-           <h1 className="text-4xl md:text-6xl font-serif font-bold leading-tight mb-4 tracking-tight text-white drop-shadow-sm">
-              Welcome to Rev. Minister’s <br/>
+           <h1 className="text-3xl md:text-6xl font-serif font-bold leading-tight mb-3 md:mb-4 tracking-tight text-white drop-shadow-sm">
+              Ministry <br className="md:hidden" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200">
-                 Ministry Suite
+                 Suite
               </span>
            </h1>
 
            {/* Subtitle */}
-           <p className="text-lg md:text-xl text-indigo-200/80 font-light max-w-2xl leading-relaxed mb-8">
+           <p className="text-sm md:text-xl text-indigo-200/80 font-light max-w-2xl leading-relaxed mb-6 md:mb-8">
               Empowering Kingdom growth through vision, purpose, and organized leadership.
            </p>
 
            {/* Buttons */}
-           <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-              <Link to="/programs" className="group relative px-8 py-4 bg-white text-indigo-950 rounded-full font-bold text-lg shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all hover:-translate-y-0.5 flex items-center gap-3 overflow-hidden">
-                  <span className="relative z-10">Open Schedule</span>
-                  <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
+           <div className="flex flex-wrap gap-3 justify-center md:justify-start w-full md:w-auto">
+              <Link to="/programs" className="group flex-1 md:flex-none relative px-6 py-3 md:px-8 md:py-4 bg-white text-indigo-950 rounded-full font-bold text-sm md:text-lg shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 md:gap-3 overflow-hidden">
+                  <span className="relative z-10">Schedule</span>
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
                   <div className="absolute inset-0 bg-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </Link>
-              <Link to="/sermons" className="px-8 py-4 bg-indigo-900/40 border border-indigo-400/20 text-indigo-100 rounded-full font-bold text-lg hover:bg-indigo-800/40 transition-all flex items-center gap-3 backdrop-blur-sm hover:border-indigo-400/40">
-                  <Scroll className="w-5 h-5" />
-                  Sermon Builder
+              <Link to="/sermons" className="flex-1 md:flex-none px-6 py-3 md:px-8 md:py-4 bg-indigo-900/40 border border-indigo-400/20 text-indigo-100 rounded-full font-bold text-sm md:text-lg hover:bg-indigo-800/40 transition-all flex items-center justify-center gap-2 md:gap-3 backdrop-blur-sm hover:border-indigo-400/40">
+                  <Scroll className="w-4 h-4 md:w-5 md:h-5" />
+                  Sermons
               </Link>
            </div>
 
            {/* Verse */}
-           <div className="mt-10 pt-8 border-t border-white/5 w-full md:w-auto">
+           <div className="mt-8 pt-6 border-t border-white/5 w-full md:w-auto hidden md:block">
               <p className="text-sm font-serif italic text-slate-400 flex items-center justify-center md:justify-start gap-2">
                  <Sparkles className="w-3 h-3 text-amber-500/50" />
                  "Therefore encourage one another and build each other up." — 1 Thessalonians 5:11
@@ -409,137 +413,149 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* Christian Season Banner (New Feature) */}
+      {/* Christian Season Banner */}
       {currentSeason && (
         <Link to="/christian-calendar" className="block transform hover:scale-[1.01] transition-transform duration-300">
-            <div className={`relative overflow-hidden rounded-xl shadow-lg ${currentSeason.bg} text-white`}>
-                <div className={`absolute top-0 right-0 w-32 h-full ${currentSeason.accent} transform skew-x-12 translate-x-10 opacity-50`}></div>
-                <div className="relative p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className={`relative overflow-hidden rounded-xl md:rounded-2xl shadow-md md:shadow-lg ${currentSeason.bg} text-white`}>
+                <div className={`absolute top-0 right-0 w-24 md:w-32 h-full ${currentSeason.accent} transform skew-x-12 translate-x-8 md:translate-x-10 opacity-50`}></div>
+                <div className="relative p-4 md:p-6 flex flex-row items-center justify-between gap-4">
                     <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                            <span className="text-sm font-medium opacity-90 uppercase tracking-wider">Today: {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        <div className="flex items-center gap-2 md:gap-3 mb-1">
+                            <span className="text-[10px] md:text-sm font-medium opacity-90 uppercase tracking-wider">Today</span>
                         </div>
-                        <h2 className="text-3xl font-bold mb-2 flex items-center gap-3">
+                        <h2 className="text-xl md:text-3xl font-bold mb-1 md:mb-2 flex items-center gap-2">
                             {currentSeason.name}
                         </h2>
-                        <p className="text-white/90 text-lg max-w-2xl">
-                           <span className="font-semibold opacity-75 mr-2">Season:</span>
+                        <p className="text-white/90 text-xs md:text-lg max-w-2xl line-clamp-1 md:line-clamp-none">
                            {currentSeason.definition}
                         </p>
                     </div>
-                    <div className="flex items-center gap-4 self-end sm:self-center">
-                        <div className="text-right hidden sm:block">
-                            <span className="block text-xs uppercase opacity-75 font-bold">Liturgical Colour</span>
-                            <span className="text-xl font-bold">{currentSeason.color}</span>
-                        </div>
-                        <div className="bg-white/20 p-2 rounded-full">
-                            <ChevronRight className="w-6 h-6 text-white" />
-                        </div>
+                    <div className="bg-white/20 p-1.5 md:p-2 rounded-full">
+                        <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-white" />
                     </div>
                 </div>
             </div>
         </Link>
       )}
 
-      {/* Quick Links Grid */}
+      {/* Quick Links Grid - 2 Col Mobile */}
       <div>
-        <h2 className="text-3xl font-bold text-gray-800 mb-6 px-2">Quick Access</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Link to="/programs" className="group bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
-            <div className="w-14 h-14 bg-blue-50 rounded-lg flex items-center justify-center mb-6 group-hover:bg-blue-600 transition-colors">
-              <Calendar className="w-8 h-8 text-blue-600 group-hover:text-white transition-colors" />
+        <h2 className="text-xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6 px-1 md:px-2">Quick Access</h2>
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+          <Link to="/programs" className="group bg-white p-4 md:p-8 rounded-xl md:rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
+            <div className="w-10 h-10 md:w-14 md:h-14 bg-blue-50 rounded-lg flex items-center justify-center mb-3 md:mb-6 group-hover:bg-blue-600 transition-colors">
+              <Calendar className="w-5 h-5 md:w-8 md:h-8 text-blue-600 group-hover:text-white transition-colors" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-blue-600">Programs</h3>
-            <p className="text-gray-500 text-lg">Manage church events, schedules, and activities.</p>
+            <h3 className="text-base md:text-2xl font-bold text-gray-800 mb-1 md:mb-2 group-hover:text-blue-600">Programs</h3>
+            <p className="text-gray-500 text-xs md:text-lg line-clamp-2">Manage church events & schedules.</p>
           </Link>
 
-          <Link to="/tasks" className="group bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-green-500/30 transition-all duration-300">
-            <div className="w-14 h-14 bg-green-50 rounded-lg flex items-center justify-center mb-6 group-hover:bg-green-600 transition-colors">
-              <CheckCircle2 className="w-8 h-8 text-green-600 group-hover:text-white transition-colors" />
+          <Link to="/tasks" className="group bg-white p-4 md:p-8 rounded-xl md:rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-green-500/30 transition-all duration-300">
+            <div className="w-10 h-10 md:w-14 md:h-14 bg-green-50 rounded-lg flex items-center justify-center mb-3 md:mb-6 group-hover:bg-green-600 transition-colors">
+              <CheckCircle2 className="w-5 h-5 md:w-8 md:h-8 text-green-600 group-hover:text-white transition-colors" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-green-600">Tasks</h3>
-            <p className="text-gray-500 text-lg">Track your to-do list and ministry obligations.</p>
+            <h3 className="text-base md:text-2xl font-bold text-gray-800 mb-1 md:mb-2 group-hover:text-green-600">Tasks</h3>
+            <p className="text-gray-500 text-xs md:text-lg line-clamp-2">Track to-do list & ministry duties.</p>
           </Link>
 
-          <Link to="/standing-orders" className="group bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-purple-500/30 transition-all duration-300">
-            <div className="w-14 h-14 bg-purple-50 rounded-lg flex items-center justify-center mb-6 group-hover:bg-purple-600 transition-colors">
-              <BookOpen className="w-8 h-8 text-purple-600 group-hover:text-white transition-colors" />
+          <Link to="/standing-orders" className="group bg-white p-4 md:p-8 rounded-xl md:rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-purple-500/30 transition-all duration-300">
+            <div className="w-10 h-10 md:w-14 md:h-14 bg-purple-50 rounded-lg flex items-center justify-center mb-3 md:mb-6 group-hover:bg-purple-600 transition-colors">
+              <BookOpen className="w-5 h-5 md:w-8 md:h-8 text-purple-600 group-hover:text-white transition-colors" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-purple-600">Constitution</h3>
-            <p className="text-gray-500 text-lg">Reference standing orders and church policies.</p>
+            <h3 className="text-base md:text-2xl font-bold text-gray-800 mb-1 md:mb-2 group-hover:text-purple-600">Constitution</h3>
+            <p className="text-gray-500 text-xs md:text-lg line-clamp-2">Standing orders & policies.</p>
           </Link>
 
-          <Link to="/ideas" className="group bg-white p-8 rounded-xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-yellow-500/30 transition-all duration-300">
-            <div className="w-14 h-14 bg-yellow-50 rounded-lg flex items-center justify-center mb-6 group-hover:bg-yellow-500 transition-colors">
-              <Lightbulb className="w-8 h-8 text-yellow-600 group-hover:text-white transition-colors" />
+          <Link to="/ideas" className="group bg-white p-4 md:p-8 rounded-xl md:rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-yellow-500/30 transition-all duration-300">
+            <div className="w-10 h-10 md:w-14 md:h-14 bg-yellow-50 rounded-lg flex items-center justify-center mb-3 md:mb-6 group-hover:bg-yellow-500 transition-colors">
+              <Lightbulb className="w-5 h-5 md:w-8 md:h-8 text-yellow-600 group-hover:text-white transition-colors" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-yellow-600">Ideas</h3>
-            <p className="text-gray-500 text-lg">Journal thoughts and generate sermon outlines.</p>
+            <h3 className="text-base md:text-2xl font-bold text-gray-800 mb-1 md:mb-2 group-hover:text-yellow-600">Ideas</h3>
+            <p className="text-gray-500 text-xs md:text-lg line-clamp-2">Journal thoughts & sermons.</p>
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
         {/* Monthly Highlights Section */}
         <div className="xl:col-span-2">
-            <div className="flex justify-between items-center mb-6 px-2">
-              <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-                <CalendarDays className="w-8 h-8 text-primary" /> Upcoming Highlights
+            <div className="flex justify-between items-center mb-4 md:mb-6 px-1 md:px-2">
+              <h2 className="text-xl md:text-3xl font-bold text-gray-800 flex items-center gap-2 md:gap-3">
+                <CalendarDays className="w-6 h-6 md:w-8 md:h-8 text-primary" /> Upcoming
               </h2>
-              <Link to="/programs" className="text-primary hover:underline font-medium">View Calendar</Link>
+              <Link to="/programs" className="text-primary hover:underline font-medium text-sm md:text-base">View Calendar</Link>
             </div>
             
             {loadingHighlights ? (
                <div className="flex justify-center py-12 bg-white rounded-xl shadow-sm">
                  <div className="flex flex-col items-center">
-                   <Loader2 className="w-10 h-10 animate-spin text-primary mb-2" />
-                   <p className="text-gray-500">Loading schedule...</p>
+                   <Loader2 className="w-8 h-8 md:w-10 md:h-10 animate-spin text-primary mb-2" />
+                   <p className="text-gray-500 text-sm">Loading schedule...</p>
                  </div>
                </div>
             ) : highlights.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-6">
                 {highlights.map((item, index) => (
-                  <div key={index} className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col group h-full">
+                  <div key={index} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 flex flex-col group">
                     
-                    {/* Image Header - Only rendered if image exists */}
-                    {item.image ? (
-                        <div className="h-48 overflow-hidden relative">
-                            <img 
-                            src={item.image} 
-                            alt={item.title} 
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
-                            <div className="absolute bottom-4 left-4 text-white">
-                                <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-lg text-sm font-bold shadow-sm inline-block mb-2">
-                                {new Date(item.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                    {/* Desktop View: Image Card */}
+                    <div className="hidden md:block">
+                        {item.image ? (
+                            <div className="h-48 overflow-hidden relative">
+                                <img 
+                                src={item.image} 
+                                alt={item.title} 
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
+                                <div className="absolute bottom-4 left-4 text-white">
+                                    <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-lg text-sm font-bold shadow-sm inline-block mb-2">
+                                    {new Date(item.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                                    </div>
+                                    <h3 className="text-xl font-bold leading-tight drop-shadow-sm line-clamp-1">{item.title}</h3>
                                 </div>
-                                <h3 className="text-xl font-bold leading-tight drop-shadow-sm">{item.title}</h3>
+                            </div>
+                        ) : (
+                            <div className="p-6 bg-gradient-to-br from-blue-50 to-white border-b border-gray-100 flex justify-between items-start">
+                                 <div className="p-3 bg-white rounded-xl shadow-sm text-primary border border-blue-100">
+                                     <Calendar className="w-8 h-8" />
+                                 </div>
+                                 <div className="text-right">
+                                      <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{new Date(item.date).toLocaleDateString(undefined, { month: 'short' })}</div>
+                                      <div className="text-4xl font-bold text-gray-800 leading-none">{new Date(item.date).getDate()}</div>
+                                      <div className="text-xs text-gray-400 font-medium">{new Date(item.date).toLocaleDateString(undefined, { weekday: 'long' })}</div>
+                                 </div>
+                            </div>
+                        )}
+                        <div className="p-5 flex-1 bg-white">
+                            {!item.image && (
+                                <h3 className="text-xl font-bold text-gray-800 mb-3 leading-tight border-l-4 border-primary pl-3 line-clamp-1">{item.title}</h3>
+                            )}
+                            <p className="text-gray-500 text-lg flex items-center gap-2 line-clamp-1">
+                                <MapPin className="w-4 h-4" />
+                                {item.venue || 'Main Auditorium'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Mobile View: Compact List Item (No big images) */}
+                    <div className="md:hidden flex items-center gap-4 p-4">
+                        <div className="bg-blue-50 text-blue-700 rounded-lg p-2.5 flex flex-col items-center justify-center min-w-[3.5rem] border border-blue-100 shadow-sm">
+                            <span className="text-xs font-bold uppercase">{new Date(item.date).toLocaleDateString(undefined, { month: 'short' })}</span>
+                            <span className="text-xl font-bold leading-none">{new Date(item.date).getDate()}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-base font-bold text-gray-900 leading-snug line-clamp-1 mb-0.5">{item.title}</h3>
+                            <div className="flex items-center text-xs text-gray-500 gap-3">
+                                <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> {new Date(item.date).toLocaleDateString(undefined, { weekday: 'short' })}</span>
+                                <span className="flex items-center gap-1 truncate"><MapPin className="w-3 h-3"/> {item.venue || 'TBA'}</span>
                             </div>
                         </div>
-                    ) : (
-                        // No Image Layout
-                        <div className="p-6 bg-gradient-to-br from-blue-50 to-white border-b border-gray-100 flex justify-between items-start">
-                             <div className="p-3 bg-white rounded-xl shadow-sm text-primary border border-blue-100">
-                                 <Calendar className="w-8 h-8" />
-                             </div>
-                             <div className="text-right">
-                                  <div className="text-sm font-bold text-gray-500 uppercase tracking-wider">{new Date(item.date).toLocaleDateString(undefined, { month: 'short' })}</div>
-                                  <div className="text-4xl font-bold text-gray-800 leading-none">{new Date(item.date).getDate()}</div>
-                                  <div className="text-xs text-gray-400 font-medium">{new Date(item.date).toLocaleDateString(undefined, { weekday: 'long' })}</div>
-                             </div>
+                        <div className="text-gray-300">
+                            <ChevronRight className="w-5 h-5" />
                         </div>
-                    )}
-
-                    <div className="p-5 flex-1 bg-white flex flex-col justify-center">
-                        {/* Title is shown here if no image header */}
-                        {!item.image && (
-                            <h3 className="text-xl font-bold text-gray-800 mb-3 leading-tight border-l-4 border-primary pl-3">{item.title}</h3>
-                        )}
-                        <p className="text-gray-600 text-lg flex items-center gap-2">
-                            {item.description}
-                        </p>
                     </div>
+
                   </div>
                 ))}
               </div>
@@ -556,33 +572,33 @@ const Home: React.FC = () => {
         </div>
 
         {/* Right Sidebar */}
-        <div className="xl:col-span-1 space-y-8">
+        <div className="xl:col-span-1 space-y-6 md:space-y-8">
              
              {/* 1. Standing Order of the Day */}
              <div>
-                <h2 className="text-3xl font-bold text-gray-800 mb-6 px-2 flex items-center gap-3">
-                    <BookOpen className="w-8 h-8 text-purple-600" /> Daily Order
+                <h2 className="text-xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-2 md:gap-3">
+                    <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-purple-600" /> Daily Order
                 </h2>
                 {dailyOrder ? (
-                    <div className="bg-white rounded-xl shadow-md border border-purple-100 p-6 relative overflow-hidden group hover:shadow-lg transition-shadow">
+                    <div className="bg-white rounded-xl shadow-md border border-purple-100 p-5 md:p-6 relative overflow-hidden group hover:shadow-lg transition-shadow">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-purple-50 rounded-bl-full -mr-4 -mt-4 z-0"></div>
                         <div className="relative z-10">
                             <div className="flex justify-between items-start mb-3">
-                                <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-sm font-bold rounded-lg">
+                                <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-xs md:text-sm font-bold rounded-lg">
                                     {dailyOrder.title}
                                 </span>
                                 {dailyOrder.isAiGenerated && (
-                                    <span className="text-xs text-purple-400 font-medium flex items-center gap-1 bg-white/80 px-2 py-1 rounded-full border border-purple-50">
+                                    <span className="text-[10px] md:text-xs text-purple-400 font-medium flex items-center gap-1 bg-white/80 px-2 py-1 rounded-full border border-purple-50">
                                         <Lightbulb className="w-3 h-3" /> Explained
                                     </span>
                                 )}
                             </div>
-                            <p className="text-gray-700 text-lg leading-relaxed mb-4 line-clamp-5">
+                            <p className="text-gray-700 text-sm md:text-lg leading-relaxed mb-4 line-clamp-5">
                                 {dailyOrder.preview}
                             </p>
                             <Link 
                                 to={`/standing-orders?q=${encodeURIComponent(dailyOrder.linkQuery)}`} 
-                                className="inline-flex items-center text-purple-600 font-medium hover:text-purple-800 group-hover:translate-x-1 transition-transform"
+                                className="inline-flex items-center text-purple-600 text-sm font-medium hover:text-purple-800 group-hover:translate-x-1 transition-transform"
                             >
                                 Read Full Section <ArrowRight className="w-4 h-4 ml-1" />
                             </Link>
@@ -591,38 +607,38 @@ const Home: React.FC = () => {
                 ) : (
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center text-gray-400">
                         <BookOpen className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                        <p>No document loaded.</p>
-                        <Link to="/standing-orders" className="text-sm text-primary hover:underline">Upload one here</Link>
+                        <p className="text-sm">No document loaded.</p>
+                        <Link to="/standing-orders" className="text-xs text-primary hover:underline">Upload one here</Link>
                     </div>
                 )}
              </div>
 
              {/* 2. Pending Tasks */}
              <div>
-                 <h2 className="text-3xl font-bold text-gray-800 mb-6 px-2 flex items-center gap-3">
-                   <AlertCircle className="w-8 h-8 text-orange-500" /> Pending Tasks
+                 <h2 className="text-xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-2 md:gap-3">
+                   <AlertCircle className="w-6 h-6 md:w-8 md:h-8 text-orange-500" /> Pending Tasks
                  </h2>
-                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4 md:p-6">
                     {recentTasks.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
-                            <CheckCircle2 className="w-12 h-12 mx-auto mb-3 opacity-20"/>
-                            <p>No pending tasks found.</p>
-                            <Link to="/tasks" className="text-primary mt-2 inline-block">Go to Tasks</Link>
+                            <CheckCircle2 className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-3 opacity-20"/>
+                            <p className="text-sm">No pending tasks found.</p>
+                            <Link to="/tasks" className="text-primary mt-2 inline-block text-sm">Go to Tasks</Link>
                         </div>
                     ) : (
-                        <div className="space-y-4">
+                        <div className="space-y-3 md:space-y-4">
                             {recentTasks.map(task => (
-                                <div key={task.id} className="flex items-start gap-4 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                                    <div className="mt-1">
-                                        <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                                <div key={task.id} className="flex items-start gap-3 md:gap-4 p-3 md:p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                                    <div className="mt-1.5">
+                                        <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-orange-500"></div>
                                     </div>
                                     <div>
-                                        <p className="font-medium text-gray-800 text-lg">{task.message}</p>
-                                        <p className="text-sm text-gray-500 mt-1">Due: {new Date(task.task_date).toLocaleDateString()}</p>
+                                        <p className="font-medium text-gray-800 text-sm md:text-lg line-clamp-1">{task.message}</p>
+                                        <p className="text-xs md:text-sm text-gray-500 mt-0.5">Due: {new Date(task.task_date).toLocaleDateString()}</p>
                                     </div>
                                 </div>
                             ))}
-                            <Link to="/tasks" className="block text-center mt-4 pt-4 border-t text-primary font-medium hover:text-blue-700">
+                            <Link to="/tasks" className="block text-center mt-3 md:mt-4 pt-3 md:pt-4 border-t text-primary text-sm font-medium hover:text-blue-700">
                                 View All Tasks &rarr;
                             </Link>
                         </div>

@@ -299,23 +299,23 @@ const ChristianCalendar: React.FC = () => {
     <div className="max-w-6xl mx-auto pb-16 animate-fade-in space-y-10">
       
       {/* 1. Liturgical Header */}
-      <div className="relative rounded-3xl overflow-hidden shadow-xl bg-slate-900 text-white min-h-[200px] flex items-center">
+      <div className="relative rounded-3xl overflow-hidden shadow-xl bg-slate-900 text-white min-h-[160px] md:min-h-[200px] flex items-center">
           {/* Gradient Background */}
           <div className="absolute inset-0 bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900"></div>
           
           {/* Decorative Pattern Overlay */}
           <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           
-          <div className="relative z-10 p-8 md:p-12 w-full flex flex-col md:flex-row items-center md:items-end justify-between gap-6">
+          <div className="relative z-10 p-6 md:p-12 w-full flex flex-col md:flex-row items-center md:items-end justify-between gap-4">
               <div>
-                  <div className="flex items-center gap-2 mb-2 opacity-80">
+                  <div className="flex items-center gap-2 mb-2 opacity-80 justify-center md:justify-start">
                       <BookOpen className="w-5 h-5 text-yellow-400" />
                       <span className="text-sm font-bold tracking-widest uppercase text-yellow-100">Methodist Church Ghana</span>
                   </div>
-                  <h1 className="text-4xl md:text-5xl font-serif font-bold text-white mb-2 tracking-tight">
+                  <h1 className="text-3xl md:text-5xl font-serif font-bold text-white mb-2 tracking-tight text-center md:text-left">
                       Christian Calendar
                   </h1>
-                  <p className="text-indigo-200 text-lg md:text-xl font-light">
+                  <p className="text-indigo-200 text-base md:text-xl font-light text-center md:text-left">
                       Walking through the liturgical year in worship & prayer.
                   </p>
               </div>
@@ -327,14 +327,14 @@ const ChristianCalendar: React.FC = () => {
       </div>
       
       {/* 2. Info Banner */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100 shadow-sm flex items-start gap-4">
-         <div className="p-3 bg-white rounded-full shadow-sm text-blue-600">
-            <Info className="w-6 h-6" />
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 md:p-6 rounded-2xl border border-blue-100 shadow-sm flex items-start gap-4">
+         <div className="p-2 md:p-3 bg-white rounded-full shadow-sm text-blue-600 flex-shrink-0">
+            <Info className="w-5 h-5 md:w-6 md:h-6" />
          </div>
          <div>
-             <h3 className="text-blue-900 font-bold text-lg mb-1">About the Liturgical Colours</h3>
-             <p className="text-blue-800/80 leading-relaxed">
-                 {CALENDAR_DATA.description} The colours visible on the altar, vestments, and banners help guide the congregation through the specific moods and themes of the seasons.
+             <h3 className="text-blue-900 font-bold text-base md:text-lg mb-1">About the Liturgical Colours</h3>
+             <p className="text-blue-800/80 leading-relaxed text-sm md:text-base">
+                 {CALENDAR_DATA.description}
              </p>
          </div>
       </div>
@@ -344,40 +344,39 @@ const ChristianCalendar: React.FC = () => {
           <div className="bg-gray-100 p-1.5 rounded-full inline-flex shadow-inner">
               <button 
                 onClick={() => setActiveTab('seasons')}
-                className={`px-8 py-3 rounded-full text-sm font-bold transition-all duration-300 ${
+                className={`px-6 md:px-8 py-2 md:py-3 rounded-full text-xs md:text-sm font-bold transition-all duration-300 ${
                     activeTab === 'seasons' 
                     ? 'bg-white text-indigo-900 shadow-md transform scale-105' 
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
                 }`}
               >
-                Seasons & Cycles
+                Seasons
               </button>
               <button 
                 onClick={() => setActiveTab('feasts')}
-                className={`px-8 py-3 rounded-full text-sm font-bold transition-all duration-300 ${
+                className={`px-6 md:px-8 py-2 md:py-3 rounded-full text-xs md:text-sm font-bold transition-all duration-300 ${
                     activeTab === 'feasts' 
                     ? 'bg-white text-indigo-900 shadow-md transform scale-105' 
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
                 }`}
               >
-                Key Days & Feasts
+                Key Feasts
               </button>
           </div>
       </div>
 
       {/* 4. Content: Seasons */}
       {activeTab === 'seasons' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 animate-fade-in">
           {CALENDAR_DATA.seasons.map((season) => {
             const theme = getLiturgicalTheme(season.liturgicalColourPrimary);
-            const SeasonIcon = getSeasonIcon(season.liturgicalColourPrimary);
-
+            
             return (
                 <div key={season.id} className={`group relative rounded-2xl border ${theme.border} ${theme.bg} overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col`}>
                     
                     {/* Card Header */}
-                    <div className="px-6 py-5 border-b border-black/5 bg-white/40 flex justify-between items-center">
-                        <span className="text-xs font-bold uppercase tracking-widest opacity-60 flex items-center gap-2">
+                    <div className="px-4 py-3 md:px-6 md:py-5 border-b border-black/5 bg-white/40 flex justify-between items-center">
+                        <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest opacity-60 flex items-center gap-2">
                              {season.cycle}
                         </span>
                         <div className="flex gap-1.5">
@@ -389,31 +388,31 @@ const ChristianCalendar: React.FC = () => {
                     </div>
 
                     {/* Card Body */}
-                    <div className="p-6 flex-1 flex flex-col">
-                        <div className="mb-4">
-                            <h3 className={`text-2xl font-serif font-bold ${theme.text} mb-2 group-hover:opacity-90 transition-opacity`}>
+                    <div className="p-4 md:p-6 flex-1 flex flex-col">
+                        <div className="mb-2 md:mb-4">
+                            <h3 className={`text-xl md:text-2xl font-serif font-bold ${theme.text} mb-1 md:mb-2 group-hover:opacity-90 transition-opacity`}>
                                 {season.name}
                             </h3>
                             <div className="flex flex-wrap gap-2">
-                                <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide border border-black/5 ${theme.pill}`}>
+                                <span className={`px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[10px] font-bold uppercase tracking-wide border border-black/5 ${theme.pill}`}>
                                     {season.liturgicalColourPrimary}
                                 </span>
                                 {season.liturgicalColourAlternate && (
-                                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide bg-white/50 text-slate-500 border border-slate-100`}>
+                                    <span className={`px-2 py-0.5 md:px-2.5 md:py-1 rounded-md text-[10px] font-bold uppercase tracking-wide bg-white/50 text-slate-500 border border-slate-100`}>
                                         or {season.liturgicalColourAlternate}
                                     </span>
                                 )}
                             </div>
                         </div>
                         
-                        <p className={`${theme.text} opacity-80 leading-relaxed mb-6 font-medium`}>
+                        <p className={`${theme.text} opacity-80 leading-relaxed mb-4 md:mb-6 font-medium text-sm md:text-base`}>
                             {season.summary}
                         </p>
 
                         {/* Footer Note */}
-                        <div className="mt-auto bg-white/60 rounded-xl p-3 flex items-start gap-3 backdrop-blur-sm border border-white/50">
+                        <div className="mt-auto bg-white/60 rounded-xl p-2 md:p-3 flex items-start gap-3 backdrop-blur-sm border border-white/50">
                             <Clock className={`w-4 h-4 mt-0.5 flex-shrink-0 ${theme.icon}`} />
-                            <span className={`text-sm font-medium ${theme.text} opacity-75`}>
+                            <span className={`text-xs md:text-sm font-medium ${theme.text} opacity-75`}>
                                 {season.typicalStartHint}
                             </span>
                         </div>
@@ -471,24 +470,24 @@ const ChristianCalendar: React.FC = () => {
                {CALENDAR_DATA.keyDaysAndFeasts.map(day => {
                   const theme = getLiturgicalTheme(day.liturgicalColourPrimary);
                   return (
-                    <div key={day.id} className="p-6 hover:bg-gray-50 transition-colors">
+                    <div key={day.id} className="p-5 hover:bg-gray-50 transition-colors">
                         <div className="flex justify-between items-start mb-2">
                            <div>
-                               <h3 className="font-serif font-bold text-gray-900 text-lg leading-tight">{day.name}</h3>
-                               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mt-1">
+                               <h3 className="font-serif font-bold text-gray-900 text-base leading-tight">{day.name}</h3>
+                               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">
                                    {CALENDAR_DATA.seasons.find(s => s.id === day.seasonId)?.name}
                                </p>
                            </div>
-                           <div className={`w-3 h-3 rounded-full ${theme.accent} shadow-sm flex-shrink-0 mt-1.5`}></div>
+                           <div className={`w-3 h-3 rounded-full ${theme.accent} shadow-sm flex-shrink-0 mt-1`}></div>
                         </div>
                         
-                        <div className="flex flex-wrap gap-2 mb-3 mt-3">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide ${theme.pill} border border-black/5`}>
+                        <div className="flex flex-wrap gap-2 mb-2 mt-2">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide ${theme.pill} border border-black/5`}>
                                 {day.liturgicalColourPrimary}
                             </span>
                         </div>
 
-                        <div className="text-sm text-gray-600 leading-relaxed pl-3 border-l-2 border-gray-100">
+                        <div className="text-xs text-gray-600 leading-relaxed pl-3 border-l-2 border-gray-100">
                            {day.notes}
                         </div>
                     </div>

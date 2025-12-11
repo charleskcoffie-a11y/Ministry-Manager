@@ -144,34 +144,36 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <div className="flex-1 flex flex-col min-w-0 h-screen relative bg-gray-50/50">
         
         {/* Mobile Header */}
-        <header className="lg:hidden h-16 bg-white border-b border-gray-100 flex items-center px-4 justify-between z-10 sticky top-0">
+        <header className="lg:hidden h-16 bg-white/90 backdrop-blur-md border-b border-gray-100 flex items-center px-4 justify-between z-40 sticky top-0 shadow-sm">
           <div className="flex items-center gap-2">
               <Church className="w-6 h-6 text-indigo-600" />
               <span className="font-bold text-lg text-gray-800">
                 Ministry Mgr
               </span>
           </div>
-          <button onClick={() => setSidebarOpen(true)} className="p-2 -mr-2 text-gray-500 hover:text-gray-800">
+          <button onClick={() => setSidebarOpen(true)} className="p-2 -mr-2 text-gray-600 hover:bg-gray-100 rounded-full active:scale-95 transition-all">
              <Menu className="w-6 h-6" />
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-10 pb-24 lg:pb-10 scroll-smooth">
+        {/* Main Body */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-10 pb-28 lg:pb-10 scroll-smooth">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>
         </main>
 
         {/* Mobile Bottom Navigation Bar */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 pb-[env(safe-area-inset-bottom)] flex justify-around items-center h-16 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 pb-[env(safe-area-inset-bottom)] flex justify-around items-center h-[72px] shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
             {bottomTabs.map(item => {
                const active = isActiveLink(item.to);
                return (
                 <Link 
                     key={item.to} 
                     to={item.to} 
-                    className={`flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-90 transition-transform ${active ? 'text-indigo-600' : 'text-gray-400'}`}
+                    className={`flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-90 transition-transform relative ${active ? 'text-indigo-600' : 'text-gray-400'}`}
                 >
+                    {active && <div className="absolute top-0 w-12 h-1 bg-indigo-600 rounded-b-full"></div>}
                     <item.icon className={`w-6 h-6 ${active ? 'fill-indigo-50' : ''}`} />
                     <span className="text-[10px] font-medium leading-none">{item.label.split(' ')[0]}</span>
                 </Link>

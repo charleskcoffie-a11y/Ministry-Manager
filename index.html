@@ -1,8 +1,9 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Ministry Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -56,8 +57,27 @@
 </script>
 <style>
   /* Global font size boost */
-  html { font-size: 20px; }
-  body { font-size: 1rem; }
+  html { 
+    font-size: 16px; 
+    -webkit-text-size-adjust: 100%;
+    touch-action: manipulation;
+  }
+  body { 
+    font-size: 1rem; 
+    overscroll-behavior-y: none; /* Prevents pull-to-refresh on mobile if confusing */
+  }
+  /* Prevent iOS zoom on inputs */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  /* Hide scrollbar for clean mobile look but allow scrolling */
+  .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+  }
+  .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+  }
 </style>
 </head>
   <body class="bg-gray-50 text-slate-900 antialiased">
