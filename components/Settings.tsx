@@ -27,10 +27,10 @@ const Settings: React.FC = () => {
   const [pinMessage, setPinMessage] = useState({ text: '', type: '' });
 
   // Verse Settings
-  const [verseSource, setVerseSource] = useState('plan');
+  const [verseSource, setVerseSource] = useState('ai');
 
   useEffect(() => {
-      setVerseSource(localStorage.getItem('dailyVerseSource') || 'plan');
+      setVerseSource(localStorage.getItem('dailyVerseSource') || 'ai');
   }, []);
 
   const handleVerseSourceChange = (val: string) => {

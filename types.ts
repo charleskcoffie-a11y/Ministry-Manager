@@ -75,6 +75,7 @@ export interface CounselingSession {
 
 export interface Idea {
   id: string;
+  title?: string; // New Title field
   idea_date: string;
   place: string;
   note: string;

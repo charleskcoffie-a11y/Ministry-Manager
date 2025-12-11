@@ -83,10 +83,11 @@ create table counseling_sessions (
   created_at timestamp with time zone default now()
 );
 
--- 6. Ideas Table
+-- 6. Ideas Table (Updated with Title)
 create table ideas (
   id uuid primary key default uuid_generate_v4(),
   idea_date date not null,
+  title text, -- New Title Column
   place text,
   note text not null,
   created_at timestamp with time zone default now()
@@ -248,6 +249,9 @@ create policy "Public access" on sermon_talk_points for all using (true);
 
 alter table daily_verses enable row level security;
 create policy "Public access" on daily_verses for all using (true);
+
+-- OPTIONAL: Migration script if 'ideas' table already exists without 'title'
+-- alter table ideas add column title text;
 ```
 
 ## 2. Environment Variables

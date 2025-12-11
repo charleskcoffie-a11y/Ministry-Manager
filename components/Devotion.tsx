@@ -6,6 +6,7 @@ import { supabase } from '../supabaseClient';
 import { DailyVersePlan } from '../utils/dailyVersePlan';
 import { getVerseByReference } from '../services/dailyVerseService';
 import { DailyVerse } from '../types';
+import { useLocation } from 'react-router-dom';
 
 // --- Configuration Data ---
 const DEVOTION_CONFIG = {
@@ -83,6 +84,8 @@ function StarIcon(props: any) {
 }
 
 const Devotion: React.FC = () => {
+  const location = useLocation();
+  
   // Modes: 'today', 'date', 'season'
   const [mode, setMode] = useState<'today' | 'date' | 'season'>('today');
   const [view, setView] = useState<'flash' | 'full'>('flash');
@@ -100,6 +103,21 @@ const Devotion: React.FC = () => {
   // Daily Verse Data (fetched from Supabase)
   const [dailyVerse, setDailyVerse] = useState<DailyVerse | null>(null);
   const [verseLoading, setVerseLoading] = useState(false);
+
+  // Check for auto-generation from Home page
+  useEffect(() => {
+      if (location.state && location.state.autoGenerate) {
+          const { scripture, theme } = location.state;
+          // Trigger generation immediately
+          handleGenerate({
+              scripture: scripture,
+              theme: theme,
+              date: new Date().toISOString().split('T')[0],
+              seasonId: 'ORDINARY_TIME'
+          });
+          // Optional: Clean up history state if desired, but React Router handles navigation well.
+      }
+  }, [location.state]);
 
   // Computed
   const todayStr = new Date().toISOString().split('T')[0];

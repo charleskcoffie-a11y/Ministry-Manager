@@ -9,15 +9,17 @@ if (apiKey) {
     ai = new GoogleGenAI({ apiKey: apiKey });
 }
 
-export const expandIdea = async (ideaNote: string): Promise<string> => {
+export const expandIdea = async (ideaNote: string, title?: string): Promise<string> => {
   if (!ai) return "API Key not configured.";
 
   try {
+    const context = title ? `Title: ${title}\nNote: ${ideaNote}` : `Note: ${ideaNote}`;
+    
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `You are a helpful ministry assistant. Take the following ministry idea or thought and expand it into a brief outline for a sermon or detailed action plan. Keep it concise (under 200 words).
       
-      Idea: "${ideaNote}"`,
+      ${context}`,
     });
     
     return response.text || "Could not generate content.";

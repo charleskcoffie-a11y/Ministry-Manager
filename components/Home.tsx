@@ -36,18 +36,20 @@ interface LiturgicalSeason {
   definition: string;
 }
 
-// --- Image Mapping for Verses ---
+// --- Image Mapping for Verses (Updated with reliable IDs) ---
 const VERSE_IMAGES: Record<string, string> = {
-    'light': 'https://images.unsplash.com/photo-1507692049790-de58293a469d?q=80&w=2670&auto=format&fit=crop',
+    'light': 'https://images.unsplash.com/photo-1507692049790-de58293a469d?q=80&w=2670&auto=format&fit=crop', // Sunrise
     'mountain': 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=2670&auto=format&fit=crop',
     'water': 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=2674&auto=format&fit=crop',
     'sheep': 'https://images.unsplash.com/photo-1484557985045-edf25e08da73?q=80&w=2673&auto=format&fit=crop',
     'shepherd': 'https://images.unsplash.com/photo-1484557985045-edf25e08da73?q=80&w=2673&auto=format&fit=crop',
     'cross': 'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?q=80&w=2670&auto=format&fit=crop',
     'sky': 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=2670&auto=format&fit=crop',
-    'peace': 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=2670&auto=format&fit=crop',
+    'peace': 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2670&auto=format&fit=crop', // Calm lake
     'bread': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=2672&auto=format&fit=crop',
     'vine': 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=2670&auto=format&fit=crop',
+    'love': 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=2670&auto=format&fit=crop',
+    'strength': 'https://images.unsplash.com/photo-1524234599372-a5bd0194758d?q=80&w=2670&auto=format&fit=crop',
     'default': 'https://images.unsplash.com/photo-1507692049790-de58293a469d?q=80&w=2670&auto=format&fit=crop'
 };
 
@@ -221,6 +223,12 @@ const Home: React.FC = () => {
   const [currentSeason, setCurrentSeason] = useState<LiturgicalSeason | null>(null);
   const [todaysVerse, setTodaysVerse] = useState<{reference: string, text: string, keyword?: string} | null>(null);
   const [verseLoading, setVerseLoading] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  
+  // State to track if the images failed to load
+  const [verseImageError, setVerseImageError] = useState(false);
+  // Track errors for highlight items individually
+  const [highlightImageErrors, setHighlightImageErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchRecentTasks();
@@ -232,7 +240,8 @@ const Home: React.FC = () => {
 
   const loadVerse = async () => {
     setVerseLoading(true);
-    const source = localStorage.getItem('dailyVerseSource') || 'plan';
+    setVerseImageError(false); // Reset error state on new load
+    const source = localStorage.getItem('dailyVerseSource') || 'ai';
     
     if (source === 'ai') {
         const v = await getAiDailyVerse();
@@ -249,26 +258,50 @@ const Home: React.FC = () => {
     setVerseLoading(false);
   };
 
-  const handleShareVerse = () => {
+  const handleShareVerse = async () => {
     if (!todaysVerse) return;
+    setSharing(true);
     
-    // Requested Format:
-    // Verse Text
-    // Reference
-    // #pulpit
-    // Rev. Charles K. Coffie
-
-    const textToShare = `${todaysVerse.text}\n${todaysVerse.reference}\n\n#pulpit\n\nRev. Charles K. Coffie`;
+    const shareText = `"${todaysVerse.text}"\n- ${todaysVerse.reference}\n\nRev. Charles K. Coffie`;
     
     if (navigator.share) {
-        navigator.share({
-            title: 'Verse of the Day',
-            text: textToShare
-        }).catch(err => console.log('Share canceled', err));
+        try {
+            // Attempt to fetch the image to share it as a file
+            const imageUrl = getVerseImage(todaysVerse.keyword);
+            let filesArray: File[] = [];
+
+            try {
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                const file = new File([blob], 'verse-of-the-day.jpg', { type: blob.type });
+                filesArray = [file];
+            } catch (err) {
+                console.warn("Could not fetch image for sharing, falling back to text only.", err);
+            }
+
+            if (filesArray.length > 0 && navigator.canShare && navigator.canShare({ files: filesArray })) {
+                await navigator.share({
+                    files: filesArray,
+                    text: shareText
+                });
+            } else {
+                // Fallback to text share if image sharing not supported or failed
+                await navigator.share({
+                    text: shareText
+                });
+            }
+        } catch (err) {
+            console.log('Share canceled or failed', err);
+        }
     } else {
-        navigator.clipboard.writeText(textToShare);
+        navigator.clipboard.writeText(shareText);
         alert("Verse copied to clipboard!");
     }
+    setSharing(false);
+  };
+
+  const handleHighlightImageError = (id: string) => {
+      setHighlightImageErrors(prev => ({...prev, [id]: true}));
   };
 
   const fetchRecentTasks = async () => {
@@ -378,6 +411,22 @@ const Home: React.FC = () => {
   const getImageForEvent = (title: string): string | null => {
     const lower = title.toLowerCase();
     
+    // Special Priority: Eucharist / Communion (Corrected to proper wine/bread image)
+    // Using a clear chalice and bread image instead of the previous "beer-like" one
+    if (lower.match(/eucharist|communion|lords supper|lord's supper/)) {
+        return 'https://images.unsplash.com/photo-1545989253-02cc26577f8d?q=80&w=2670&auto=format&fit=crop';
+    }
+
+    // Special Priority: Sunday Service / Chapel (High Quality Church Interior)
+    if (lower.match(/sunday service|chapel|church service|divine service/)) {
+        return 'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?q=80&w=2673&auto=format&fit=crop';
+    }
+
+    // Meeting / Committee (Professional Meeting)
+    if (lower.match(/meeting|committee|council|board|planning|leadership/)) {
+        return 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=2670&auto=format&fit=crop';
+    }
+
     // Worship & Music
     if (lower.match(/worship|praise|choir|music|song|concert|hymn/)) 
       return 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?q=80&w=2670&auto=format&fit=crop';
@@ -398,19 +447,15 @@ const Home: React.FC = () => {
     if (lower.match(/bible|study|teaching|seminar|class|workshop|training/)) 
       return 'https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=2670&auto=format&fit=crop';
     
-    // Celebrations & Sacraments
+    // Celebrations & Sacraments (Generic fallbacks if special priority didn't match)
     if (lower.match(/wedding|marriage|couple|matrimony/)) 
       return 'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?q=80&w=2670&auto=format&fit=crop';
-    if (lower.match(/baptism|communion|naming|dedication/)) 
+    if (lower.match(/baptism|naming|dedication/)) 
       return 'https://images.unsplash.com/photo-1518176258769-f227c798150e?q=80&w=2670&auto=format&fit=crop';
     
     // Social & Fellowship
     if (lower.match(/picnic|fellowship|lunch|dinner|breakfast|party|social/)) 
       return 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=2669&auto=format&fit=crop';
-    
-    // Leadership & Business
-    if (lower.match(/meeting|committee|council|board|planning|leadership/)) 
-      return 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2670&auto=format&fit=crop';
 
     // Holidays
     if (lower.match(/christmas|xmas|carol/)) 
@@ -569,12 +614,13 @@ const Home: React.FC = () => {
                     
                     {/* Desktop View: Image Card */}
                     <div className="hidden md:block">
-                        {item.image ? (
+                        {item.image && !highlightImageErrors[item.id] ? (
                             <div className="h-48 overflow-hidden relative">
                                 <img 
                                 src={item.image} 
                                 alt={item.title} 
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                onError={() => handleHighlightImageError(item.id)}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
                                 <div className="absolute bottom-4 left-4 text-white">
@@ -597,7 +643,7 @@ const Home: React.FC = () => {
                             </div>
                         )}
                         <div className="p-5 flex-1 bg-white">
-                            {!item.image && (
+                            {(!item.image || highlightImageErrors[item.id]) && (
                                 <h3 className="text-xl font-bold text-gray-800 mb-3 leading-tight border-l-4 border-primary pl-3 line-clamp-1">{item.title}</h3>
                             )}
                             <p className="text-gray-500 text-lg flex items-center gap-2 line-clamp-1">
@@ -655,22 +701,29 @@ const Home: React.FC = () => {
                         </div>
                     ) : todaysVerse ? (
                         <>
-                            {/* Image Header */}
-                            <div className="h-32 w-full relative overflow-hidden">
-                                <img 
-                                    src={getVerseImage(todaysVerse.keyword)} 
-                                    alt="Verse Background" 
-                                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/50 to-transparent"></div>
-                                <div className="absolute bottom-2 left-4">
-                                    <div className="bg-white/80 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold text-red-800 shadow-sm border border-red-100 flex items-center gap-2">
-                                        <Quote className="w-3 h-3" /> Daily Word
+                            {/* Image Header with Robust Error Handling */}
+                            {!verseImageError && (
+                                <div className="h-32 w-full relative overflow-hidden transition-all duration-300">
+                                    <img 
+                                        src={getVerseImage(todaysVerse.keyword)} 
+                                        alt="Verse Background" 
+                                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                                        onError={(e) => {
+                                            // Collapse the image area immediately on error
+                                            e.currentTarget.style.display = 'none';
+                                            setVerseImageError(true);
+                                        }}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-white via-white/50 to-transparent"></div>
+                                    <div className="absolute bottom-2 left-4">
+                                        <div className="bg-white/80 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold text-red-800 shadow-sm border border-red-100 flex items-center gap-2">
+                                            <Quote className="w-3 h-3" /> Daily Word
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
-                            <div className="p-5 md:p-6 relative z-10 -mt-2">
+                            <div className={`p-5 md:p-6 relative z-10 ${!verseImageError ? '-mt-2' : ''}`}>
                                 <div className="mb-4">
                                     <h3 className="font-bold text-red-800 text-lg mb-1 flex items-center gap-2">
                                         {todaysVerse.reference}
@@ -680,15 +733,24 @@ const Home: React.FC = () => {
                                     </p>
                                 </div>
                                 <div className="flex gap-2">
-                                    <Link to="/devotion" className="flex-1 text-center bg-red-50 text-red-700 font-bold py-2 rounded-lg text-xs uppercase tracking-wider hover:bg-red-100 transition-colors">
+                                    <Link 
+                                        to="/devotion" 
+                                        state={{ 
+                                            autoGenerate: true, 
+                                            scripture: todaysVerse.reference, 
+                                            theme: "Verse of the Day"
+                                        }}
+                                        className="flex-1 text-center bg-red-50 text-red-700 font-bold py-2 rounded-lg text-xs uppercase tracking-wider hover:bg-red-100 transition-colors"
+                                    >
                                         Read Devotion
                                     </Link>
                                     <button 
                                         onClick={handleShareVerse}
+                                        disabled={sharing}
                                         className="px-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
                                         title="Share Verse"
                                     >
-                                        <Share2 className="w-4 h-4"/>
+                                        {sharing ? <Loader2 className="w-4 h-4 animate-spin"/> : <Share2 className="w-4 h-4"/>}
                                     </button>
                                 </div>
                             </div>
