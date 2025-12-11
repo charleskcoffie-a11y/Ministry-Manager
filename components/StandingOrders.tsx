@@ -1,17 +1,16 @@
 
-// ... (imports remain the same)
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import * as React from 'react';
 import { supabase } from '../supabaseClient';
 import { StandingOrder } from '../types';
 import { 
   Search, BookOpen, ChevronRight, Bot, Upload, FileText, X, ArrowLeft, 
-  AlignJustify, Scale, Bookmark, Gavel, ScrollText, CheckCircle2, BookmarkCheck,
+  AlignJustify, Scale, Bookmark, Gavel, ScrollText, CheckCircle2, 
   Library
 } from 'lucide-react';
 import { explainStandingOrder } from '../services/geminiService';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-// ... (globals and interfaces remain the same)
 declare global {
   interface Window {
     pdfjsLib: any;
@@ -25,8 +24,7 @@ interface DocContent {
   page?: number;
 }
 
-const StandingOrders: React.FC = () => {
-  // ... (state setup remains the same)
+const StandingOrders = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
@@ -51,6 +49,7 @@ const StandingOrders: React.FC = () => {
   const [aiExplanation, setAiExplanation] = useState<string>('');
   const [aiLoading, setAiLoading] = useState(false);
 
+  // Initialize ref explicitly
   const fullDocViewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,7 +62,6 @@ const StandingOrders: React.FC = () => {
     const newSearch = params.toString();
     const currentSearch = new URLSearchParams(location.search).toString();
     
-    // Only navigate if the search string actually changed to prevent loops
     if (newSearch !== currentSearch) {
         navigate({ search: newSearch }, { replace: true });
     }

@@ -5,7 +5,7 @@ import { SermonNote, SermonPoint } from '../types';
 import { 
   ChevronLeft, Save, Plus, Trash2, Calendar, MapPin, 
   User, Book, PenTool, LayoutList, ChevronDown, ChevronUp,
-  Loader2, List
+  Loader2, List, Search, X
 } from 'lucide-react';
 
 const SermonNotes: React.FC = () => {
@@ -13,6 +13,7 @@ const SermonNotes: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState<SermonNote[]>([]);
   const [saving, setSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Initial State for a fresh note
   const initialNote: SermonNote = {
@@ -206,6 +207,17 @@ const SermonNotes: React.FC = () => {
     setCurrentNote({ ...currentNote, points: newPoints });
   };
 
+  // --- Filtering ---
+  const filteredNotes = notes.filter(note => {
+    const q = searchQuery.toLowerCase();
+    return (
+      (note.sermon_title && note.sermon_title.toLowerCase().includes(q)) ||
+      (note.preacher && note.preacher.toLowerCase().includes(q)) ||
+      (note.location && note.location.toLowerCase().includes(q)) ||
+      (note.main_scripture && note.main_scripture.toLowerCase().includes(q))
+    );
+  });
+
   // --- Render ---
 
   if (mode === 'list') {
@@ -226,16 +238,38 @@ const SermonNotes: React.FC = () => {
            </button>
         </div>
 
+        {/* Search Bar */}
+        <div className="relative">
+            <Search className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Search notes by title, preacher, or scripture..." 
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+        </div>
+
         {loading ? (
            <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-indigo-300"/></div>
-        ) : notes.length === 0 ? (
+        ) : filteredNotes.length === 0 ? (
            <div className="text-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
               <Book className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500 font-medium">No sermon notes yet.</p>
+              <p className="text-slate-500 font-medium">
+                {searchQuery ? 'No matching notes found.' : 'No sermon notes yet.'}
+              </p>
            </div>
         ) : (
            <div className="grid gap-4">
-              {notes.map(note => (
+              {filteredNotes.map(note => (
                  <div 
                    key={note.id} 
                    onClick={() => fetchNoteDetails(note.id)}
