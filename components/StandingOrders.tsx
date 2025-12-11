@@ -9,7 +9,7 @@ import {
   Library
 } from 'lucide-react';
 import { explainStandingOrder } from '../services/geminiService';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 // ... (globals and interfaces remain the same)
 declare global {
@@ -27,7 +27,9 @@ interface DocContent {
 
 const StandingOrders: React.FC = () => {
   // ... (state setup remains the same)
-  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
   const initialQuery = searchParams.get('q') || '';
 
   const [orders, setOrders] = useState<StandingOrder[]>([]);
@@ -52,12 +54,20 @@ const StandingOrders: React.FC = () => {
   const fullDocViewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
     if (searchQuery) {
-        setSearchParams({ q: searchQuery });
+        params.set('q', searchQuery);
     } else {
-        setSearchParams({});
+        params.delete('q');
     }
-  }, [searchQuery, setSearchParams]);
+    const newSearch = params.toString();
+    const currentSearch = new URLSearchParams(location.search).toString();
+    
+    // Only navigate if the search string actually changed to prevent loops
+    if (newSearch !== currentSearch) {
+        navigate({ search: newSearch }, { replace: true });
+    }
+  }, [searchQuery, navigate, location.search]);
 
   useEffect(() => {
     const fetchSavedDocument = async () => {

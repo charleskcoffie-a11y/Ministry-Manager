@@ -4,11 +4,12 @@ import { Link } from 'react-router-dom';
 import { 
   Calendar, CheckCircle2, BookOpen, Lightbulb, ArrowRight, Star, 
   CalendarDays, AlertCircle, Loader2, MapPin, ChevronRight,
-  Crown, Scroll, Sparkles, ShieldCheck, Clock
+  Crown, Scroll, Sparkles, ShieldCheck, Clock, Share2, Heart, Quote
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Task } from '../types';
-import { explainStandingOrder } from '../services/geminiService';
+import { explainStandingOrder, getAiDailyVerse } from '../services/geminiService';
+import { getTodayVerse } from '../services/dailyVerseService';
 
 interface Highlight {
   id: string;
@@ -34,6 +35,30 @@ interface LiturgicalSeason {
   accent: string; // Tailwind class for contrast
   definition: string;
 }
+
+// --- Image Mapping for Verses ---
+const VERSE_IMAGES: Record<string, string> = {
+    'light': 'https://images.unsplash.com/photo-1507692049790-de58293a469d?q=80&w=2670&auto=format&fit=crop',
+    'mountain': 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=2670&auto=format&fit=crop',
+    'water': 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=2674&auto=format&fit=crop',
+    'sheep': 'https://images.unsplash.com/photo-1484557985045-edf25e08da73?q=80&w=2673&auto=format&fit=crop',
+    'shepherd': 'https://images.unsplash.com/photo-1484557985045-edf25e08da73?q=80&w=2673&auto=format&fit=crop',
+    'cross': 'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?q=80&w=2670&auto=format&fit=crop',
+    'sky': 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=2670&auto=format&fit=crop',
+    'peace': 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=2670&auto=format&fit=crop',
+    'bread': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=2672&auto=format&fit=crop',
+    'vine': 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=2670&auto=format&fit=crop',
+    'default': 'https://images.unsplash.com/photo-1507692049790-de58293a469d?q=80&w=2670&auto=format&fit=crop'
+};
+
+const getVerseImage = (keyword?: string) => {
+    if (!keyword) return VERSE_IMAGES['default'];
+    const k = keyword.toLowerCase();
+    for (const key in VERSE_IMAGES) {
+        if (k.includes(key)) return VERSE_IMAGES[key];
+    }
+    return VERSE_IMAGES['default'];
+};
 
 // Helper: Calculate Liturgical Season
 const getSeasonForDate = (date: Date): LiturgicalSeason => {
@@ -194,13 +219,57 @@ const Home: React.FC = () => {
   const [loadingHighlights, setLoadingHighlights] = useState(true);
   const [dailyOrder, setDailyOrder] = useState<DailyOrder | null>(null);
   const [currentSeason, setCurrentSeason] = useState<LiturgicalSeason | null>(null);
+  const [todaysVerse, setTodaysVerse] = useState<{reference: string, text: string, keyword?: string} | null>(null);
+  const [verseLoading, setVerseLoading] = useState(false);
 
   useEffect(() => {
     fetchRecentTasks();
     fetchHighlights();
     fetchDailyStandingOrder();
     setCurrentSeason(getSeasonForDate(new Date()));
+    loadVerse();
   }, []);
+
+  const loadVerse = async () => {
+    setVerseLoading(true);
+    const source = localStorage.getItem('dailyVerseSource') || 'plan';
+    
+    if (source === 'ai') {
+        const v = await getAiDailyVerse();
+        if (v) setTodaysVerse(v);
+    } else {
+        const v = await getTodayVerse();
+        // If plan has no text, provide a default or placeholder
+        setTodaysVerse({ 
+            reference: v.reference, 
+            text: v.text || "Tap to read full devotion text online or generate content.",
+            keyword: 'light' // Default for planned verses if no keyword logic exists yet
+        });
+    }
+    setVerseLoading(false);
+  };
+
+  const handleShareVerse = () => {
+    if (!todaysVerse) return;
+    
+    // Requested Format:
+    // Verse Text
+    // Reference
+    // #pulpit
+    // Rev. Charles K. Coffie
+
+    const textToShare = `${todaysVerse.text}\n${todaysVerse.reference}\n\n#pulpit\n\nRev. Charles K. Coffie`;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'Verse of the Day',
+            text: textToShare
+        }).catch(err => console.log('Share canceled', err));
+    } else {
+        navigator.clipboard.writeText(textToShare);
+        alert("Verse copied to clipboard!");
+    }
+  };
 
   const fetchRecentTasks = async () => {
     // Fetch high priority or impending tasks
@@ -574,7 +643,65 @@ const Home: React.FC = () => {
         {/* Right Sidebar */}
         <div className="xl:col-span-1 space-y-6 md:space-y-8">
              
-             {/* 1. Standing Order of the Day */}
+             {/* 1. Daily Verse Widget */}
+             <div>
+                <h2 className="text-xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-2 md:gap-3">
+                    <Heart className="w-6 h-6 md:w-8 md:h-8 text-red-500" /> Verse of the Day
+                </h2>
+                <div className="bg-white rounded-xl shadow-md border border-red-50 overflow-hidden relative group hover:shadow-lg transition-shadow">
+                    {verseLoading ? (
+                        <div className="flex justify-center py-12">
+                            <Loader2 className="w-8 h-8 animate-spin text-red-400"/>
+                        </div>
+                    ) : todaysVerse ? (
+                        <>
+                            {/* Image Header */}
+                            <div className="h-32 w-full relative overflow-hidden">
+                                <img 
+                                    src={getVerseImage(todaysVerse.keyword)} 
+                                    alt="Verse Background" 
+                                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/50 to-transparent"></div>
+                                <div className="absolute bottom-2 left-4">
+                                    <div className="bg-white/80 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold text-red-800 shadow-sm border border-red-100 flex items-center gap-2">
+                                        <Quote className="w-3 h-3" /> Daily Word
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-5 md:p-6 relative z-10 -mt-2">
+                                <div className="mb-4">
+                                    <h3 className="font-bold text-red-800 text-lg mb-1 flex items-center gap-2">
+                                        {todaysVerse.reference}
+                                    </h3>
+                                    <p className="text-gray-700 italic font-serif text-sm leading-relaxed border-l-2 border-red-200 pl-3">
+                                        "{todaysVerse.text}"
+                                    </p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Link to="/devotion" className="flex-1 text-center bg-red-50 text-red-700 font-bold py-2 rounded-lg text-xs uppercase tracking-wider hover:bg-red-100 transition-colors">
+                                        Read Devotion
+                                    </Link>
+                                    <button 
+                                        onClick={handleShareVerse}
+                                        className="px-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
+                                        title="Share Verse"
+                                    >
+                                        <Share2 className="w-4 h-4"/>
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="text-center py-8 text-gray-400 text-sm">
+                            Verse unavailable. Check settings.
+                        </div>
+                    )}
+                </div>
+             </div>
+
+             {/* 2. Standing Order of the Day */}
              <div>
                 <h2 className="text-xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-2 md:gap-3">
                     <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-purple-600" /> Daily Order
@@ -613,7 +740,7 @@ const Home: React.FC = () => {
                 )}
              </div>
 
-             {/* 2. Pending Tasks */}
+             {/* 3. Pending Tasks */}
              <div>
                  <h2 className="text-xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-2 md:gap-3">
                    <AlertCircle className="w-6 h-6 md:w-8 md:h-8 text-orange-500" /> Pending Tasks

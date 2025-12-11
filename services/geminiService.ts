@@ -46,6 +46,41 @@ export const explainStandingOrder = async (code: string, content: string): Promi
     }
   };
 
+export const getAiDailyVerse = async (): Promise<{reference: string, text: string, keyword: string} | null> => {
+  if (!ai) return null;
+  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Generate a short, encouraging bible verse for a Methodist Minister for today (${today}). 
+      Return valid JSON with:
+      1. "reference" (e.g. John 3:16)
+      2. "text" (The verse text in NIV or NKJV)
+      3. "keyword" (A single visual noun that represents the verse theme, e.g. "light", "mountain", "water", "sheep", "cross", "bread", "sky", "path")`,
+      config: { 
+          responseMimeType: 'application/json',
+          responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                  reference: { type: Type.STRING },
+                  text: { type: Type.STRING },
+                  keyword: { type: Type.STRING }
+              },
+              required: ['reference', 'text', 'keyword']
+          }
+      }
+    });
+    
+    const text = response.text;
+    if (!text) return null;
+    return JSON.parse(text);
+  } catch (e) {
+    console.error("AI Verse Error:", e);
+    return null;
+  }
+};
+
 export interface DevotionalParams {
   topic?: string;
   date?: string;

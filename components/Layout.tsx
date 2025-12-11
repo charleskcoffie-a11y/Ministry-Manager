@@ -130,10 +130,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="p-4 border-t border-white/5 bg-black/20">
             <div className="flex items-center gap-3 px-2">
                 <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-bold text-white ring-2 ring-indigo-400/30">
-                    RM
+                    RC
                 </div>
                 <div className="overflow-hidden">
-                    <p className="text-sm font-medium text-white truncate">Rev. Minister</p>
+                    <p className="text-sm font-medium text-white truncate">Rev. Coffie</p>
                     <p className="text-xs text-slate-500 truncate">North America Diocese</p>
                 </div>
             </div>

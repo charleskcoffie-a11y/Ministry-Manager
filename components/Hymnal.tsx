@@ -4,40 +4,57 @@ import { supabase } from '../supabaseClient';
 import { Song } from '../types';
 import { Search, Music, BookOpen, ChevronRight, ArrowLeft, Loader2, Database, ZoomIn, ZoomOut, Globe, List, X, AlertCircle, PlayCircle, Star, Heart } from 'lucide-react';
 
-// --- Helper: Lyric Cleaner ---
-const cleanLyrics = (raw: string | undefined | null): string => {
-    if (!raw) return '';
+// --- Helper: Advanced Stanza Parser ---
+const parseStanzas = (raw: string | undefined | null): string[][] => {
+    if (!raw) return [];
     
-    // 1. Split into lines
-    let lines = raw.split('\n');
-    
-    // 2. Filter and transform lines
-    lines = lines.map(line => {
-        let text = line;
-        const trimmed = text.trim();
-        
-        // Rule: Remove 'Tahoma;' lines or similar font artifacts
-        if (trimmed.toLowerCase().startsWith('tahoma')) return null;
-        
-        // Rule: Remove single punctuation lines (; : , .)
-        if (/^[;:,.]+$/.test(trimmed)) return null;
-        
-        // Rule: Remove "Verse X", "Stanza X", "- 1 Verse" headers entirely
-        if (/^[-0-9\s]*(Verse|Stanza|Hymn)\s*\d*/i.test(trimmed)) return null;
-        
-        // Rule: Remove lines that are just numbers
-        if (/^\d+\.?$/.test(trimmed)) return null;
+    const lines = raw.split('\n');
+    const stanzas: string[][] = [];
+    let currentStanza: string[] = [];
 
-        // Rule: Clean up lines that start with artifacts but contain lyrics
-        if (/^-\d+/.test(trimmed)) {
-             text = text.replace(/^-\d+/, '');
+    lines.forEach(line => {
+        let text = line.trim();
+        
+        // Filter out common artifacts first
+        if (text.toLowerCase().startsWith('tahoma')) return;
+        if (/^[;:,.]+$/.test(text)) return;
+
+        // Detect Stanza Breakers (Empty lines or Headers)
+        const isHeader = 
+            /^\d+\.?$/.test(text) || // "1", "1."
+            /^[-0-9\s]*(Verse|Stanza|Hymn)\s*\d*/i.test(text); // "Verse 1", "Stanza 2"
+
+        const isEmpty = !text;
+
+        if (isHeader || isEmpty) {
+            if (currentStanza.length > 0) {
+                stanzas.push(currentStanza);
+                currentStanza = [];
+            }
+            return;
         }
 
-        return text;
-    }).filter((line): line is string => line !== null);
+        // Clean line content (remove leading artifacts like "-1")
+        if (/^-\d+/.test(text)) text = text.replace(/^-\d+/, '').trim();
 
-    // 3. Join and collapse multiple empty lines
-    return lines.join('\n').replace(/(\n\s*){3,}/g, '\n\n').trim();
+        if (text) {
+            currentStanza.push(text);
+        }
+    });
+
+    // Capture final stanza
+    if (currentStanza.length > 0) {
+        stanzas.push(currentStanza);
+    }
+
+    return stanzas;
+};
+
+// --- Helper: Preview Text Extractor ---
+const getPreviewText = (raw: string | undefined | null): string => {
+    const stanzas = parseStanzas(raw);
+    if (stanzas.length > 0 && stanzas[0].length > 0) return stanzas[0][0];
+    return '';
 };
 
 // --- Helper: Collection Colors ---
@@ -260,6 +277,8 @@ const Hymnal: React.FC = () => {
 
   // --- Render Reading View (Overlay) ---
   if (selectedItem) {
+      const stanzas = parseStanzas(selectedItem.lyrics);
+
       return (
           <div className="fixed inset-0 z-50 bg-slate-50 flex flex-col animate-fade-in overflow-hidden">
               {/* Reading Header */}
@@ -314,13 +333,26 @@ const Hymnal: React.FC = () => {
                           )}
                       </div>
 
-                      {/* Lyrics Body */}
+                      {/* Lyrics Body - Stanza Mapped */}
                       <div className="px-8 pb-16 pt-6 md:px-16 md:pb-20">
-                        <div 
-                            className="whitespace-pre-wrap font-serif text-slate-800 leading-relaxed text-center mx-auto max-w-2xl selection:bg-blue-100"
-                            style={{ fontSize: `${fontSize}px`, lineHeight: '1.7' }}
-                        >
-                            {cleanLyrics(selectedItem.lyrics)}
+                        <div className="max-w-2xl mx-auto">
+                            {stanzas.map((lines, i) => (
+                                <div key={i} className="mb-8 last:mb-0 text-center">
+                                    {lines.map((line, j) => (
+                                        <div 
+                                            key={j} 
+                                            className="font-serif text-slate-800"
+                                            style={{ 
+                                                fontSize: `${fontSize}px`, 
+                                                lineHeight: '1.4', 
+                                                marginBottom: '0.4em' 
+                                            }}
+                                        >
+                                            {line}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
                         </div>
                       </div>
 
@@ -471,11 +503,9 @@ const Hymnal: React.FC = () => {
                                       <h3 className={`text-base font-semibold text-gray-800 group-hover:${styles.text} transition-colors truncate mb-1`}>
                                           {item.title}
                                       </h3>
-                                      {item.lyrics && (
-                                          <p className="text-xs text-gray-400 font-medium line-clamp-1">
-                                              {cleanLyrics(item.lyrics).split('\n')[0]}
-                                          </p>
-                                      )}
+                                      <p className="text-xs text-gray-400 font-medium line-clamp-1">
+                                          {getPreviewText(item.lyrics)}
+                                      </p>
                                   </div>
 
                                   {/* Star Button */}

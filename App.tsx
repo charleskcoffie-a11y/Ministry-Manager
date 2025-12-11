@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './components/Home';
@@ -15,81 +15,54 @@ import ChristianCalendar from './components/ChristianCalendar';
 import SermonBuilder from './components/SermonBuilder';
 import Hymnal from './components/Hymnal';
 import SermonNotes from './components/SermonNotes';
+import PINLock from './components/PINLock';
 
 const App: React.FC = () => {
+  // Check session storage to see if already unlocked in this browser session
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
+    return sessionStorage.getItem('ministryAppUnlocked') === 'true';
+  });
+
+  const handleUnlock = () => {
+    sessionStorage.setItem('ministryAppUnlocked', 'true');
+    setIsUnlocked(true);
+  };
+
+  if (!isUnlocked) {
+    return <PINLock onUnlock={handleUnlock} />;
+  }
+
   return (
     <HashRouter>
       <Routes>
-        <Route 
-          path="/" 
-          element={<Layout><Home /></Layout>} 
-        />
+        <Route path="/" element={<Layout><Home /></Layout>} />
         
-        <Route 
-          path="/programs" 
-          element={<Layout><ProgramManager /></Layout>} 
-        />
+        <Route path="/programs" element={<Layout><ProgramManager /></Layout>} />
 
-        <Route 
-          path="/sermons" 
-          element={<Layout><SermonBuilder /></Layout>} 
-        />
+        <Route path="/sermons" element={<Layout><SermonBuilder /></Layout>} />
 
-        <Route 
-          path="/sermon-notes" 
-          element={<Layout><SermonNotes /></Layout>} 
-        />
+        <Route path="/sermon-notes" element={<Layout><SermonNotes /></Layout>} />
 
-        <Route 
-          path="/devotion" 
-          element={<Layout><Devotion /></Layout>} 
-        />
+        <Route path="/devotion" element={<Layout><Devotion /></Layout>} />
 
-        <Route 
-          path="/hymnal" 
-          element={<Layout><Hymnal /></Layout>} 
-        />
+        <Route path="/hymnal" element={<Layout><Hymnal /></Layout>} />
 
-        <Route 
-          path="/christian-calendar" 
-          element={<Layout><ChristianCalendar /></Layout>} 
-        />
+        <Route path="/christian-calendar" element={<Layout><ChristianCalendar /></Layout>} />
 
-        <Route 
-          path="/standing-orders" 
-          element={<Layout><StandingOrders /></Layout>} 
-        />
+        <Route path="/standing-orders" element={<Layout><StandingOrders /></Layout>} />
         
-        <Route 
-          path="/tasks" 
-          element={<Layout><TaskManager /></Layout>} 
-        />
+        <Route path="/tasks" element={<Layout><TaskManager /></Layout>} />
 
-        <Route 
-          path="/reminders" 
-          element={<Layout><ReminderSystem /></Layout>} 
-        />
+        <Route path="/reminders" element={<Layout><ReminderSystem /></Layout>} />
         
-        <Route 
-          path="/counseling" 
-          element={<Layout><CounselingManager /></Layout>} 
-        />
+        <Route path="/counseling" element={<Layout><CounselingManager /></Layout>} />
         
-        <Route 
-          path="/ideas" 
-          element={<Layout><IdeasJournal /></Layout>} 
-        />
+        <Route path="/ideas" element={<Layout><IdeasJournal /></Layout>} />
         
-        <Route 
-          path="/settings" 
-          element={<Layout><Settings /></Layout>} 
-        />
+        <Route path="/settings" element={<Layout><Settings /></Layout>} />
         
         {/* Redirect unknown paths to home */}
-        <Route 
-          path="*" 
-          element={<Navigate to="/" replace />} 
-        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </HashRouter>
   );

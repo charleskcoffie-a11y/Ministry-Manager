@@ -1,7 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { Settings as SettingsIcon, CheckCircle2, XCircle, Loader2, Database, ShieldAlert, Upload, FileJson, Trash2, AlertTriangle, Play, FileText, RefreshCw } from 'lucide-react';
+import { APP_CONSTANTS } from '../constants';
+import { 
+  Settings as SettingsIcon, CheckCircle2, XCircle, Loader2, Database, 
+  ShieldAlert, Upload, FileJson, Trash2, AlertTriangle, Play, FileText, 
+  Lock, KeyRound, Save, Sparkles, Book
+} from 'lucide-react';
 
 const Settings: React.FC = () => {
   // Connection Test State
@@ -15,20 +20,36 @@ const Settings: React.FC = () => {
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
   const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null);
 
+  // Security / PIN State
+  const [oldPin, setOldPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [pinMessage, setPinMessage] = useState({ text: '', type: '' });
+
+  // Verse Settings
+  const [verseSource, setVerseSource] = useState('plan');
+
+  useEffect(() => {
+      setVerseSource(localStorage.getItem('dailyVerseSource') || 'plan');
+  }, []);
+
+  const handleVerseSourceChange = (val: string) => {
+      setVerseSource(val);
+      localStorage.setItem('dailyVerseSource', val);
+  };
+
   // --- Connection Test Logic ---
   const testConnection = async () => {
     setStatus('loading');
     setMessage('');
     
     try {
-      // 1. Check basic connection by counting rows in a known table
       const { count, error } = await supabase
         .from('church_programs')
         .select('*', { count: 'exact', head: true });
 
       if (error) throw error;
       
-      // 2. Check for Songs table specifically since it is new
       const { error: songError } = await supabase
          .from('songs')
          .select('id')
@@ -43,13 +64,11 @@ const Settings: React.FC = () => {
     } catch (err: any) {
       console.error("Connection Test Error:", err);
       setStatus('error');
-      // Provide helpful context based on common errors
       if (err.message?.includes('fetch')) {
         setMessage("Network Error: Could not reach Supabase. Check internet connection or URL.");
       } else if (err.code === 'PGRST301') {
         setMessage("Permission Error: RLS policies might be blocking access, but DB is reached.");
       } else if (err.code === '42P01') {
-         // This code means relation does not exist
          const missingTable = err.message.includes('songs') ? 'songs' : 'church_programs';
          setMessage(`Table Error: '${missingTable}' table not found. Run the SQL script in README.`);
       } else {
@@ -62,8 +81,6 @@ const Settings: React.FC = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
           const file = e.target.files[0];
-          console.log("File selected:", file.name);
-          
           if (file.type !== "application/json" && !file.name.endsWith('.json')) {
               alert("Please select a valid .json file");
               return;
@@ -71,30 +88,25 @@ const Settings: React.FC = () => {
           setSelectedFile(file);
           setImportResult(null); 
           setImportStatusText('File ready to process.');
-          // Reset input to allow re-selecting same file if needed
           e.target.value = ''; 
       }
   };
 
-  // --- Execution Logic ---
+  // --- Import Logic ---
   const startImport = async () => {
-    console.log("Start Import clicked");
     if (!selectedFile) {
         alert("No file selected.");
         return;
     }
 
-    // 1. Immediate UI Feedback
     setImporting(true);
     setImportProgress({ current: 0, total: 0 });
     setImportStatusText('Initializing import process...');
 
     try {
-        // 2. Read File content (Modern Async Method)
         setImportStatusText('Reading file from disk...');
         const text = await selectedFile.text();
         
-        // 3. Parse JSON
         setImportStatusText('Parsing JSON data...');
         let json;
         try {
@@ -103,43 +115,31 @@ const Settings: React.FC = () => {
             throw new Error("Invalid JSON syntax. Please check the file format.");
         }
 
-        // --- INTELLIGENT SONG HUNTER & TAGGER ---
-        // Recursively finds songs and uses the parent object key as the 'collection' if missing.
         const findAndTagSongs = (obj: any, parentKey: string | null = null, depth = 0): any[] => {
-            if (depth > 5) return []; // Safety break
+            if (depth > 5) return [];
             if (!obj || typeof obj !== 'object') return [];
 
-            // Case 1: Array
             if (Array.isArray(obj)) {
-                 // Check if it's an array of songs
                  const hasSongs = obj.length > 0 && (
                      'title' in obj[0] || 'lyrics' in obj[0] || 'number' in obj[0]
                  );
                  
                  if (hasSongs) {
                      return obj.map((s: any) => {
-                         // Determine Collection
                          let col = s.collection;
-                         
-                         // If no collection on object, try to infer from the parent key (e.g. "MHB": [...])
                          if (!col && parentKey) {
                              const k = parentKey.toUpperCase();
                              if (k.includes('MHB')) col = 'MHB';
                              else if (k.includes('CAN') && !k.includes('CANTICLE')) col = 'CAN';
                              else if (k.includes('CANTICLE')) col = 'CANTICLES_EN';
-                             else col = parentKey; // Fallback to the key name itself
+                             else col = parentKey;
                          }
-                         
                          return { ...s, collection: col || 'General' };
                      });
                  }
-                 
-                 // If array of objects (not songs), recurse
                  return obj.flatMap(item => findAndTagSongs(item, parentKey, depth + 1));
             }
 
-            // Case 2: Object (Map)
-            // Iterate keys and pass the key name down as the "parentKey" context
             return Object.keys(obj).flatMap(key => {
                 return findAndTagSongs(obj[key], key, depth + 1);
             });
@@ -150,11 +150,9 @@ const Settings: React.FC = () => {
 
         const total = songsArray.length;
         if (total === 0) {
-            console.error("Parsed structure:", json);
             throw new Error("Could not find any songs in the file.");
         }
 
-        // 4. DB Connection Check
         setImportStatusText('Checking database connection...');
         const { error: tableCheck } = await supabase.from('songs').select('id').limit(1);
         if (tableCheck && tableCheck.code === '42P01') {
@@ -164,7 +162,6 @@ const Settings: React.FC = () => {
         setImportProgress({ current: 0, total });
         setImportStatusText(`Found ${total} songs. Starting upload...`);
 
-        // 5. Batch Upload Loop
         const BATCH_SIZE = 50;
         let successCount = 0;
         let errorCount = 0;
@@ -176,10 +173,8 @@ const Settings: React.FC = () => {
 
             const batchRaw = songsArray.slice(i, i + BATCH_SIZE);
             
-            // Robust Mapping
             const batch = batchRaw.map((s: any, idx: number) => {
                 const fallbackId = Math.floor(Date.now() / 1000) + i + idx + Math.floor(Math.random() * 1000);
-                
                 return {
                     id: typeof s.id === 'number' ? s.id : fallbackId,
                     collection: s.collection || 'General',
@@ -200,9 +195,6 @@ const Settings: React.FC = () => {
             if (error) {
                 console.error('Batch import error:', error);
                 errorCount += batch.length;
-                if (error.code === '42P01') {
-                    throw new Error("Songs table missing. Stopping import.");
-                }
             } else {
                 successCount += batch.length;
             }
@@ -226,12 +218,9 @@ const Settings: React.FC = () => {
 
   const clearSongs = async () => {
       if(!confirm("DANGER: This will delete ALL songs from the database. Are you sure?")) return;
-      
       setImporting(true);
       setImportStatusText('Clearing database...');
-      
-      const { error } = await supabase.from('songs').delete().neq('id', 0); // Delete all where ID is not 0 (all)
-      
+      const { error } = await supabase.from('songs').delete().neq('id', 0);
       if (error) {
           alert("Error clearing table: " + error.message);
           setImportStatusText('Error clearing table');
@@ -239,9 +228,37 @@ const Settings: React.FC = () => {
           setImportStatusText('Database cleared.');
           setImportResult(null); 
       }
-      
       setImporting(false);
-  }
+  };
+
+  // --- PIN Change Logic ---
+  const handleChangePin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinMessage({ text: '', type: '' });
+
+    const storedPin = localStorage.getItem('ministryAppPIN') || APP_CONSTANTS.DEFAULT_PIN;
+
+    if (oldPin !== storedPin) {
+      setPinMessage({ text: 'Incorrect old PIN', type: 'error' });
+      return;
+    }
+
+    if (newPin.length < 4 || newPin.length > 6) {
+      setPinMessage({ text: 'New PIN must be 4-6 digits', type: 'error' });
+      return;
+    }
+
+    if (newPin !== confirmPin) {
+      setPinMessage({ text: 'New PINs do not match', type: 'error' });
+      return;
+    }
+
+    localStorage.setItem('ministryAppPIN', newPin);
+    setPinMessage({ text: 'PIN updated successfully!', type: 'success' });
+    setOldPin('');
+    setNewPin('');
+    setConfirmPin('');
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-12">
@@ -251,11 +268,134 @@ const Settings: React.FC = () => {
         </div>
         <div>
             <h1 className="text-4xl font-bold text-gray-800">System Settings</h1>
-            <p className="text-lg text-gray-500">Manage application configuration and connections</p>
+            <p className="text-lg text-gray-500">Manage application configuration and security</p>
         </div>
       </div>
 
-      {/* 1. Database Connection Panel */}
+      {/* 1. Daily Verse Settings */}
+      <div className="bg-white rounded-lg shadow-md p-8 border border-gray-100">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3 border-b pb-4">
+          <Book className="w-6 h-6 text-indigo-600" />
+          Daily Verse Preference
+        </h2>
+        
+        <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
+            <label className="block text-sm font-bold text-slate-700 mb-3">Verse Source</label>
+            <div className="flex gap-4">
+                <button 
+                    onClick={() => handleVerseSourceChange('plan')}
+                    className={`flex-1 p-4 rounded-xl border-2 transition-all text-left flex items-start gap-3 ${
+                        verseSource === 'plan' 
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-900' 
+                        : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                    }`}
+                >
+                    <div className={`p-2 rounded-full ${verseSource === 'plan' ? 'bg-indigo-200' : 'bg-slate-100'}`}>
+                        <Database className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <span className="font-bold block text-sm">Planned List (Supabase)</span>
+                        <span className="text-xs opacity-80">Cycle through pre-entered verses from database.</span>
+                    </div>
+                </button>
+
+                <button 
+                    onClick={() => handleVerseSourceChange('ai')}
+                    className={`flex-1 p-4 rounded-xl border-2 transition-all text-left flex items-start gap-3 ${
+                        verseSource === 'ai' 
+                        ? 'border-purple-600 bg-purple-50 text-purple-900' 
+                        : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                    }`}
+                >
+                    <div className={`p-2 rounded-full ${verseSource === 'ai' ? 'bg-purple-200' : 'bg-slate-100'}`}>
+                        <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <span className="font-bold block text-sm">Auto-generate (AI)</span>
+                        <span className="text-xs opacity-80">Use AI to pick a fresh verse each day.</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+      </div>
+
+      {/* 2. Security Settings */}
+      <div className="bg-white rounded-lg shadow-md p-8 border border-gray-100">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3 border-b pb-4">
+          <Lock className="w-6 h-6 text-slate-800" />
+          Security
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+           <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
+              <h3 className="font-bold text-slate-700 mb-2">App Lock Protection</h3>
+              <p className="text-sm text-slate-500 mb-4">
+                Change the PIN used to unlock the application at startup.
+                Default PIN is <strong>{APP_CONSTANTS.DEFAULT_PIN}</strong>.
+              </p>
+              
+              <form onSubmit={handleChangePin} className="space-y-4">
+                 <div>
+                    <input 
+                      type="password" 
+                      placeholder="Current PIN" 
+                      className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                      value={oldPin}
+                      onChange={e => setOldPin(e.target.value)}
+                      maxLength={6}
+                    />
+                 </div>
+                 <div className="grid grid-cols-2 gap-3">
+                    <input 
+                      type="password" 
+                      placeholder="New PIN" 
+                      className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                      value={newPin}
+                      onChange={e => setNewPin(e.target.value)}
+                      maxLength={6}
+                    />
+                    <input 
+                      type="password" 
+                      placeholder="Confirm" 
+                      className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                      value={confirmPin}
+                      onChange={e => setConfirmPin(e.target.value)}
+                      maxLength={6}
+                    />
+                 </div>
+                 
+                 <button type="submit" className="w-full py-2.5 bg-slate-800 text-white rounded-lg hover:bg-black font-medium transition-colors flex items-center justify-center gap-2">
+                    <Save className="w-4 h-4" /> Update PIN
+                 </button>
+
+                 {pinMessage.text && (
+                   <div className={`text-sm text-center font-medium py-2 rounded ${pinMessage.type === 'success' ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
+                     {pinMessage.text}
+                   </div>
+                 )}
+              </form>
+           </div>
+
+           <div className="bg-slate-50 p-6 rounded-lg border border-slate-100 flex flex-col justify-center items-center text-center">
+              <ShieldAlert className="w-12 h-12 text-slate-300 mb-3" />
+              <h3 className="font-bold text-slate-700 mb-1">Session Security</h3>
+              <p className="text-sm text-slate-500 mb-4">
+                The app automatically locks when you close the browser.
+              </p>
+              <button 
+                onClick={() => {
+                  sessionStorage.removeItem('ministryAppUnlocked');
+                  window.location.reload();
+                }}
+                className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-100 font-medium shadow-sm transition-colors"
+              >
+                Lock App Now
+              </button>
+           </div>
+        </div>
+      </div>
+
+      {/* 3. Database Connection Panel */}
       <div className="bg-white rounded-lg shadow-md p-8 border border-gray-100">
         <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3 border-b pb-4">
           <Database className="w-6 h-6 text-primary" />
@@ -303,18 +443,10 @@ const Settings: React.FC = () => {
                     </div>
                 )}
             </div>
-            
-            <div className="text-base text-gray-500 mt-4 flex items-start gap-3 bg-blue-50 p-4 rounded text-blue-800">
-                <div className="mt-1">ℹ️</div>
-                <p>
-                    This test attempts to connect to the <code>church_programs</code> and <code>songs</code> tables. 
-                    If it fails, ensure you have run the setup SQL scripts in your Supabase dashboard and that your internet connection is active.
-                </p>
-            </div>
         </div>
       </div>
 
-      {/* 2. Data Management Panel */}
+      {/* 4. Data Management Panel */}
       <div className="bg-white rounded-lg shadow-md p-8 border border-gray-100">
         <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-3 border-b pb-4">
           <FileJson className="w-6 h-6 text-orange-600" />
@@ -328,7 +460,6 @@ const Settings: React.FC = () => {
                     Upload the <code className="bg-white px-1 py-0.5 rounded border border-orange-200">methodist_songs_flat.json</code> file here to populate the Hymnal section. 
                 </p>
 
-                {/* Import Result Feedback */}
                 {importResult && (
                     <div className="mb-6 p-4 bg-white rounded-lg border border-green-200 flex items-center gap-4 animate-fade-in shadow-sm">
                         <div className="p-2 bg-green-100 rounded-full">
@@ -345,7 +476,6 @@ const Settings: React.FC = () => {
                 )}
 
                 <div className="flex flex-col gap-4">
-                    {/* State 1: Selection Mode */}
                     {!importing && !selectedFile && (
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             <label className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 shadow-sm font-medium transition-colors">
@@ -360,7 +490,6 @@ const Settings: React.FC = () => {
                         </div>
                     )}
 
-                    {/* State 2: Ready to Import */}
                     {!importing && selectedFile && (
                         <div className="bg-white p-4 rounded-lg border border-blue-200 animate-fade-in">
                             <div className="flex items-center justify-between mb-4">
@@ -393,7 +522,6 @@ const Settings: React.FC = () => {
                         </div>
                     )}
 
-                    {/* State 3: Importing */}
                     {importing && (
                         <div className="space-y-3 bg-white p-4 rounded-lg border border-orange-200">
                             <div className="flex items-center justify-between text-orange-800 font-medium">
@@ -415,13 +543,6 @@ const Settings: React.FC = () => {
                         </div>
                     )}
                 </div>
-            </div>
-            
-            <div className="flex items-start gap-3 text-gray-500 text-sm">
-                <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0" />
-                <p>
-                    <strong>Note:</strong> This process uploads data in batches of 50. Do not close the window until the success message appears.
-                </p>
             </div>
         </div>
       </div>

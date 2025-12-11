@@ -1,9 +1,13 @@
-import React, { useState, useMemo } from 'react';
+
+import React, { useState, useMemo, useEffect } from 'react';
 import { Heart, Sparkles, Loader2, Save, Calendar, Filter, ChevronRight, BookOpen, Sun, Moon, Leaf, Snowflake, Lightbulb, ArrowLeft } from 'lucide-react';
 import { generateDevotional, DevotionalResponse } from '../services/geminiService';
 import { supabase } from '../supabaseClient';
+import { DailyVersePlan } from '../utils/dailyVersePlan';
+import { getVerseByReference } from '../services/dailyVerseService';
+import { DailyVerse } from '../types';
 
-// --- Configuration Data (Matches requirements) ---
+// --- Configuration Data ---
 const DEVOTION_CONFIG = {
   settings: {
     year: 2026,
@@ -20,7 +24,8 @@ const DEVOTION_CONFIG = {
     { id: "ADVENT", name: "Advent", icon: Snowflake, color: "text-blue-600", bg: "bg-blue-50" },
     { id: "CHRISTMAS", name: "Christmas Season", icon: StarIcon, color: "text-yellow-400", bg: "bg-slate-800" }
   ],
-  devotionalPlan: [
+  // Special fixed date plans can still live here
+  specialDays: [
     {
       date: "2026-01-01",
       scripture: "Psalm 90:12",
@@ -68,14 +73,6 @@ const DEVOTION_CONFIG = {
       seasonId: "CHRISTMAS",
       calendarTag: "Christmas Day",
       importance: "major"
-    },
-    {
-      date: "2026-07-10",
-      scripture: "Philippians 4:6-7",
-      theme: "Peace in Every Season",
-      seasonId: "ORDINARY_TIME",
-      calendarTag: "Ordinary Day",
-      importance: "normal"
     }
   ]
 };
@@ -100,29 +97,62 @@ const Devotion: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Daily Verse Data (fetched from Supabase)
+  const [dailyVerse, setDailyVerse] = useState<DailyVerse | null>(null);
+  const [verseLoading, setVerseLoading] = useState(false);
+
   // Computed
   const todayStr = new Date().toISOString().split('T')[0];
   
-  // Find plan for selected date
+  // Logic to determine active plan
   const activePlan = useMemo(() => {
     const targetDate = mode === 'today' ? todayStr : selectedDate;
-    const exactMatch = DEVOTION_CONFIG.devotionalPlan.find(p => p.date === targetDate);
-    if (exactMatch) return exactMatch;
+    
+    // 1. Check special days first
+    const specialMatch = DEVOTION_CONFIG.specialDays.find(p => p.date === targetDate);
+    if (specialMatch) return specialMatch;
+
+    // 2. Use Daily Verse Plan for normal days
+    if (mode === 'today' || mode === 'date') {
+        const verseRef = DailyVersePlan.verseForDate(new Date(targetDate));
+        return {
+            date: targetDate,
+            scripture: verseRef,
+            theme: "Verse of the Day", // Generic theme, to be refined by verse content or AI
+            seasonId: "ORDINARY_TIME", // Could calculate proper season here if needed
+            calendarTag: "Daily Word",
+            importance: "normal"
+        };
+    }
+    
     return null;
   }, [mode, selectedDate, todayStr]);
 
-  // Find entries for a season
+  // Fetch verse content when active plan changes
+  useEffect(() => {
+      if (activePlan && activePlan.scripture) {
+          const loadVerse = async () => {
+              setVerseLoading(true);
+              const data = await getVerseByReference(activePlan.scripture);
+              setDailyVerse(data);
+              setVerseLoading(false);
+          };
+          loadVerse();
+      } else {
+          setDailyVerse(null);
+      }
+  }, [activePlan]);
+
+  // Find entries for a season (currently only using special days for list, could expand)
   const seasonEntries = useMemo(() => {
     if (!selectedSeasonId) return [];
-    return DEVOTION_CONFIG.devotionalPlan.filter(p => p.seasonId === selectedSeasonId);
+    return DEVOTION_CONFIG.specialDays.filter(p => p.seasonId === selectedSeasonId);
   }, [selectedSeasonId]);
 
   const getSeasonInfo = (id: string) => DEVOTION_CONFIG.seasons.find(s => s.id === id);
 
   const handleGenerate = async (params: any = {}) => {
     setLoading(true);
-    // Note: We don't clear generatedContent immediately if we want to preserve previous state, 
-    // but for a new generation we should.
     
     // Build parameters based on mode and state
     let finalParams = { ...params };
@@ -181,26 +211,34 @@ ${generatedContent.prayer}`;
 
   const handleReset = () => {
       setView('flash');
-      // We can keep generatedContent if we want to cache it, or clear it.
-      // Clearing it enforces "freshness" if the user changes params.
   };
 
   // --- Render Components ---
 
-  const renderFlashCard = (plan: typeof DEVOTION_CONFIG.devotionalPlan[0]) => {
+  const renderFlashCard = (plan: typeof DEVOTION_CONFIG.specialDays[0]) => {
       const season = getSeasonInfo(plan.seasonId);
       const SeasonIcon = season?.icon || Leaf;
 
-      // Background image simulation (gradient/pattern) based on season
-      // In a real app with "devotion_background.jpg", we would use that.
+      // Check if we have an image from Supabase
+      const bgImage = dailyVerse?.image_url;
+      const hasBgImage = !!bgImage;
+
+      // Default background logic if no image
       const bgStyle = season?.id === 'CHRISTMAS' || season?.id === 'ADVENT' 
         ? "bg-gradient-to-br from-slate-800 to-slate-900 text-white" 
         : "bg-white text-gray-900";
 
       return (
-        <div className={`relative rounded-2xl shadow-xl overflow-hidden transform transition-all duration-500 hover:shadow-2xl ${bgStyle} min-h-[400px] flex flex-col`}>
-             {/* Decorative Background Image Overlay */}
-             <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1507692049790-de58293a469d?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay"></div>
+        <div className={`relative rounded-2xl shadow-xl overflow-hidden transform transition-all duration-500 hover:shadow-2xl ${hasBgImage ? 'text-white' : bgStyle} min-h-[400px] flex flex-col`}>
+             {/* Background Image Layer */}
+             {hasBgImage ? (
+                 <>
+                    <div className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 hover:scale-105" style={{ backgroundImage: `url(${bgImage})` }}></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/30"></div>
+                 </>
+             ) : (
+                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1507692049790-de58293a469d?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay"></div>
+             )}
              
              {/* Content Container */}
              <div className="relative z-10 flex-1 flex flex-col p-8 md:p-10">
@@ -212,7 +250,7 @@ ${generatedContent.prayer}`;
                          <span className="text-xl font-bold font-serif">{new Date(plan.date).toLocaleDateString()}</span>
                     </div>
                     {plan.calendarTag && (
-                        <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm bg-black/5`}>
+                        <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm bg-black/20 text-white border border-white/20`}>
                            {plan.calendarTag}
                         </div>
                     )}
@@ -221,15 +259,24 @@ ${generatedContent.prayer}`;
                 {/* Main: Title & Scripture */}
                 <div className="flex-1 flex flex-col justify-center space-y-6 text-center">
                     <div>
-                         <span className="text-xs font-bold uppercase tracking-widest opacity-70 mb-2 block">Summary</span>
-                         <h2 className="text-3xl md:text-5xl font-serif font-bold leading-tight">{plan.theme}</h2>
+                         <span className="text-xs font-bold uppercase tracking-widest opacity-70 mb-2 block">Verse of the Day</span>
+                         <h2 className="text-3xl md:text-5xl font-serif font-bold leading-tight">{plan.scripture}</h2>
                     </div>
                     
                     <div className="w-16 h-1 bg-current mx-auto opacity-30 rounded-full"></div>
 
                     <div>
-                         <span className="text-xs font-bold uppercase tracking-widest opacity-70 mb-2 block">Scripture</span>
-                         <p className="text-lg md:text-xl font-medium opacity-90">{plan.scripture}</p>
+                         {verseLoading ? (
+                             <div className="flex justify-center"><Loader2 className="w-6 h-6 animate-spin opacity-50"/></div>
+                         ) : dailyVerse?.text ? (
+                             <p className="text-lg md:text-xl font-medium opacity-90 leading-relaxed max-w-2xl mx-auto">
+                                "{dailyVerse.text}"
+                             </p>
+                         ) : (
+                             <p className="text-sm opacity-60 italic">
+                                Verse text unavailable. Click below to read devotion.
+                             </p>
+                         )}
                     </div>
                 </div>
 
@@ -238,7 +285,7 @@ ${generatedContent.prayer}`;
                     <button 
                         onClick={() => handleGenerate(plan)}
                         disabled={loading}
-                        className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-white rounded-xl font-bold text-lg hover:bg-blue-600 transition-transform active:scale-95 shadow-lg"
+                        className={`inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-transform active:scale-95 shadow-lg ${hasBgImage ? 'bg-white/20 backdrop-blur-md hover:bg-white/30 text-white border border-white/30' : 'bg-primary text-white hover:bg-blue-600'}`}
                     >
                         {loading ? <Loader2 className="animate-spin w-5 h-5"/> : <BookOpen className="w-5 h-5" />}
                         Read Full Devotion
@@ -298,12 +345,12 @@ ${generatedContent.prayer}`;
             <div className="animate-fade-in">
                 {mode === 'today' && (
                      activePlan ? renderFlashCard(activePlan) : (
-                        // Fallback Flash Card for No Plan
+                        // Fallback Flash Card for No Plan (Should rarely happen with DailyVersePlan)
                         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-10 text-center border border-blue-100 min-h-[300px] flex flex-col justify-center">
                             <Sun className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
                             <h2 className="text-2xl font-bold text-gray-800 mb-2">Open Devotion</h2>
                             <p className="text-gray-600 mb-8 max-w-lg mx-auto">
-                                No scheduled plan for today. Enter a topic to generate a fresh devotion.
+                                Enter a topic to generate a fresh devotion.
                             </p>
                             <div className="max-w-md mx-auto relative w-full">
                                 <input 
@@ -363,7 +410,7 @@ ${generatedContent.prayer}`;
                                         <season.icon className={`w-8 h-8 ${season.color} mb-3`} />
                                         <h3 className={`font-bold text-lg ${season.color}`}>{season.name}</h3>
                                         <p className="text-sm text-gray-500 mt-1">
-                                            {DEVOTION_CONFIG.devotionalPlan.filter(p => p.seasonId === season.id).length} reading(s)
+                                            Select to view plans
                                         </p>
                                     </button>
                                 ))}
@@ -384,7 +431,7 @@ ${generatedContent.prayer}`;
                                      })()}
                                 </h2>
                                 <div className="grid gap-4">
-                                    {seasonEntries.map((plan, idx) => (
+                                    {seasonEntries.length > 0 ? seasonEntries.map((plan, idx) => (
                                         <div key={idx} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center group hover:border-blue-200 transition-colors">
                                             <div>
                                                 <div className="text-xs font-bold text-gray-400 uppercase mb-1">{new Date(plan.date).toLocaleDateString()}</div>
@@ -398,7 +445,9 @@ ${generatedContent.prayer}`;
                                                 <ChevronRight className="w-5 h-5" />
                                             </button>
                                         </div>
-                                    ))}
+                                    )) : (
+                                        <div className="text-center py-10 text-gray-500 italic">No specific plans listed for this season yet.</div>
+                                    )}
                                 </div>
                             </div>
                         )}

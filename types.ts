@@ -224,3 +224,14 @@ export interface SermonNote {
   // Virtual field for app logic, not in main table
   points?: SermonPoint[];
 }
+
+// --- DAILY VERSE ---
+export interface DailyVerse {
+  id: string;
+  reference: string;
+  translation: string;
+  text?: string | null;
+  image_url?: string | null;
+  date?: string;
+  created_at?: string;
+}
