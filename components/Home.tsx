@@ -484,15 +484,15 @@ const Home: React.FC = () => {
         {/* Subtle Grain/Pattern */}
         <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
 
-        <div className="relative z-10 px-5 py-3 md:px-10 md:py-6 flex flex-col items-center text-center md:items-start md:text-left">
+        <div className="relative z-10 px-4 py-0 md:px-10 md:py-3 flex flex-col items-center text-center md:items-start md:text-left">
            {/* Badge */}
-           <div className="inline-flex items-center gap-2 px-3 py-1 md:px-4 md:py-1.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-300 text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-sm mb-4 md:mb-6 backdrop-blur-md">
+           <div className="inline-flex items-center gap-2 px-3 py-1 md:px-4 md:py-1.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-300 text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-sm mb-3 md:mb-4 backdrop-blur-md">
               <Crown className="w-3 h-3 md:w-4 md:h-4" /> 
               Pastoral Workspace
            </div>
 
            {/* Title */}
-           <h1 className="text-3xl md:text-6xl font-serif font-bold leading-tight mb-3 md:mb-4 tracking-tight text-white drop-shadow-sm">
+           <h1 className="text-2xl md:text-6xl font-serif font-bold leading-tight mb-2 md:mb-3 tracking-tight text-white drop-shadow-sm">
               Ministry <br className="md:hidden" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200">
                  Suite
@@ -500,7 +500,7 @@ const Home: React.FC = () => {
            </h1>
 
            {/* Subtitle */}
-           <p className="text-sm md:text-xl text-indigo-200/80 font-light max-w-2xl leading-relaxed mb-6 md:mb-8">
+           <p className="text-xs md:text-xl text-indigo-200/80 font-light max-w-2xl leading-snug md:leading-relaxed mb-3 md:mb-5">
               Empowering Kingdom growth through vision, purpose, and organized leadership.
            </p>
 
