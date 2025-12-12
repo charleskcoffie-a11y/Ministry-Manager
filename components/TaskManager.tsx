@@ -288,54 +288,54 @@ const TaskManager: React.FC = () => {
               </div>
           </div>
       ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
               {CATEGORIES.map(category => {
                   const items = groupedTasks[category];
                   const theme = getCategoryTheme(category);
 
                   return (
-                      <div key={category} className={`rounded-3xl p-4 border transition-colors flex flex-col gap-4 min-h-[200px] ${theme.bg} ${theme.border}`}>
+                      <div key={category} className={`rounded-xl p-3 border transition-colors flex flex-col gap-3 min-h-[160px] ${theme.bg} ${theme.border}`}>
                           {/* Category Header */}
-                          <div className="flex justify-between items-center px-2 pt-1">
+                          <div className="flex justify-between items-center px-1 pt-1">
                              <div className="flex items-center gap-3">
                                  <div className={`p-2 rounded-xl ${theme.iconBg} ${theme.iconColor}`}>
                                      {getCategoryIcon(category)}
                                  </div>
                                  <div>
-                                     <h3 className={`font-bold text-lg leading-none ${theme.header}`}>{category}</h3>
-                                     <span className="text-xs font-semibold opacity-60 text-gray-600">{items.length} Tasks</span>
+                                     <h3 className={`font-bold text-base leading-none ${theme.header}`}>{category}</h3>
+                                     <span className="text-[11px] font-semibold opacity-60 text-gray-600">{items.length} Tasks</span>
                                  </div>
                              </div>
                              <button 
                                 onClick={() => openNewTaskModal(category)} 
-                                className={`w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/50 transition-colors ${theme.iconColor}`}
+                                className={`w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/50 transition-colors ${theme.iconColor}`}
                              >
                                  <Plus className="w-5 h-5" />
                              </button>
                           </div>
 
                           {/* Task List */}
-                          <div className="space-y-3 flex-1">
+                          <div className="space-y-2.5 flex-1">
                               {items.length === 0 && (
-                                  <div className="h-32 flex flex-col items-center justify-center text-center p-4 border-2 border-dashed border-gray-300/50 rounded-2xl">
+                                  <div className="h-28 flex flex-col items-center justify-center text-center p-3 border-2 border-dashed border-gray-300/50 rounded-xl">
                                       <div className="opacity-30 mb-2">{getCategoryIcon(category)}</div>
-                                      <p className="text-gray-400 text-sm font-medium">No tasks yet.</p>
-                                      <button onClick={() => openNewTaskModal(category)} className="text-xs font-bold text-gray-400 hover:text-gray-600 mt-1">Tap + to add</button>
+                                      <p className="text-gray-400 text-xs font-medium">No tasks yet.</p>
+                                      <button onClick={() => openNewTaskModal(category)} className="text-[11px] font-bold text-gray-400 hover:text-gray-600 mt-1">Tap + to add</button>
                                   </div>
                               )}
                               
                               {items.map(task => (
-                                  <div 
+                                                                    <div 
                                     key={task.id} 
-                                    className={`bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-all group relative border-l-4 ${getPriorityBorderColor(task.priority)} overflow-hidden`}
+                                                                        className={`bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-all group relative border-l-4 ${getPriorityBorderColor(task.priority)} overflow-hidden`}
                                   >
                                       {/* Top Row: Date & Priority */}
-                                      <div className="flex justify-between items-start mb-2">
+                                      <div className="flex justify-between items-start mb-1.5">
                                           <div className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${getPriorityBadgeColor(task.priority)}`}>
                                               {task.priority}
                                           </div>
                                           {task.task_date && (
-                                              <span className={`text-xs font-bold flex items-center gap-1.5 ${new Date(task.task_date) < new Date() && task.status !== 'Completed' ? 'text-rose-500' : 'text-gray-400'}`}>
+                                              <span className={`text-[11px] font-bold flex items-center gap-1.5 ${new Date(task.task_date) < new Date() && task.status !== 'Completed' ? 'text-rose-500' : 'text-gray-400'}`}>
                                                   <Calendar className="w-3 h-3" />
                                                   {new Date(task.task_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                               </span>
@@ -343,21 +343,21 @@ const TaskManager: React.FC = () => {
                                       </div>
 
                                       {/* Content */}
-                                      <h3 className={`font-bold text-gray-800 text-base mb-1 leading-snug ${task.status === 'Completed' ? 'line-through opacity-50' : ''}`}>
+                                      <h3 className={`font-bold text-gray-800 text-sm mb-0.5 leading-snug ${task.status === 'Completed' ? 'line-through opacity-50' : ''}`}>
                                           {task.title}
                                       </h3>
                                       
                                       {task.description && (
-                                          <p className={`text-xs text-gray-500 line-clamp-2 mb-3 ${task.status === 'Completed' ? 'opacity-50' : ''}`}>
+                                          <p className={`text-[11px] text-gray-500 line-clamp-1 mb-2 ${task.status === 'Completed' ? 'opacity-50' : ''}`}>
                                               {task.description}
                                           </p>
                                       )}
 
                                       {/* Actions Footer */}
-                                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+                                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
                                           <button 
                                             onClick={() => handleStatusChange(task, task.status === 'Completed' ? 'Pending' : 'Completed')}
-                                            className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-md transition-colors ${
+                                            className={`flex items-center gap-1.5 text-[11px] font-bold px-2 py-1 rounded-md transition-colors ${
                                                 task.status === 'Completed' 
                                                 ? 'bg-green-50 text-green-700' 
                                                 : 'bg-gray-50 text-gray-500 hover:bg-gray-100'

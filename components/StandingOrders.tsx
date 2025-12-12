@@ -344,13 +344,7 @@ const StandingOrders = () => {
              </div>
              
              <div className="flex items-center gap-3">
-               {!docMode ? (
-                 <label className="flex items-center gap-2 px-5 py-3 bg-white/10 border border-white/20 text-white rounded-lg hover:bg-white/20 cursor-pointer transition-all">
-                   <Upload className="w-5 h-5 text-amber-400" />
-                   <span className="font-medium text-sm">Upload Document</span>
-                   <input type="file" accept=".pdf,.docx" className="hidden" onChange={handleFileUpload} />
-                 </label>
-               ) : (
+               {docMode && (
                   <button 
                     onClick={clearDocument}
                     className="flex items-center gap-2 px-5 py-3 bg-red-500/20 border border-red-500/30 text-red-200 rounded-lg hover:bg-red-500/30 transition-all text-sm font-medium"

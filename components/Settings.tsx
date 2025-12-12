@@ -454,6 +454,63 @@ const Settings: React.FC = () => {
         </h2>
 
         <div className="space-y-6">
+                        {/* Constitution / Standing Orders Upload */}
+                        <div className="bg-amber-50 border border-amber-100 rounded-lg p-6">
+                                <h3 className="text-lg font-bold text-amber-900 mb-2">Upload Constitution / Standing Orders</h3>
+                                <p className="text-amber-800 mb-4 text-sm">
+                                    Upload a PDF or DOCX. The document will be parsed and saved to your database. You can then read and search it in Standing Orders.
+                                </p>
+                                <div className="flex items-start gap-4">
+                                    <label className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 shadow-sm font-medium transition-colors">
+                                        <Upload className="w-5 h-5 text-gray-600"/>
+                                        <span>Select PDF/DOCX...</span>
+                                        <input type="file" accept=".pdf,.docx" className="hidden" onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+                                            try {
+                                                // Basic parsing similar to StandingOrders
+                                                let content: any[] = [];
+                                                if (file.type === 'application/pdf' && (window as any).pdfjsLib) {
+                                                    const arrayBuffer = await file.arrayBuffer();
+                                                    const pdf = await (window as any).pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                                                    for (let i = 1; i <= pdf.numPages; i++) {
+                                                        const page = await pdf.getPage(i);
+                                                        const textContent = await page.getTextContent();
+                                                        const pageText = textContent.items.map((item: any) => item.str).join(' ');
+                                                        if (pageText.trim()) content.push({ id: `p-${i}`, text: pageText, page: i });
+                                                    }
+                                                } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' && (window as any).mammoth) {
+                                                    const arrayBuffer = await file.arrayBuffer();
+                                                    const result = await (window as any).mammoth.extractRawText({ arrayBuffer });
+                                                    const lines = result.value.split('\n').filter((line: string) => line.trim().length > 0);
+                                                    content = lines.map((line: string, idx: number) => ({ id: `d-${idx}`, text: line.trim() }));
+                                                } else {
+                                                    alert('Please upload a PDF or DOCX file.');
+                                                    return;
+                                                }
+
+                                                const { error } = await (supabase as any)
+                                                    .from('uploaded_documents')
+                                                    .upsert({ filename: file.name, content }, { onConflict: 'filename' });
+                                                if (error) {
+                                                    alert('Failed to save document: ' + error.message);
+                                                } else {
+                                                    alert('Document uploaded and saved. Open Standing Orders to read it.');
+                                                }
+                                            } catch (err: any) {
+                                                console.error(err);
+                                                alert('Error uploading document.');
+                                            }
+                                        }} />
+                                    </label>
+                                    <button 
+                                        onClick={() => { (window as any).location.hash = '#/standing-orders'; }}
+                                        className="px-4 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-medium transition-colors"
+                                    >
+                                        Open Standing Orders
+                                    </button>
+                                </div>
+                        </div>
             <div className="bg-orange-50 border border-orange-100 rounded-lg p-6">
                 <h3 className="text-lg font-bold text-orange-900 mb-2">Import Songs Database</h3>
                 <p className="text-orange-800 mb-6 text-base">
