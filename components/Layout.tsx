@@ -25,16 +25,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     {
       title: 'Overview',
       items: [
-        { to: '/', label: 'Home', icon: Home, showOnBottom: true },
+        { to: '/', label: 'Home', icon: Home, showOnBottom: true, mobileLabel: 'Home' },
       ]
     },
     {
       title: 'Pastoral Ministry',
       items: [
-        { to: '/sermons', label: 'Sermon Builder', icon: Scroll, showOnBottom: true },
-        { to: '/sermon-notes', label: 'Sermon Notes', icon: PenTool, showOnBottom: true },
-        { to: '/devotion', label: 'Devotion', icon: Flame, showOnBottom: true },
-        { to: '/hymnal', label: 'Canticles & Hymns', icon: Music, showOnBottom: true },
+        { to: '/hymnal', label: 'Canticles & Hymns', icon: Music, showOnBottom: true, mobileLabel: 'Hymns' },
+        { to: '/sermons', label: 'Sermon Builder', icon: Scroll, showOnBottom: false },
+        { to: '/sermon-notes', label: 'Sermon Notes', icon: PenTool, showOnBottom: false },
+        { to: '/devotion', label: 'Devotion', icon: Flame, showOnBottom: false },
         { to: '/christian-calendar', label: 'Calendar', icon: Calendar, showOnBottom: false },
         { to: '/counseling', label: 'Counseling', icon: HeartHandshake, showOnBottom: false },
         { to: '/ideas', label: 'Ideas Journal', icon: Lightbulb, showOnBottom: false },
@@ -43,10 +43,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     {
       title: 'Administration',
       items: [
-        { to: '/programs', label: 'Programs', icon: LayoutDashboard, showOnBottom: true },
-        { to: '/tasks', label: 'Tasks', icon: CheckSquare, showOnBottom: false },
-        { to: '/meetings', label: 'Meeting Minutes', icon: ClipboardList, showOnBottom: true },
-        { to: '/reminders', label: 'Reminders', icon: Bell, showOnBottom: false },
+        { to: '/programs', label: 'Programs', icon: LayoutDashboard, showOnBottom: true, mobileLabel: 'Programs' },
+        { to: '/tasks', label: 'Tasks', icon: CheckSquare, showOnBottom: true, mobileLabel: 'Tasks' },
+        { to: '/reminders', label: 'Reminders', icon: Bell, showOnBottom: true, mobileLabel: 'Alerts' },
+        { to: '/meetings', label: 'Meeting Minutes', icon: ClipboardList, showOnBottom: false },
         { to: '/standing-orders', label: 'Constitution', icon: Book, showOnBottom: false },
         { to: '/settings', label: 'Settings', icon: Settings, showOnBottom: false },
       ]
@@ -176,7 +176,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 >
                     {active && <div className="absolute top-0 w-12 h-1 bg-indigo-600 rounded-b-full"></div>}
                     <item.icon className={`w-6 h-6 ${active ? 'fill-indigo-50' : ''}`} />
-                    <span className="text-[10px] font-medium leading-none">{item.label.split(' ')[0]}</span>
+                    <span className="text-[10px] font-medium leading-none">{item.mobileLabel || item.label}</span>
                 </Link>
                );
             })}
