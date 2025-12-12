@@ -484,7 +484,7 @@ const Home: React.FC = () => {
         {/* Subtle Grain/Pattern */}
         <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
 
-        <div className="relative z-10 px-5 py-4 md:px-10 md:py-8 flex flex-col items-center text-center md:items-start md:text-left">
+        <div className="relative z-10 px-5 py-3 md:px-10 md:py-6 flex flex-col items-center text-center md:items-start md:text-left">
            {/* Badge */}
            <div className="inline-flex items-center gap-2 px-3 py-1 md:px-4 md:py-1.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-300 text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-sm mb-4 md:mb-6 backdrop-blur-md">
               <Crown className="w-3 h-3 md:w-4 md:h-4" /> 
