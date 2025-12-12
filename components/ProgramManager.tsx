@@ -2,18 +2,16 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
 import { Program } from '../types';
-import Papa from 'papaparse';
 import { 
-  Plus, Trash2, Edit2, Download, Upload, Calendar, Search, 
-  Save, X, Loader2, MapPin, User, Filter, XCircle, 
-  LayoutDashboard, Music, Users, BookOpen, Heart, 
-  Briefcase, Coffee, Mic2, ChevronDown, CalendarDays, MoreHorizontal
+    Plus, Trash2, Edit2, Calendar, Search, 
+    Save, X, MapPin, User, Filter, XCircle, 
+    LayoutDashboard, Music, Users, BookOpen, Heart, 
+    Briefcase, Coffee, Mic2, ChevronDown, CalendarDays, MoreHorizontal
 } from 'lucide-react';
 
 const ProgramManager: React.FC = () => {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
-  const [importing, setImporting] = useState(false);
   
   // Filter States
   const [filterActivity, setFilterActivity] = useState('');
@@ -67,157 +65,6 @@ const ProgramManager: React.FC = () => {
     if (!error) fetchPrograms();
   };
 
-  const handleExport = () => {
-    const csv = Papa.unparse({
-      fields: ["DATE", "ACTIVITIES-DESCRIPTION", "VENUE", "LEAD"],
-      data: programs.map(p => ([
-        p.date,
-        p.activity_description,
-        p.venue,
-        p.lead
-      ]))
-    });
-    
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'church_programs.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // Improved date parser
-  const parseFlexibleDate = (dateStr: string): string | null => {
-    if (!dateStr) return null;
-    let s = dateStr.toString().trim();
-    s = s.replace(/['"]+/g, '');
-
-    if (s.toUpperCase() === 'TBD' || s.toUpperCase() === 'DATE' || s === '') return null;
-
-    if (s.toLowerCase().includes(' to ')) {
-       const parts = s.split(/ to /i);
-       const firstPart = parts[0].trim();
-       const yearMatch = s.match(/\d{4}/);
-       const year = yearMatch ? yearMatch[0] : new Date().getFullYear();
-       if (!firstPart.includes(year.toString())) {
-           s = `${firstPart}, ${year}`;
-       } else {
-           s = firstPart;
-       }
-    }
-
-    const d = new Date(s);
-    if (!isNaN(d.getTime())) {
-      return d.toISOString().split('T')[0];
-    }
-    return null;
-  };
-
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setImporting(true);
-
-    Papa.parse(file, {
-      header: false,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        try {
-          const data = results.data as string[][];
-          if (data.length === 0) {
-             alert("File appears to be empty.");
-             setImporting(false);
-             return;
-          }
-
-          let headerRowIndex = -1;
-          for (let i = 0; i < Math.min(data.length, 25); i++) {
-              const rowStr = data[i].map(c => c ? c.toString().replace(/^\ufeff/, '').trim().toUpperCase() : '').join(' ');
-              if (rowStr.includes('DATE') && (rowStr.includes('ACTIVITIES') || rowStr.includes('DESCRIPTION'))) {
-                  headerRowIndex = i;
-                  break;
-              }
-          }
-
-          if (headerRowIndex === -1) {
-              alert("Could not find a valid header row.");
-              setImporting(false);
-              return;
-          }
-
-          const headers = data[headerRowIndex].map(h => h ? h.toString().replace(/^\ufeff/, '').trim().toUpperCase() : '');
-          const dateIdx = headers.findIndex(h => h.includes('DATE'));
-          const descIdx = headers.findIndex(h => h.includes('ACTIVITIES') || h.includes('DESCRIPTION'));
-          const venueIdx = headers.findIndex(h => h.includes('VENUE'));
-          const leadIdx = headers.findIndex(h => h.includes('LEAD'));
-
-          if (dateIdx === -1 || descIdx === -1) {
-              alert(`Could not identify required columns.`);
-              setImporting(false);
-              return;
-          }
-
-          const toInsert: any[] = [];
-          
-          for (let i = headerRowIndex + 1; i < data.length; i++) {
-              const row = data[i];
-              if (!row || row.length <= dateIdx) continue;
-
-              const rawDate = row[dateIdx];
-              const rawDesc = row[descIdx];
-
-              if (!rawDate || !rawDesc) continue;
-              if (rawDate.toString().toUpperCase().trim() === 'TBD') continue;
-
-              const parsedDate = parseFlexibleDate(rawDate);
-              
-              if (parsedDate) {
-                  const desc = rawDesc ? rawDesc.toString().trim() : '';
-                  const venue = (venueIdx > -1 && row[venueIdx]) ? row[venueIdx].toString().trim() : '';
-                  const lead = (leadIdx > -1 && row[leadIdx]) ? row[leadIdx].toString().trim() : '';
-                  
-                  if (desc) {
-                    toInsert.push({
-                        date: parsedDate,
-                        activity_description: desc,
-                        venue: venue,
-                        lead: lead
-                    });
-                  }
-              }
-          }
-
-          if (toInsert.length > 0) {
-            const BATCH_SIZE = 50;
-            let successCount = 0;
-            for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
-                const batch = toInsert.slice(i, i + BATCH_SIZE);
-                const { error } = await supabase.from('church_programs').insert(batch);
-                if (error) break;
-                successCount += batch.length;
-            }
-            alert(`Successfully imported ${successCount} programs.`);
-            await fetchPrograms();
-          } else {
-              alert(`No valid data found to import.`);
-          }
-        } catch (e: any) {
-            console.error("Import Exception:", e);
-            alert("Unexpected error during import.");
-        } finally {
-            setImporting(false);
-            e.target.value = '';
-        }
-      },
-      error: (err) => {
-          alert("CSV Parsing Error: " + err.message);
-          setImporting(false);
-      }
-    });
-  };
 
   // Helper for Activity Icons
   const getActivityIcon = (text: string) => {
@@ -278,21 +125,14 @@ const ProgramManager: React.FC = () => {
             <p className="text-slate-500 text-lg">Church Programs · Events · Ministry Activities</p>
         </div>
         
-        <div className="flex flex-wrap gap-3 w-full md:w-auto">
-           <label className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full hover:bg-emerald-100 cursor-pointer shadow-sm transition-all font-semibold ${importing ? 'opacity-50' : ''}`}>
-             {importing ? <Loader2 className="w-4 h-4 animate-spin"/> : <Upload className="w-4 h-4" />}
-             {importing ? 'Importing' : 'Import CSV'}
-             <input type="file" accept=".csv" className="hidden" onChange={handleImport} disabled={importing} />
-           </label>
-           
-           <button onClick={handleExport} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white text-slate-600 border border-slate-200 rounded-full hover:bg-slate-50 shadow-sm font-semibold transition-all hover:border-slate-300">
-             <Download className="w-4 h-4" /> Export
-           </button>
-           
-           <button onClick={() => { setCurrentProgram({}); setIsEditing(true); }} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 shadow-md hover:shadow-lg font-semibold transition-all transform hover:-translate-y-0.5">
-             <Plus className="w-5 h-5" /> Add Event
-           </button>
-        </div>
+                <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto items-start md:items-center">
+                     <div className="text-xs md:text-sm text-slate-500 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 leading-snug">
+                            CSV import/export is available in <span className="font-semibold text-slate-700">Settings → Programs</span>.
+                     </div>
+                     <button onClick={() => { setCurrentProgram({}); setIsEditing(true); }} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 shadow-md hover:shadow-lg font-semibold transition-all transform hover:-translate-y-0.5">
+                         <Plus className="w-5 h-5" /> Add Event
+                     </button>
+                </div>
       </div>
 
       {/* 2. Filters Card */}
