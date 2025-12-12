@@ -10,6 +10,24 @@ import {
   CheckCircle2, AlertCircle, X, History, RefreshCw, FileText
 } from 'lucide-react';
 
+// Helper to generate fresh empty state
+const getEmptyData = (): MeetingMinutesData => ({
+  meetingTitle: '',
+  meetingDatetime: new Date().toISOString().slice(0, 16),
+  facilitator: '',
+  attendees: '',
+  meetingType: { value: 'Circuit', other: '' },
+  opening: { purpose: '', notes: '' },
+  agendaItems: [{ number: 1, topic: '', discussionNotes: '' }],
+  decisions: '',
+  actionItems: [],
+  prayerPoints: '',
+  closingSummary: { keyTakeaways: '', followUpNeeded: '' },
+  nextMeeting: { dateTime: '', agenda: '' },
+  // Explicitly undefined id for new records
+  id: undefined
+});
+
 const MeetingMinutes: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -22,26 +40,9 @@ const MeetingMinutes: React.FC = () => {
   // Notification State
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
-  // Helper to generate fresh empty state
-  const getEmptyData = (): MeetingMinutesData => ({
-    meetingTitle: '',
-    meetingDatetime: new Date().toISOString().slice(0, 16),
-    facilitator: '',
-    attendees: '',
-    meetingType: { value: 'Circuit', other: '' },
-    opening: { purpose: '', notes: '' },
-    agendaItems: [{ number: 1, topic: '', discussionNotes: '' }],
-    decisions: '',
-    actionItems: [],
-    prayerPoints: '',
-    closingSummary: { keyTakeaways: '', followUpNeeded: '' },
-    nextMeeting: { dateTime: '', agenda: '' },
-    // Explicitly undefined id for new records
-    id: undefined
-  });
-
   // Form State
   const [data, setData] = useState<MeetingMinutesData>(getEmptyData());
+  const [formKey, setFormKey] = useState(0); // Key to force re-render on new/load
 
   // Collapsible State
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -97,6 +98,7 @@ const MeetingMinutes: React.FC = () => {
       if (record && record.minutes_json) {
           // Merge retrieved JSON with the record ID so updates work correctly
           setData({ ...record.minutes_json, id: record.id });
+          setFormKey(prev => prev + 1); // Ensure fresh render
           setShowHistory(false);
           showNotification("Meeting loaded. You can now edit and save changes.", 'success');
       } else {
@@ -108,6 +110,7 @@ const MeetingMinutes: React.FC = () => {
   const handleNew = () => {
       if (confirm("Start a new meeting? Unsaved changes will be lost.")) {
           setData(getEmptyData());
+          setFormKey(prev => prev + 1); // Force re-render of inputs to clear them visually
           // Reset sections visibility to default
           setOpenSections({
             'details': true,
@@ -362,7 +365,7 @@ const MeetingMinutes: React.FC = () => {
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4" key={formKey}>
 
         {/* 0. Meeting Type */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
