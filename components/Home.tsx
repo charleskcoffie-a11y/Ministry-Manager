@@ -552,43 +552,95 @@ const Home: React.FC = () => {
         </Link>
       )}
 
-      {/* Quick Links Grid - 2 Col Mobile */}
-      <div>
-        <h2 className="text-xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6 px-1 md:px-2">Quick Access</h2>
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-          <Link to="/programs" className="group bg-white p-4 md:p-8 rounded-xl md:rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
-            <div className="w-10 h-10 md:w-14 md:h-14 bg-blue-50 rounded-lg flex items-center justify-center mb-3 md:mb-6 group-hover:bg-blue-600 transition-colors">
-              <Calendar className="w-5 h-5 md:w-8 md:h-8 text-blue-600 group-hover:text-white transition-colors" />
+            {/* Quick Links Grid - Modern & Interactive */}
+            <div>
+                <h2 className="text-xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-2">
+                    Quick Access
+                    <span className="ml-2 text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded-full animate-pulse">New Look!</span>
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+                    {[
+                        {
+                            to: "/programs",
+                            icon: Calendar,
+                            color: "blue",
+                            title: "Programs",
+                            desc: "Manage church events & schedules.",
+                            tooltip: "Church events, schedules, and programs."
+                        },
+                        {
+                            to: "/tasks",
+                            icon: CheckCircle2,
+                            color: "green",
+                            title: "Tasks",
+                            desc: "Track to-do list & ministry duties.",
+                            tooltip: "Your ministry to-dos and duties."
+                        },
+                        {
+                            to: "/standing-orders",
+                            icon: BookOpen,
+                            color: "purple",
+                            title: "Constitution",
+                            desc: "Standing orders & policies.",
+                            tooltip: "Church constitution and policies."
+                        },
+                        {
+                            to: "/ideas",
+                            icon: Lightbulb,
+                            color: "yellow",
+                            title: "Ideas",
+                            desc: "Journal thoughts & sermons.",
+                            tooltip: "Sermon and idea journal."
+                        }
+                    ].map((item, idx) => {
+                        const [favorites, setFavorites] = React.useState(() => {
+                            const saved = localStorage.getItem('quick-favorites');
+                            return saved ? JSON.parse(saved) : [];
+                        });
+                        const isFav = favorites.includes(item.to);
+                        const Icon = item.icon;
+                        const handleFav = (e: React.MouseEvent) => {
+                            e.preventDefault();
+                            let next;
+                            if (isFav) next = favorites.filter((f: string) => f !== item.to);
+                            else next = [...favorites, item.to];
+                            setFavorites(next);
+                            localStorage.setItem('quick-favorites', JSON.stringify(next));
+                        };
+                        return (
+                            <Link
+                                key={item.to}
+                                to={item.to}
+                                className={`group relative bg-white p-4 md:p-8 rounded-xl md:rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-${item.color}-400/40 transition-all duration-300 overflow-visible focus:outline-none focus:ring-2 focus:ring-${item.color}-400`}
+                                tabIndex={0}
+                                aria-label={item.title}
+                                title={item.tooltip}
+                            >
+                                {/* Favorite Star */}
+                                <button
+                                    className={`absolute top-2 right-2 z-10 p-1 rounded-full bg-white/80 hover:bg-${item.color}-100 border border-${item.color}-200 shadow transition-colors`}
+                                    onClick={handleFav}
+                                    aria-label={isFav ? `Unpin ${item.title}` : `Pin ${item.title}`}
+                                    tabIndex={0}
+                                    type="button"
+                                >
+                                    <Star className={`w-5 h-5 ${isFav ? `text-${item.color}-500 fill-${item.color}-400` : 'text-gray-300'} transition-all`} />
+                                </button>
+                                {/* Icon with animation */}
+                                <div className={`w-10 h-10 md:w-14 md:h-14 bg-${item.color}-50 rounded-lg flex items-center justify-center mb-3 md:mb-6 group-hover:bg-${item.color}-600 transition-colors group-hover:scale-110 group-hover:rotate-3 duration-300`}
+                                    style={{ transition: 'transform 0.3s' }}
+                                >
+                                    <Icon className={`w-5 h-5 md:w-8 md:h-8 text-${item.color}-600 group-hover:text-white transition-colors group-hover:animate-bounce`} />
+                                </div>
+                                <h3 className={`text-base md:text-2xl font-bold text-gray-800 mb-1 md:mb-2 group-hover:text-${item.color}-600 transition-colors`}>{item.title}</h3>
+                                <p className="text-gray-500 text-xs md:text-lg line-clamp-2">{item.desc}</p>
+                                {/* Tooltip */}
+                                <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover:opacity-100 bg-gray-900 text-white text-xs rounded px-2 py-1 transition-opacity z-20 whitespace-nowrap shadow-lg">{item.tooltip}</span>
+                            </Link>
+                        );
+                    })}
+                </div>
             </div>
-            <h3 className="text-base md:text-2xl font-bold text-gray-800 mb-1 md:mb-2 group-hover:text-blue-600">Programs</h3>
-            <p className="text-gray-500 text-xs md:text-lg line-clamp-2">Manage church events & schedules.</p>
-          </Link>
-
-          <Link to="/tasks" className="group bg-white p-4 md:p-8 rounded-xl md:rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-green-500/30 transition-all duration-300">
-            <div className="w-10 h-10 md:w-14 md:h-14 bg-green-50 rounded-lg flex items-center justify-center mb-3 md:mb-6 group-hover:bg-green-600 transition-colors">
-              <CheckCircle2 className="w-5 h-5 md:w-8 md:h-8 text-green-600 group-hover:text-white transition-colors" />
-            </div>
-            <h3 className="text-base md:text-2xl font-bold text-gray-800 mb-1 md:mb-2 group-hover:text-green-600">Tasks</h3>
-            <p className="text-gray-500 text-xs md:text-lg line-clamp-2">Track to-do list & ministry duties.</p>
-          </Link>
-
-          <Link to="/standing-orders" className="group bg-white p-4 md:p-8 rounded-xl md:rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-purple-500/30 transition-all duration-300">
-            <div className="w-10 h-10 md:w-14 md:h-14 bg-purple-50 rounded-lg flex items-center justify-center mb-3 md:mb-6 group-hover:bg-purple-600 transition-colors">
-              <BookOpen className="w-5 h-5 md:w-8 md:h-8 text-purple-600 group-hover:text-white transition-colors" />
-            </div>
-            <h3 className="text-base md:text-2xl font-bold text-gray-800 mb-1 md:mb-2 group-hover:text-purple-600">Constitution</h3>
-            <p className="text-gray-500 text-xs md:text-lg line-clamp-2">Standing orders & policies.</p>
-          </Link>
-
-          <Link to="/ideas" className="group bg-white p-4 md:p-8 rounded-xl md:rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-yellow-500/30 transition-all duration-300">
-            <div className="w-10 h-10 md:w-14 md:h-14 bg-yellow-50 rounded-lg flex items-center justify-center mb-3 md:mb-6 group-hover:bg-yellow-500 transition-colors">
-              <Lightbulb className="w-5 h-5 md:w-8 md:h-8 text-yellow-600 group-hover:text-white transition-colors" />
-            </div>
-            <h3 className="text-base md:text-2xl font-bold text-gray-800 mb-1 md:mb-2 group-hover:text-yellow-600">Ideas</h3>
-            <p className="text-gray-500 text-xs md:text-lg line-clamp-2">Journal thoughts & sermons.</p>
-          </Link>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
         {/* Monthly Highlights Section */}
