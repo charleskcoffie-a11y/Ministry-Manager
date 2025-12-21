@@ -360,7 +360,37 @@ API_KEY=your_gemini_api_key
 
 *Note: If using Vite, use `VITE_SUPABASE_URL` etc., and update `supabaseClient.ts` accordingly.*
 
+
 ## 3. Running the Web App
 
 1.  `npm install`
 2.  `npm start` (or `npm run dev`)
+
+---
+
+## 4. Deploying to GitHub Pages
+
+You can publish this app as a static site using GitHub Pages. The public link will be:
+
+```
+https://charleskcoffie-a11y.github.io/Ministry-Manager/
+```
+
+### Steps to Deploy
+
+1. Make sure your code is pushed to the `main` branch on GitHub.
+2. Build the app:
+  ```sh
+  npm run build
+  ```
+3. Deploy to GitHub Pages:
+  ```sh
+  npm run deploy
+  ```
+4. After a few minutes, your site will be live at the link above.
+
+#### Troubleshooting
+- If you don't see your changes, try clearing your browser cache or wait a few minutes for GitHub Pages to update.
+- Make sure the `base` in `vite.config.ts` is set to `/Ministry-Manager/`.
+
+---

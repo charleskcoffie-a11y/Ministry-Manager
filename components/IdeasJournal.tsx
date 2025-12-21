@@ -9,7 +9,20 @@ import {
 import { expandIdea } from '../services/geminiService';
 
 const IdeasJournal: React.FC = () => {
-  const [ideas, setIdeas] = useState<Idea[]>([]);
+    const [ideas, setIdeas] = useState<Idea[]>([]);
+    const [favorites, setFavorites] = useState<string[]>(() => {
+        const saved = localStorage.getItem('idea-favorites');
+        return saved ? JSON.parse(saved) : [];
+    });
+    // Favorite toggle
+    const toggleFavorite = (id: string, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        let next;
+        if (favorites.includes(id)) next = favorites.filter(f => f !== id);
+        else next = [...favorites, id];
+        setFavorites(next);
+        localStorage.setItem('idea-favorites', JSON.stringify(next));
+    };
   const [loading, setLoading] = useState(true);
   
   // Filter States
@@ -158,25 +171,28 @@ const IdeasJournal: React.FC = () => {
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto pb-24 h-[calc(100vh-100px)] flex flex-col">
-      
-      {/* 1. Header & Actions */}
-      <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-6">
-        <div>
-           <div className="flex items-center gap-2 mb-2 text-amber-600 font-bold uppercase text-xs tracking-widest">
-               <Lightbulb className="w-4 h-4" /> Ministry Thoughts
-           </div>
-           <h1 className="text-4xl font-serif font-bold text-gray-900">Ideas Journal</h1>
-           <p className="text-gray-500 mt-2">Capture sermons, visions, and spiritual insights.</p>
-        </div>
+        <div className="max-w-[1600px] mx-auto pb-24 h-[calc(100vh-100px)] flex flex-col">
+            {/* 1. Header & Actions */}
+            <div className="relative flex flex-col md:flex-row justify-between items-end gap-6 mb-6 overflow-visible">
+                {/* Animated Gradient BG */}
+                <div className="absolute -top-10 -left-10 w-[120%] h-40 bg-gradient-to-r from-amber-200 via-pink-100 to-amber-100 opacity-60 blur-2xl rounded-3xl pointer-events-none animate-gradient-x z-0" />
+                <div className="relative z-10">
+                     <div className="flex items-center gap-2 mb-2 text-amber-600 font-bold uppercase text-xs tracking-widest animate-fade-in">
+                             <Lightbulb className="w-4 h-4 animate-bounce" /> Ministry Thoughts
+                     </div>
+                     <h1 className="text-4xl font-serif font-bold text-gray-900 drop-shadow-sm animate-fade-in">Ideas Journal</h1>
+                     <p className="text-gray-500 mt-2 animate-fade-in">Capture sermons, visions, and spiritual insights.</p>
+                </div>
 
-        <button 
-          onClick={openNewIdea}
-          className="bg-amber-500 text-white px-6 py-3 rounded-full hover:bg-amber-600 flex items-center gap-2 shadow-lg hover:shadow-amber-500/30 transition-all transform active:scale-95 font-bold"
-        >
-          <Plus className="w-5 h-5"/> New Entry
-        </button>
-      </div>
+                <button 
+                    onClick={openNewIdea}
+                    className="relative z-10 bg-amber-500 text-white px-6 py-3 rounded-full hover:bg-amber-600 flex items-center gap-2 shadow-lg hover:shadow-amber-500/30 transition-all transform active:scale-95 font-bold animate-pulse group"
+                    title="Add a new idea entry"
+                >
+                    <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300"/> New Entry
+                    <span className="absolute -top-2 -right-2 bg-pink-400 text-white text-xs px-2 py-0.5 rounded-full shadow animate-bounce">New</span>
+                </button>
+            </div>
 
       {/* 2. Filter Bar */}
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -247,8 +263,21 @@ const IdeasJournal: React.FC = () => {
                      <div 
                         key={idea.id} 
                         onClick={() => openEditIdea(idea)}
-                        className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-amber-200 transition-all cursor-pointer group flex items-start gap-4"
+                        className={`relative bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-amber-300 transition-all cursor-pointer group flex items-start gap-4 overflow-visible ${favorites.includes(idea.id) ? 'ring-2 ring-amber-400' : ''}`}
+                        tabIndex={0}
+                        title={getDisplayTitle(idea)}
                      >
+                         {/* Favorite Star */}
+                         <button
+                           className={`absolute top-2 right-2 z-10 p-1 rounded-full bg-white/80 hover:bg-amber-100 border border-amber-200 shadow transition-colors`}
+                           onClick={e => toggleFavorite(idea.id, e)}
+                           aria-label={favorites.includes(idea.id) ? 'Unfavorite' : 'Mark as favorite'}
+                           tabIndex={0}
+                           type="button"
+                           title={favorites.includes(idea.id) ? 'Unfavorite' : 'Mark as favorite'}
+                         >
+                           <Sparkles className={`w-5 h-5 ${favorites.includes(idea.id) ? 'text-amber-500 fill-amber-400' : 'text-gray-300'} transition-all`} />
+                         </button>
                          {/* Date Badge */}
                          <div className="hidden md:flex flex-col items-center justify-center bg-amber-50 text-amber-800 rounded-lg p-3 min-w-[4.5rem]">
                              <span className="text-xs font-bold uppercase">{new Date(idea.idea_date).toLocaleDateString('default', { month: 'short' })}</span>
@@ -268,10 +297,10 @@ const IdeasJournal: React.FC = () => {
                                      {getDisplayTitle(idea)}
                                  </h3>
                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity pl-2">
-                                     <button onClick={(e) => { e.stopPropagation(); openEditIdea(idea); }} className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg">
+                                     <button onClick={(e) => { e.stopPropagation(); openEditIdea(idea); }} className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg" title="Edit">
                                          <Edit2 className="w-4 h-4" />
                                      </button>
-                                     <button onClick={(e) => handleDelete(idea.id, e)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                                     <button onClick={(e) => handleDelete(idea.id, e)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Delete">
                                          <Trash2 className="w-4 h-4" />
                                      </button>
                                  </div>
