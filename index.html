@@ -12,32 +12,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Ministry Manager" />
     
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS is now imported via Vite/PostCSS -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-            },
-            colors: {
-              primary: '#2563eb', // Royal Blue suitable for church theme
-              secondary: '#475569',
-            },
-            animation: {
-              'fade-in': 'fadeIn 0.8s ease-out forwards',
-            },
-            keyframes: {
-              fadeIn: {
-                '0%': { opacity: '0', transform: 'translateY(20px)' },
-                '100%': { opacity: '1', transform: 'translateY(0)' },
-              }
-            }
-          }
-        }
-      }
-    </script>
+    <!-- Tailwind config is now in tailwind.config.js -->
     <!-- Document Parsers -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
@@ -90,5 +67,6 @@
   <body class="bg-gray-50 text-slate-900 antialiased">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <link rel="stylesheet" href="/src/index.css" />
   </body>
 </html>
