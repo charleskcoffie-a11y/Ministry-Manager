@@ -7,8 +7,8 @@
     <title>Ministry Manager</title>
     
     <!-- PWA & Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
-    <link rel="icon" type="image/png" href="./pwa-192x192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="/pwa-192x192.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Ministry Manager" />
@@ -26,7 +26,20 @@
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     
-
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6",
+    "papaparse": "https://aistudiocdn.com/papaparse@^5.5.3"
+  }
+}
+</script>
 <style>
   /* Global font size boost */
   html { 
@@ -51,25 +64,10 @@
       scrollbar-width: none;
   }
 </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6",
-    "papaparse": "https://aistudiocdn.com/papaparse@^5.5.3"
-  }
-}
-</script>
-  <script type="module" crossorigin src="/Ministry-Manager/assets/index-DjP7dUMH.js"></script>
-  <link rel="stylesheet" crossorigin href="/Ministry-Manager/assets/index-_oeBWTlh.css">
 <link rel="manifest" href="/Ministry-Manager/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/Ministry-Manager/registerSW.js"></script></head>
   <body class="bg-gray-50 text-slate-900 antialiased">
-    <div id="root"></div>
+    <div id="root"></div>
+    <!-- Vite injects the correct JS bundle during build -->
     <!-- CSS is now imported via index.tsx for Vite compatibility -->
   </body>
 </html>
