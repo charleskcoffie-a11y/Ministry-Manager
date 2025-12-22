@@ -3,6 +3,16 @@
 
 This is a React application built with TypeScript and Tailwind CSS, using Supabase for the backend.
 
+## Build and preview
+
+1. Install dependencies: `npm install`
+2. Run a production build to ensure the bundle compiles: `npm run build`
+3. Preview the built site locally (mirrors the GitHub Pages base path):
+   `npm run preview -- --host --port 4173 --strictPort`
+4. Open `http://localhost:4173/Ministry-Manager/` in your browser to verify the app renders instead of a blank screen.
+
+The `vite.config.ts` `base` value is already set to `/Ministry-Manager/` so the preview and GitHub Pages deployment load assets correctly from the subdirectory.
+
 ## 1. Supabase Setup (Required)
 
 1.  Create a new project at [supabase.com](https://supabase.com).
