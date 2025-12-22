@@ -388,16 +388,11 @@ https://charleskcoffie-a11y.github.io/Ministry-Manager/
 
 ### Steps to Deploy
 
-1. Make sure your code is pushed to the `main` branch on GitHub.
-2. Build the app:
-  ```sh
-  npm run build
-  ```
-3. Deploy to GitHub Pages:
-  ```sh
-  npm run deploy
-  ```
-4. After a few minutes, your site will be live at the link above.
+1. Push your changes to the `main` branch on GitHub.
+2. GitHub Actions will build the app and publish the `dist` output to the `gh-pages` branch (the branch required by the repository's Pages settings).
+3. After a few minutes, your site will be live at the link above.
+
+> If you need to trigger a manual deployment (for example, to republish without a new commit), run the **Deploy to GitHub Pages** workflow from the Actions tab, or run `npm run build && npm run deploy` locally to push the `dist` folder to `gh-pages`.
 
 #### Troubleshooting
 - If you don't see your changes, try clearing your browser cache or wait a few minutes for GitHub Pages to update.
