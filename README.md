@@ -9,9 +9,9 @@ This is a React application built with TypeScript and Tailwind CSS, using Supaba
 2. Run a production build to ensure the bundle compiles: `npm run build`
 3. Preview the built site locally (mirrors the GitHub Pages base path):
    `npm run preview -- --host --port 4173 --strictPort`
-4. Open `http://localhost:4173/Ministry-Manager/` in your browser to verify the app renders instead of a blank screen. When running `npm run dev`, use `http://localhost:3000/` (no subpath) because the dev server now serves from the root for convenience.
+4. Open `http://localhost:4173/Ministry-Manager/` in your browser to verify the app renders instead of a blank screen.
 
-The Vite `base` path automatically switches to `/Ministry-Manager/` only for production builds so GitHub Pages still loads assets correctly, while local dev/preview uses the server root to avoid blank pages when you open the provided port directly.
+The `vite.config.ts` `base` value is already set to `/Ministry-Manager/` so the preview and GitHub Pages deployment load assets correctly from the subdirectory.
 
 ## 1. Supabase Setup (Required)
 
@@ -389,10 +389,10 @@ https://charleskcoffie-a11y.github.io/Ministry-Manager/
 ### Steps to Deploy
 
 1. Push your changes to the `main` branch on GitHub.
-2. GitHub Actions will build the app and publish the built `dist` artifact directly to GitHub Pages using the standard `upload-pages-artifact` / `deploy-pages` actions (no manual branch pushes required).
+2. GitHub Actions will build the app and publish the `dist` output to the `gh-pages` branch (the branch required by the repository's Pages settings).
 3. After a few minutes, your site will be live at the link above.
 
-> If you need to trigger a manual deployment (for example, to republish without a new commit), run the **Build and Deploy to GitHub Pages** workflow from the Actions tab.
+> If you need to trigger a manual deployment (for example, to republish without a new commit), run the **Deploy to GitHub Pages** workflow from the Actions tab, or run `npm run build && npm run deploy` locally to push the `dist` folder to `gh-pages`.
 
 #### Troubleshooting
 - If you don't see your changes, try clearing your browser cache or wait a few minutes for GitHub Pages to update.
