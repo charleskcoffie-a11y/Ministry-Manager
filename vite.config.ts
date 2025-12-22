@@ -5,8 +5,11 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
+    const isProd = mode === 'production';
+
     return {
-      base: '/Ministry-Manager/', // Ensures correct asset loading from subdirectory
+      // Use an absolute base only for production (GitHub Pages) so local dev/preview works at the server root
+      base: isProd ? '/Ministry-Manager/' : '/',
       server: {
         port: 3000,
         host: '0.0.0.0',
