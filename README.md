@@ -9,9 +9,9 @@ This is a React application built with TypeScript and Tailwind CSS, using Supaba
 2. Run a production build to ensure the bundle compiles: `npm run build`
 3. Preview the built site locally (mirrors the GitHub Pages base path):
    `npm run preview -- --host --port 4173 --strictPort`
-4. Open `http://localhost:4173/Ministry-Manager/` in your browser to verify the app renders instead of a blank screen. When running `npm run dev`, use `http://localhost:3000/` (no subpath) because the dev server now serves from the root for convenience.
+4. Open `http://localhost:4173/Ministry-Manager/` in your browser to verify the app renders instead of a blank screen.
 
-The Vite `base` path automatically switches to `/Ministry-Manager/` only for production builds so GitHub Pages still loads assets correctly, while local dev/preview uses the server root to avoid blank pages when you open the provided port directly.
+The `vite.config.ts` `base` value is already set to `/Ministry-Manager/` so the preview and GitHub Pages deployment load assets correctly from the subdirectory.
 
 ## 1. Supabase Setup (Required)
 
