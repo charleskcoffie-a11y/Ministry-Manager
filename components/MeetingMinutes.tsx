@@ -338,38 +338,48 @@ const MeetingMinutes: React.FC = () => {
   );
 
   return (
-    <div className="max-w-4xl mx-auto pb-24 animate-fade-in relative">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pb-24">
+      {/* Animated Background Blobs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+          <div className="absolute top-40 right-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+          <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+      </div>
+
+      <div className="max-w-5xl mx-auto relative z-10 animate-fade-in">
       
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-white/80 backdrop-blur-xl p-6 md:p-8 rounded-3xl shadow-2xl border border-white/40">
         <div>
-          <h1 className="text-3xl font-serif font-bold text-slate-800 flex items-center gap-3">
-            <ClipboardList className="w-8 h-8 text-blue-600" />
+          <h1 className="text-4xl md:text-5xl font-serif font-black text-gray-900 flex items-center gap-3 md:gap-4">
+            <div className="p-3 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg">
+              <ClipboardList className="w-8 h-8 md:w-10 md:h-10 text-white" />
+            </div>
             Meeting Minutes
           </h1>
-          <p className="text-slate-500 mt-1">Record, organize, and export official ministry minutes.</p>
+          <p className="text-slate-600 mt-2 text-base md:text-lg font-medium">Record, organize, and export official ministry minutes.</p>
         </div>
-        <div className="flex flex-wrap gap-2 w-full md:w-auto">
-           <button onClick={() => setShowHistory(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 font-medium transition-colors border border-slate-200">
-              <History className="w-4 h-4" /> History
+        <div className="flex flex-wrap gap-2 md:gap-3 w-full md:w-auto">
+           <button onClick={() => setShowHistory(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white/60 backdrop-blur-sm text-slate-700 rounded-xl hover:bg-white hover:scale-105 font-bold transition-all border border-white/50 shadow-md">
+              <History className="w-5 h-5" /> History
            </button>
-           <button onClick={handleNew} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 font-medium transition-colors border border-slate-200">
-              <RefreshCw className="w-4 h-4" /> New
+           <button onClick={handleNew} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white/60 backdrop-blur-sm text-slate-700 rounded-xl hover:bg-white hover:scale-105 font-bold transition-all border border-white/50 shadow-md">
+              <RefreshCw className="w-5 h-5" /> New
            </button>
-           <button onClick={handleExportWord} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 font-medium transition-colors border border-slate-200">
-              <FileDown className="w-4 h-4" /> Export
+           <button onClick={handleExportWord} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl hover:from-slate-700 hover:to-slate-800 hover:scale-105 font-bold shadow-lg transition-all">
+              <FileDown className="w-5 h-5" /> Export
            </button>
-           <button onClick={handleSave} disabled={saving} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold shadow-md transition-colors disabled:opacity-50">
-              {saving ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4" />} Save
+           <button onClick={handleSave} disabled={saving} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 hover:scale-105 font-bold shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+              {saving ? <Loader2 className="w-5 h-5 animate-spin"/> : <Save className="w-5 h-5" />} Save
            </button>
         </div>
       </div>
 
-      <div className="space-y-4" key={formKey}>
+      <div className="space-y-5 md:space-y-6" key={formKey}>
 
         {/* 0. Meeting Type */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-           <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Meeting Type</label>
+        <div className="bg-white/80 backdrop-blur-xl p-6 md:p-8 rounded-2xl shadow-xl border border-white/40 hover:shadow-2xl transition-all duration-300">
+           <label className="block text-sm font-black text-gray-700 uppercase mb-3 tracking-wider">Meeting Type</label>
            <div className="flex gap-4 flex-wrap">
               <select 
                 className="flex-1 p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-slate-700"
@@ -394,38 +404,43 @@ const MeetingMinutes: React.FC = () => {
         </div>
 
         {/* 1. Basic Info */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-           <button onClick={() => toggleSection('details')} className="w-full flex justify-between items-center p-4 bg-slate-50 font-bold text-slate-700 hover:bg-slate-100">
-              <span>Meeting Details</span>
-              {openSections['details'] ? <ChevronUp className="w-5 h-5"/> : <ChevronDown className="w-5 h-5"/>}
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/40 overflow-hidden hover:shadow-2xl transition-all duration-300">
+           <button onClick={() => toggleSection('details')} className="w-full flex justify-between items-center p-5 md:p-6 bg-gradient-to-r from-slate-50 to-blue-50 font-bold text-gray-800 hover:from-slate-100 hover:to-blue-100 transition-all">
+              <span className="text-lg md:text-xl flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl shadow-md">
+                  <FileText className="w-5 h-5 text-white" />
+                </div>
+                Meeting Details
+              </span>
+              {openSections['details'] ? <ChevronUp className="w-6 h-6"/> : <ChevronDown className="w-6 h-6"/>}
            </button>
            {openSections['details'] && (
-             <div className="p-6 space-y-4">
+             <div className="p-6 md:p-8 space-y-5">
                 <div>
-                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Meeting Title</label>
-                   <input className="w-full p-3 bg-slate-50 border-none rounded-xl text-lg font-bold text-slate-800 focus:ring-2 focus:ring-blue-500" 
+                   <label className="block text-sm font-bold text-gray-600 uppercase mb-2 tracking-wide">Meeting Title</label>
+                   <input className="w-full p-4 bg-gradient-to-r from-slate-50 to-blue-50 border-2 border-transparent rounded-xl text-lg font-bold text-gray-800 focus:border-blue-500 focus:outline-none transition-all shadow-sm" 
                       placeholder="e.g. Quarterly Executive Committee"
                       value={data.meetingTitle} onChange={e => setData({...data, meetingTitle: e.target.value})} 
                    />
                 </div>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-2 gap-5">
                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Date & Time</label>
-                      <input type="datetime-local" className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500" 
+                      <label className="block text-sm font-bold text-gray-600 uppercase mb-2 tracking-wide">Date & Time</label>
+                      <input type="datetime-local" className="w-full p-4 bg-gradient-to-r from-slate-50 to-blue-50 border-2 border-transparent rounded-xl focus:border-blue-500 focus:outline-none transition-all shadow-sm font-medium" 
                          value={data.meetingDatetime} onChange={e => setData({...data, meetingDatetime: e.target.value})} 
                       />
                    </div>
                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Facilitator / Lead</label>
-                      <input type="text" className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500" 
+                      <label className="block text-sm font-bold text-gray-600 uppercase mb-2 tracking-wide">Facilitator / Lead</label>
+                      <input type="text" className="w-full p-4 bg-gradient-to-r from-slate-50 to-blue-50 border-2 border-transparent rounded-xl focus:border-blue-500 focus:outline-none transition-all shadow-sm font-medium" 
                          placeholder="Name of Chair"
                          value={data.facilitator} onChange={e => setData({...data, facilitator: e.target.value})} 
                       />
                    </div>
                 </div>
                 <div>
-                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Attendees</label>
-                   <textarea rows={3} className="w-full p-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500" 
+                   <label className="block text-sm font-bold text-gray-600 uppercase mb-2 tracking-wide">Attendees</label>
+                   <textarea rows={3} className="w-full p-4 bg-gradient-to-r from-slate-50 to-blue-50 border-2 border-transparent rounded-xl focus:border-blue-500 focus:outline-none transition-all shadow-sm font-medium" 
                       placeholder="List names..."
                       value={data.attendees} onChange={e => setData({...data, attendees: e.target.value})} 
                    />
@@ -435,10 +450,10 @@ const MeetingMinutes: React.FC = () => {
         </div>
 
         {/* 2. Opening */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-           <button onClick={() => toggleSection('opening')} className="w-full flex justify-between items-center p-4 bg-slate-50 font-bold text-slate-700 hover:bg-slate-100">
-              <span>1. Opening / Purpose</span>
-              {openSections['opening'] ? <ChevronUp className="w-5 h-5"/> : <ChevronDown className="w-5 h-5"/>}
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/40 overflow-hidden hover:shadow-2xl transition-all duration-300">
+           <button onClick={() => toggleSection('opening')} className="w-full flex justify-between items-center p-5 md:p-6 bg-gradient-to-r from-purple-50 to-indigo-50 font-bold text-gray-800 hover:from-purple-100 hover:to-indigo-100 transition-all">
+              <span className="text-lg md:text-xl">1. Opening / Purpose</span>
+              {openSections['opening'] ? <ChevronUp className="w-6 h-6"/> : <ChevronDown className="w-6 h-6"/>}
            </button>
            {openSections['opening'] && (
              <div className="p-6 space-y-4">
@@ -466,10 +481,10 @@ const MeetingMinutes: React.FC = () => {
         </div>
 
         {/* 3. Agenda Items */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-           <button onClick={() => toggleSection('agenda')} className="w-full flex justify-between items-center p-4 bg-slate-50 font-bold text-slate-700 hover:bg-slate-100">
-              <span>2. Agenda Items & Discussions</span>
-              {openSections['agenda'] ? <ChevronUp className="w-5 h-5"/> : <ChevronDown className="w-5 h-5"/>}
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/40 overflow-hidden hover:shadow-2xl transition-all duration-300">
+           <button onClick={() => toggleSection('agenda')} className="w-full flex justify-between items-center p-5 md:p-6 bg-gradient-to-r from-green-50 to-emerald-50 font-bold text-gray-800 hover:from-green-100 hover:to-emerald-100 transition-all">
+              <span className="text-lg md:text-xl">2. Agenda Items & Discussions</span>
+              {openSections['agenda'] ? <ChevronUp className="w-6 h-6"/> : <ChevronDown className="w-6 h-6"/>}
            </button>
            {openSections['agenda'] && (
              <div className="p-6 space-y-6">
@@ -740,6 +755,7 @@ const MeetingMinutes: React.FC = () => {
           )}
       </div>
 
+      </div>
     </div>
   );
 };
