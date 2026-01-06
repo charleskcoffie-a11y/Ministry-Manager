@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const apiKey = process.env.API_KEY || ''; 
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || ''; 
 
 // Initialize Gemini
 let ai: GoogleGenAI | null = null;

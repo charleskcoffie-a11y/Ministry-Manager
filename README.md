@@ -3,6 +3,31 @@
 
 This is a React application built with TypeScript and Tailwind CSS, using Supabase for the backend.
 
+## Quick Start
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Set up your API keys:**
+   - Copy `.env.example` to `.env`:
+     ```bash
+     cp .env.example .env
+     ```
+   - Get your Gemini API key from: https://aistudio.google.com/app/apikey
+   - Open `.env` and add your API key:
+     ```
+     VITE_GEMINI_API_KEY=your-actual-api-key-here
+     ```
+
+3. **Build and preview:**
+   ```bash
+   npm run build
+   npm run preview
+   ```
+   - Open `http://localhost:4173/Ministry-Manager/` in your browser
+
 ## Build and preview
 
 1. Install dependencies: `npm install`
