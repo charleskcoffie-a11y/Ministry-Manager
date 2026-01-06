@@ -263,163 +263,89 @@ ${generatedContent.prayer}`;
 
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const margins = { top: 15, left: 15, right: 15, bottom: 15 };
+      const margins = { top: 20, left: 20, right: 20, bottom: 20 };
       const contentWidth = pageWidth - margins.left - margins.right;
       
       let yPosition = margins.top;
 
-      // Set fonts
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(150, 150, 150);
-      doc.text(generatedContent.calendarTag || generatedContent.seasonId || 'Daily Devotion', pageWidth / 2, yPosition, { align: 'center' });
-      
-      yPosition += 10;
-      
-      // Title
-      doc.setFont('georgia', 'bold');
-      doc.setFontSize(20);
-      doc.setTextColor(17, 24, 39);
-      const titleLines = doc.splitTextToSize(generatedContent.title, contentWidth);
-      doc.text(titleLines, margins.left, yPosition, { align: 'left' });
-      yPosition += titleLines.length * 8 + 8;
+      // Helper function to add text and handle page breaks
+      const addText = (text: string, fontSize: number, isBold: boolean, color: number[] = [0, 0, 0]) => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+        doc.setTextColor(color[0], color[1], color[2]);
+        
+        const lines = doc.splitTextToSize(text, contentWidth);
+        
+        // Check if we need a new page
+        if (yPosition + (lines.length * fontSize * 0.35) > pageHeight - margins.bottom) {
+          doc.addPage();
+          yPosition = margins.top;
+        }
+        
+        doc.text(lines, margins.left, yPosition);
+        yPosition += lines.length * fontSize * 0.35 + 3;
+      };
 
-      // Divider line
+      // Title
+      addText(generatedContent.title.toUpperCase(), 16, true, [0, 0, 0]);
+      yPosition += 2;
+
+      // Divider
       doc.setDrawColor(239, 68, 68);
-      doc.setLineWidth(1);
-      doc.line(pageWidth / 2 - 10, yPosition, pageWidth / 2 + 10, yPosition);
+      doc.setLineWidth(0.8);
+      doc.line(margins.left, yPosition, pageWidth - margins.right, yPosition);
       yPosition += 8;
 
-      // Scripture Quote Box
-      doc.setFillColor(254, 242, 242);
-      doc.setDrawColor(239, 68, 68);
-      doc.setLineWidth(0.5);
-      doc.rect(margins.left, yPosition, contentWidth, 25, 'FD');
+      // Scripture Reference
+      addText(generatedContent.scripture, 12, true, [127, 29, 29]);
       
-      doc.setFont('georgia', 'italic');
-      doc.setFontSize(12);
-      doc.setTextColor(127, 29, 29);
-      const scriptureLines = doc.splitTextToSize(`"${generatedContent.scripture}"`, contentWidth - 4);
-      doc.text(scriptureLines, margins.left + 2, yPosition + 3);
-      yPosition += 28;
-
       // Verse Text
       if (dailyVerse?.text) {
-        doc.setFillColor(243, 244, 246);
-        doc.rect(margins.left, yPosition, contentWidth, 20, 'F');
-        
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        doc.setTextColor(55, 65, 81);
-        const verseLines = doc.splitTextToSize(dailyVerse.text, contentWidth - 4);
-        doc.text(verseLines, margins.left + 2, yPosition + 3);
-        yPosition += verseLines.length * 4 + 8;
+        addText(dailyVerse.text, 10, false, [75, 85, 99]);
+        yPosition += 3;
       }
-
-      yPosition += 5;
 
       // Main Content
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(11);
-      doc.setTextColor(55, 65, 81);
-      const contentLines = doc.splitTextToSize(generatedContent.content, contentWidth);
-      doc.text(contentLines, margins.left, yPosition);
-      yPosition += contentLines.length * 5 + 8;
+      addText(generatedContent.content, 11, false, [55, 65, 81]);
+      yPosition += 5;
 
-      // Check if we need a new page
-      if (yPosition > pageHeight - 50) {
-        doc.addPage();
-        yPosition = margins.top;
-      }
-
-      // Reflection Section
-      doc.setFillColor(239, 246, 255);
+      // Reflection
       doc.setDrawColor(59, 130, 246);
       doc.setLineWidth(0.5);
-      doc.rect(margins.left, yPosition, contentWidth, 3, 'F');
-      yPosition += 6;
+      doc.line(margins.left, yPosition, pageWidth - margins.right, yPosition);
+      yPosition += 5;
+      
+      addText('REFLECTION', 10, true, [30, 58, 138]);
+      addText(generatedContent.reflectionQuestion, 10, false, [30, 64, 175]);
+      yPosition += 5;
 
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(30, 58, 138);
-      doc.text('REFLECTION', margins.left, yPosition);
-      yPosition += 6;
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(30, 64, 175);
-      const reflectionLines = doc.splitTextToSize(generatedContent.reflectionQuestion, contentWidth);
-      doc.text(reflectionLines, margins.left, yPosition);
-      yPosition += reflectionLines.length * 5 + 8;
-
-      // Check if we need a new page
-      if (yPosition > pageHeight - 40) {
-        doc.addPage();
-        yPosition = margins.top;
-      }
-
-      // Prayer Section
-      doc.setFillColor(249, 250, 251);
+      // Prayer
       doc.setDrawColor(107, 114, 128);
       doc.setLineWidth(0.5);
-      doc.rect(margins.left, yPosition, contentWidth, 3, 'F');
-      yPosition += 6;
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(17, 24, 39);
-      doc.text('PRAYER', margins.left, yPosition);
-      yPosition += 6;
-
-      doc.setFont('georgia', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(55, 65, 81);
-      const prayerLines = doc.splitTextToSize(generatedContent.prayer, contentWidth);
-      doc.text(prayerLines, margins.left, yPosition);
-      yPosition += prayerLines.length * 5 + 10;
+      doc.line(margins.left, yPosition, pageWidth - margins.right, yPosition);
+      yPosition += 5;
+      
+      addText('PRAYER', 10, true, [17, 24, 39]);
+      addText(generatedContent.prayer, 10, false, [55, 65, 81]);
 
       // Footer
-      doc.setFont('helvetica', 'italic');
       doc.setFontSize(9);
+      doc.setFont('helvetica', 'italic');
       doc.setTextColor(156, 163, 175);
       doc.text('Rev C K. Coffie', pageWidth / 2, pageHeight - 10, { align: 'center' });
 
-      // Generate PDF blob
-      const pdfBlob = doc.output('blob');
+      // Save the PDF
+      const fileName = `devotion-${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+      
+      // Show success message
+      setTimeout(() => {
+        alert('PDF downloaded successfully! Check your downloads folder.');
+      }, 500);
 
-      // Try to share the PDF on mobile, or download on desktop
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([pdfBlob], 'devotion.pdf', { type: 'application/pdf' })] })) {
-        try {
-          await navigator.share({
-            files: [new File([pdfBlob], `devotion-${new Date().toISOString().split('T')[0]}.pdf`, { type: 'application/pdf' })],
-            title: generatedContent.title,
-          });
-        } catch (err) {
-          // If file sharing fails, fall back to downloading
-          const url = URL.createObjectURL(pdfBlob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `devotion-${new Date().toISOString().split('T')[0]}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          alert('PDF downloaded!');
-        }
-      } else {
-        // Desktop: Download the PDF
-        const url = URL.createObjectURL(pdfBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `devotion-${new Date().toISOString().split('T')[0]}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        alert('PDF downloaded!');
-      }
     } catch (err) {
       console.error('Error generating PDF:', err);
+      alert('Error generating PDF. Details: ' + (err as Error).message);
       
       // Fallback: Share as text
       const shareText = `${generatedContent.title}
@@ -447,7 +373,7 @@ Prayer: ${generatedContent.prayer}
           alert('Devotion copied to clipboard!');
         }
       } catch (clipErr) {
-        alert('Unable to share. Please try again.');
+        console.error('Fallback share error:', clipErr);
       }
     } finally {
       setSharing(false);
