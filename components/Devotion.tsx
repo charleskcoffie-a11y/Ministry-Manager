@@ -247,24 +247,80 @@ ${generatedContent.prayer}`;
   };
 
   const handleShare = async () => {
-    if (!generatedContent || !pdfContentRef.current) return;
+    if (!generatedContent) return;
     setSharing(true);
 
     try {
       // Dynamically import html2pdf only when needed
       const html2pdf = (await import('html2pdf.js')).default;
       
-      const element = pdfContentRef.current;
+      // Create a styled PDF container with inline styles to preserve formatting
+      const pdfContainer = document.createElement('div');
+      pdfContainer.innerHTML = `
+        <div style="font-family: 'Georgia', serif; background: white; padding: 40px; color: #1f2937;">
+          
+          <!-- Header -->
+          <div style="text-align: center; margin-bottom: 30px;">
+            <span style="font-size: 11px; font-weight: bold; letter-spacing: 1px; color: #9ca3af; text-transform: uppercase;">
+              ${generatedContent.calendarTag || generatedContent.seasonId || generatedContent.date}
+            </span>
+            <h1 style="font-size: 32px; font-weight: bold; color: #111827; margin: 15px 0; line-height: 1.2;">
+              ${generatedContent.title}
+            </h1>
+            <div style="width: 40px; height: 4px; background: #ef4444; margin: 20px auto;"></div>
+          </div>
+
+          <!-- Scripture Quote -->
+          <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 24px; margin: 30px 0; border-radius: 6px;">
+            <p style="font-size: 18px; color: #7f1d1d; font-style: italic; line-height: 1.8; margin: 0;">
+              "${generatedContent.scripture}"
+            </p>
+          </div>
+
+          <!-- Verse Text -->
+          ${dailyVerse?.text ? `
+            <div style="background: #f3f4f6; padding: 20px; margin: 20px 0; border-radius: 6px; font-style: italic; line-height: 1.6;">
+              ${dailyVerse.text}
+            </div>
+          ` : ''}
+
+          <!-- Main Content -->
+          <div style="font-size: 14px; line-height: 1.8; color: #374151; margin: 30px 0; white-space: pre-wrap;">
+            ${generatedContent.content}
+          </div>
+
+          <!-- Reflection -->
+          <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; margin: 20px 0; border-radius: 6px;">
+            <h3 style="font-weight: bold; color: #1e3a8a; margin: 0 0 10px 0; font-size: 14px;">REFLECTION</h3>
+            <p style="color: #1e40af; font-style: italic; margin: 0; line-height: 1.6;">
+              ${generatedContent.reflectionQuestion}
+            </p>
+          </div>
+
+          <!-- Prayer -->
+          <div style="background: #f9fafb; border-left: 4px solid #6b7280; padding: 20px; margin: 20px 0; border-radius: 6px;">
+            <h3 style="font-weight: bold; color: #111827; margin: 0 0 10px 0; font-size: 14px;">PRAYER</h3>
+            <p style="color: #374151; font-family: 'Georgia', serif; margin: 0; line-height: 1.6;">
+              ${generatedContent.prayer}
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-style: italic; font-size: 12px;">
+            Rev C K. Coffie
+          </div>
+        </div>
+      `;
+      
       const opt = {
         margin: 10,
         filename: `devotion-${new Date().toISOString().split('T')[0]}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
-          scale: 3,
+          scale: 2,
           useCORS: true,
           allowTaint: true,
-          backgroundColor: '#ffffff',
-          letterRendering: true
+          backgroundColor: '#ffffff'
         },
         jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
       };
@@ -273,7 +329,7 @@ ${generatedContent.prayer}`;
       const pdfBlob = await new Promise<Blob>((resolve, reject) => {
         html2pdf()
           .set(opt)
-          .from(element)
+          .from(pdfContainer)
           .outputPdf('blob')
           .then(resolve)
           .catch(reject);
