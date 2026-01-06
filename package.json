@@ -17,6 +17,7 @@
     "@tailwindcss/postcss": "^4.1.18",
     "autoprefixer": "^10.4.23",
     "html2pdf.js": "^0.12.1",
+    "jspdf": "^4.0.0",
     "lucide-react": "^0.555.0",
     "papaparse": "^5.5.3",
     "postcss": "^8.5.6",

@@ -251,89 +251,141 @@ ${generatedContent.prayer}`;
     setSharing(true);
 
     try {
-      // Dynamically import html2pdf only when needed
-      const html2pdf = (await import('html2pdf.js')).default;
+      // Dynamically import jsPDF for PDF generation
+      const { jsPDF } = await import('jspdf');
       
-      // Create a styled PDF container with inline styles to preserve formatting
-      const pdfContainer = document.createElement('div');
-      pdfContainer.innerHTML = `
-        <div style="font-family: 'Georgia', serif; background: white; padding: 40px; color: #1f2937;">
-          
-          <!-- Header -->
-          <div style="text-align: center; margin-bottom: 30px;">
-            <span style="font-size: 11px; font-weight: bold; letter-spacing: 1px; color: #9ca3af; text-transform: uppercase;">
-              ${generatedContent.calendarTag || generatedContent.seasonId || generatedContent.date}
-            </span>
-            <h1 style="font-size: 32px; font-weight: bold; color: #111827; margin: 15px 0; line-height: 1.2;">
-              ${generatedContent.title}
-            </h1>
-            <div style="width: 40px; height: 4px; background: #ef4444; margin: 20px auto;"></div>
-          </div>
-
-          <!-- Scripture Quote -->
-          <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 24px; margin: 30px 0; border-radius: 6px;">
-            <p style="font-size: 18px; color: #7f1d1d; font-style: italic; line-height: 1.8; margin: 0;">
-              "${generatedContent.scripture}"
-            </p>
-          </div>
-
-          <!-- Verse Text -->
-          ${dailyVerse?.text ? `
-            <div style="background: #f3f4f6; padding: 20px; margin: 20px 0; border-radius: 6px; font-style: italic; line-height: 1.6;">
-              ${dailyVerse.text}
-            </div>
-          ` : ''}
-
-          <!-- Main Content -->
-          <div style="font-size: 14px; line-height: 1.8; color: #374151; margin: 30px 0; white-space: pre-wrap;">
-            ${generatedContent.content}
-          </div>
-
-          <!-- Reflection -->
-          <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; margin: 20px 0; border-radius: 6px;">
-            <h3 style="font-weight: bold; color: #1e3a8a; margin: 0 0 10px 0; font-size: 14px;">REFLECTION</h3>
-            <p style="color: #1e40af; font-style: italic; margin: 0; line-height: 1.6;">
-              ${generatedContent.reflectionQuestion}
-            </p>
-          </div>
-
-          <!-- Prayer -->
-          <div style="background: #f9fafb; border-left: 4px solid #6b7280; padding: 20px; margin: 20px 0; border-radius: 6px;">
-            <h3 style="font-weight: bold; color: #111827; margin: 0 0 10px 0; font-size: 14px;">PRAYER</h3>
-            <p style="color: #374151; font-family: 'Georgia', serif; margin: 0; line-height: 1.6;">
-              ${generatedContent.prayer}
-            </p>
-          </div>
-
-          <!-- Footer -->
-          <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-style: italic; font-size: 12px;">
-            Rev C K. Coffie
-          </div>
-        </div>
-      `;
-      
-      const opt = {
-        margin: 10,
-        filename: `devotion-${new Date().toISOString().split('T')[0]}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff'
-        },
-        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
-      };
-
-      // Generate PDF in a way that doesn't freeze the UI
-      const pdfBlob = await new Promise<Blob>((resolve, reject) => {
-        html2pdf()
-          .set(opt)
-          .from(pdfContainer)
-          .outputPdf('blob')
-          .then(resolve)
-          .catch(reject);
+      // Create a new PDF document
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
       });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margins = { top: 15, left: 15, right: 15, bottom: 15 };
+      const contentWidth = pageWidth - margins.left - margins.right;
+      
+      let yPosition = margins.top;
+
+      // Set fonts
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(150, 150, 150);
+      doc.text(generatedContent.calendarTag || generatedContent.seasonId || 'Daily Devotion', pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 10;
+      
+      // Title
+      doc.setFont('georgia', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(17, 24, 39);
+      const titleLines = doc.splitTextToSize(generatedContent.title, contentWidth);
+      doc.text(titleLines, margins.left, yPosition, { align: 'left' });
+      yPosition += titleLines.length * 8 + 8;
+
+      // Divider line
+      doc.setDrawColor(239, 68, 68);
+      doc.setLineWidth(1);
+      doc.line(pageWidth / 2 - 10, yPosition, pageWidth / 2 + 10, yPosition);
+      yPosition += 8;
+
+      // Scripture Quote Box
+      doc.setFillColor(254, 242, 242);
+      doc.setDrawColor(239, 68, 68);
+      doc.setLineWidth(0.5);
+      doc.rect(margins.left, yPosition, contentWidth, 25, 'FD');
+      
+      doc.setFont('georgia', 'italic');
+      doc.setFontSize(12);
+      doc.setTextColor(127, 29, 29);
+      const scriptureLines = doc.splitTextToSize(`"${generatedContent.scripture}"`, contentWidth - 4);
+      doc.text(scriptureLines, margins.left + 2, yPosition + 3);
+      yPosition += 28;
+
+      // Verse Text
+      if (dailyVerse?.text) {
+        doc.setFillColor(243, 244, 246);
+        doc.rect(margins.left, yPosition, contentWidth, 20, 'F');
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(55, 65, 81);
+        const verseLines = doc.splitTextToSize(dailyVerse.text, contentWidth - 4);
+        doc.text(verseLines, margins.left + 2, yPosition + 3);
+        yPosition += verseLines.length * 4 + 8;
+      }
+
+      yPosition += 5;
+
+      // Main Content
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(11);
+      doc.setTextColor(55, 65, 81);
+      const contentLines = doc.splitTextToSize(generatedContent.content, contentWidth);
+      doc.text(contentLines, margins.left, yPosition);
+      yPosition += contentLines.length * 5 + 8;
+
+      // Check if we need a new page
+      if (yPosition > pageHeight - 50) {
+        doc.addPage();
+        yPosition = margins.top;
+      }
+
+      // Reflection Section
+      doc.setFillColor(239, 246, 255);
+      doc.setDrawColor(59, 130, 246);
+      doc.setLineWidth(0.5);
+      doc.rect(margins.left, yPosition, contentWidth, 3, 'F');
+      yPosition += 6;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(30, 58, 138);
+      doc.text('REFLECTION', margins.left, yPosition);
+      yPosition += 6;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(30, 64, 175);
+      const reflectionLines = doc.splitTextToSize(generatedContent.reflectionQuestion, contentWidth);
+      doc.text(reflectionLines, margins.left, yPosition);
+      yPosition += reflectionLines.length * 5 + 8;
+
+      // Check if we need a new page
+      if (yPosition > pageHeight - 40) {
+        doc.addPage();
+        yPosition = margins.top;
+      }
+
+      // Prayer Section
+      doc.setFillColor(249, 250, 251);
+      doc.setDrawColor(107, 114, 128);
+      doc.setLineWidth(0.5);
+      doc.rect(margins.left, yPosition, contentWidth, 3, 'F');
+      yPosition += 6;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(17, 24, 39);
+      doc.text('PRAYER', margins.left, yPosition);
+      yPosition += 6;
+
+      doc.setFont('georgia', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(55, 65, 81);
+      const prayerLines = doc.splitTextToSize(generatedContent.prayer, contentWidth);
+      doc.text(prayerLines, margins.left, yPosition);
+      yPosition += prayerLines.length * 5 + 10;
+
+      // Footer
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9);
+      doc.setTextColor(156, 163, 175);
+      doc.text('Rev C K. Coffie', pageWidth / 2, pageHeight - 10, { align: 'center' });
+
+      // Generate PDF blob
+      const pdfBlob = doc.output('blob');
 
       // Try to share the PDF on mobile, or download on desktop
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([pdfBlob], 'devotion.pdf', { type: 'application/pdf' })] })) {
@@ -348,8 +400,11 @@ ${generatedContent.prayer}`;
           const a = document.createElement('a');
           a.href = url;
           a.download = `devotion-${new Date().toISOString().split('T')[0]}.pdf`;
+          document.body.appendChild(a);
           a.click();
+          document.body.removeChild(a);
           URL.revokeObjectURL(url);
+          alert('PDF downloaded!');
         }
       } else {
         // Desktop: Download the PDF
@@ -357,11 +412,14 @@ ${generatedContent.prayer}`;
         const a = document.createElement('a');
         a.href = url;
         a.download = `devotion-${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        alert('PDF downloaded!');
       }
     } catch (err) {
-      console.error('Error sharing devotion:', err);
+      console.error('Error generating PDF:', err);
       
       // Fallback: Share as text
       const shareText = `${generatedContent.title}
