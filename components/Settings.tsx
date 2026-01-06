@@ -12,6 +12,7 @@ const Settings: React.FC = () => {
   // Connection Test State
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
 
   // Import State
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -31,7 +32,22 @@ const Settings: React.FC = () => {
 
   useEffect(() => {
       setVerseSource(localStorage.getItem('dailyVerseSource') || 'ai');
+      // Check Supabase connection on component mount
+      checkConnection();
   }, []);
+
+  const checkConnection = async () => {
+    try {
+      const { error } = await supabase
+        .from('church_programs')
+        .select('id')
+        .limit(1);
+      
+      setConnectionStatus(error ? 'disconnected' : 'connected');
+    } catch {
+      setConnectionStatus('disconnected');
+    }
+  };
 
   const handleVerseSourceChange = (val: string) => {
       setVerseSource(val);
@@ -270,6 +286,32 @@ const Settings: React.FC = () => {
             <h1 className="text-4xl font-bold text-gray-800">System Settings</h1>
             <p className="text-lg text-gray-500">Manage application configuration and security</p>
         </div>
+      </div>
+
+      {/* Connection Status Banner */}
+      <div className={`rounded-lg p-4 flex items-center gap-3 ${
+        connectionStatus === 'checking' ? 'bg-gray-50 border border-gray-200' :
+        connectionStatus === 'connected' ? 'bg-green-50 border border-green-200' :
+        'bg-red-50 border border-red-200'
+      }`}>
+        {connectionStatus === 'checking' && (
+          <>
+            <Loader2 className="w-5 h-5 text-gray-500 animate-spin" />
+            <span className="text-sm font-medium text-gray-700">Checking Supabase connection...</span>
+          </>
+        )}
+        {connectionStatus === 'connected' && (
+          <>
+            <CheckCircle2 className="w-5 h-5 text-green-600" />
+            <span className="text-sm font-medium text-green-800">Connected to Supabase</span>
+          </>
+        )}
+        {connectionStatus === 'disconnected' && (
+          <>
+            <XCircle className="w-5 h-5 text-red-600" />
+            <span className="text-sm font-medium text-red-800">Not connected to Supabase - Check connection below</span>
+          </>
+        )}
       </div>
 
       {/* 1. Daily Verse Settings */}
