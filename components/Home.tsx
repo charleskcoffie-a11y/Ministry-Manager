@@ -250,7 +250,7 @@ const Home: React.FC = () => {
     if (!todaysVerse) return;
     setSharing(true);
     
-    const shareText = `"${todaysVerse.text}"\n- ${todaysVerse.reference}\n\nRev. Charles K. Coffie`;
+    const shareText = `"${todaysVerse.text}"\n\n${todaysVerse.reference}\n\nRev C. K. Coffie`;
     
     if (navigator.share) {
         try {
