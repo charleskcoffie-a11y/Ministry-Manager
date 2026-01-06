@@ -247,51 +247,7 @@ ${generatedContent.prayer}`;
   };
 
   const handleShare = async () => {
-    if (!generatedContent) return;
-    setSharing(true);
-
-    const shareText = `${generatedContent.title}
-
-${generatedContent.scripture}
-
-${dailyVerse?.text || ''}
-
-${generatedContent.content}
-
-Reflection: ${generatedContent.reflectionQuestion}
-
-Prayer: ${generatedContent.prayer}
-
-- Rev C K. Coffie`;
-
-    try {
-      if (navigator.share) {
-        // Use Web Share API (works on mobile)
-        await navigator.share({
-          title: generatedContent.title,
-          text: shareText,
-        });
-      } else {
-        // Fallback: Copy to clipboard
-        await navigator.clipboard.writeText(shareText);
-        alert('Devotion copied to clipboard! You can now paste it in WhatsApp or any app.');
-      }
-    } catch (err) {
-      console.error('Error sharing:', err);
-      // If share fails, try clipboard as fallback
-      try {
-        await navigator.clipboard.writeText(shareText);
-        alert('Devotion copied to clipboard!');
-      } catch (clipErr) {
-        alert('Unable to share. Please try again.');
-      }
-    } finally {
-      setSharing(false);
-    }
-  };
-
-  const handleGeneratePDF = async () => {
-    if (!pdfContentRef.current) return;
+    if (!generatedContent || !pdfContentRef.current) return;
     setSharing(true);
 
     try {
@@ -307,10 +263,72 @@ Prayer: ${generatedContent.prayer}
         jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
       };
 
-      html2pdf().set(opt).from(element).save();
+      // Generate PDF in a way that doesn't freeze the UI
+      const pdfBlob = await new Promise<Blob>((resolve, reject) => {
+        html2pdf()
+          .set(opt)
+          .from(element)
+          .outputPdf('blob')
+          .then(resolve)
+          .catch(reject);
+      });
+
+      // Try to share the PDF on mobile, or download on desktop
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([pdfBlob], 'devotion.pdf', { type: 'application/pdf' })] })) {
+        try {
+          await navigator.share({
+            files: [new File([pdfBlob], `devotion-${new Date().toISOString().split('T')[0]}.pdf`, { type: 'application/pdf' })],
+            title: generatedContent.title,
+          });
+        } catch (err) {
+          // If file sharing fails, fall back to downloading
+          const url = URL.createObjectURL(pdfBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `devotion-${new Date().toISOString().split('T')[0]}.pdf`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      } else {
+        // Desktop: Download the PDF
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `devotion-${new Date().toISOString().split('T')[0]}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
     } catch (err) {
-      console.error('Error generating PDF:', err);
-      alert('Unable to generate PDF. Please try again.');
+      console.error('Error sharing devotion:', err);
+      
+      // Fallback: Share as text
+      const shareText = `${generatedContent.title}
+
+${generatedContent.scripture}
+
+${dailyVerse?.text || ''}
+
+${generatedContent.content}
+
+Reflection: ${generatedContent.reflectionQuestion}
+
+Prayer: ${generatedContent.prayer}
+
+- Rev C K. Coffie`;
+
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: generatedContent.title,
+            text: shareText,
+          });
+        } else {
+          await navigator.clipboard.writeText(shareText);
+          alert('Devotion copied to clipboard!');
+        }
+      } catch (clipErr) {
+        alert('Unable to share. Please try again.');
+      }
     } finally {
       setSharing(false);
     }
@@ -618,7 +636,7 @@ Prayer: ${generatedContent.prayer}
                 {/* Footer Actions */}
                 <div className="bg-gray-50 px-8 py-4 flex flex-col sm:flex-row justify-between items-center border-t border-gray-100 gap-4">
                     <span className="text-sm text-gray-400 italic">Rev C K. Coffie</span>
-                    <div className="flex gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+                    <div className="flex gap-3 w-full sm:w-auto">
                         <button 
                             onClick={handleReset}
                             className="flex-1 sm:flex-none px-6 py-3 border border-gray-300 bg-white rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
@@ -626,20 +644,12 @@ Prayer: ${generatedContent.prayer}
                             Close
                         </button>
                         <button 
-                            onClick={handleGeneratePDF}
-                            disabled={sharing} 
-                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 font-medium shadow-sm transition-colors"
-                        >
-                            {sharing ? <Loader2 className="w-4 h-4 animate-spin"/> : <FileDown className="w-4 h-4"/>}
-                            PDF
-                        </button>
-                        <button 
                             onClick={handleShare} 
                             disabled={sharing} 
                             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 font-medium shadow-sm transition-colors"
                         >
                             {sharing ? <Loader2 className="w-4 h-4 animate-spin"/> : <Share2 className="w-4 h-4"/>}
-                            Share
+                            Share as PDF
                         </button>
                         <button 
                             onClick={saveToIdeas} 
