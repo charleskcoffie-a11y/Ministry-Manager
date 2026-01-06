@@ -433,55 +433,60 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 md:space-y-12 animate-fade-in pb-10">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pb-10">
+      {/* Animated Background Blobs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+          <div className="absolute top-40 right-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+          <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+      </div>
+
+      <div className="relative z-10 space-y-6 md:space-y-8 animate-fade-in">
       
       {/* 1. Hero Banner */}
-    <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-slate-900 text-white shadow-xl md:shadow-2xl border border-white/5">
-        {/* Background Gradients & Textures */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900 via-slate-900 to-slate-950"></div>
-        <div className="absolute top-[-50%] left-[-20%] w-[80%] h-[150%] bg-indigo-500/10 blur-[120px] rounded-full mix-blend-screen pointer-events-none"></div>
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[100%] bg-blue-500/10 blur-[100px] rounded-full mix-blend-screen pointer-events-none"></div>
-        
-        {/* Subtle Grain/Pattern */}
-        <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
+    <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white shadow-2xl border border-white/20">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-pulse"></div>
+        <div className="absolute top-0 left-0 w-40 h-40 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-40 h-40 bg-white/10 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl"></div>
 
-        <div className="relative z-10 px-4 py-0 md:px-10 md:py-3 flex flex-col items-center text-center md:items-start md:text-left">
+        <div className="relative z-10 px-4 py-8 md:px-10 md:py-12 flex flex-col items-center text-center md:items-start md:text-left">
            {/* Badge */}
-           <div className="inline-flex items-center gap-2 px-3 py-1 md:px-4 md:py-1.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-300 text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-sm mb-3 md:mb-4 backdrop-blur-md">
+           <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/20 border border-white/30 text-white text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-lg mb-4 md:mb-6 backdrop-blur-md">
               <Crown className="w-3 h-3 md:w-4 md:h-4" /> 
               Pastoral Workspace
            </div>
 
            {/* Title */}
-           <h1 className="text-2xl md:text-6xl font-serif font-bold leading-tight mb-2 md:mb-3 tracking-tight text-white drop-shadow-sm">
+           <h1 className="text-3xl md:text-7xl font-serif font-black leading-tight mb-3 md:mb-4 tracking-tight text-white drop-shadow-2xl">
               Ministry <br className="md:hidden" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-200 to-amber-200 animate-pulse">
                  Suite
               </span>
            </h1>
 
            {/* Subtitle */}
-           <p className="text-xs md:text-xl text-indigo-200/80 font-light max-w-2xl leading-snug md:leading-relaxed mb-3 md:mb-5">
+           <p className="text-sm md:text-2xl text-white/90 font-light max-w-2xl leading-relaxed md:leading-relaxed mb-6 md:mb-8 drop-shadow-lg">
               Empowering Kingdom growth through vision, purpose, and organized leadership.
            </p>
 
            {/* Buttons */}
-           <div className="flex flex-wrap gap-3 justify-center md:justify-start w-full md:w-auto">
-              <Link to="/reminders" className="group flex-1 md:flex-none relative px-6 py-3 md:px-8 md:py-4 bg-white text-indigo-950 rounded-full font-bold text-sm md:text-lg shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 md:gap-3 overflow-hidden">
+           <div className="flex flex-wrap gap-3 md:gap-4 justify-center md:justify-start w-full md:w-auto">
+              <Link to="/reminders" className="group flex-1 md:flex-none relative px-6 py-3 md:px-10 md:py-5 bg-white text-indigo-950 rounded-full font-bold text-sm md:text-lg shadow-2xl hover:shadow-[0_0_40px_rgba(255,255,255,0.5)] transition-all duration-300 hover:-translate-y-1 hover:scale-105 flex items-center justify-center gap-2 md:gap-3 overflow-hidden">
                   <span className="relative z-10">Reminders</span>
-                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
-                  <div className="absolute inset-0 bg-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5 relative z-10 group-hover:translate-x-2 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-50 to-purple-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </Link>
-              <Link to="/sermons" className="flex-1 md:flex-none px-6 py-3 md:px-8 md:py-4 bg-indigo-900/40 border border-indigo-400/20 text-indigo-100 rounded-full font-bold text-sm md:text-lg hover:bg-indigo-800/40 transition-all flex items-center justify-center gap-2 md:gap-3 backdrop-blur-sm hover:border-indigo-400/40">
+              <Link to="/sermons" className="flex-1 md:flex-none px-6 py-3 md:px-10 md:py-5 bg-white/20 border-2 border-white/40 text-white rounded-full font-bold text-sm md:text-lg hover:bg-white/30 transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2 md:gap-3 backdrop-blur-md hover:border-white/60 shadow-lg">
                   <Scroll className="w-4 h-4 md:w-5 md:h-5" />
                   Sermons
               </Link>
            </div>
 
            {/* Verse */}
-           <div className="mt-8 pt-6 border-t border-white/5 w-full md:w-auto hidden md:block">
-              <p className="text-sm font-serif italic text-slate-400 flex items-center justify-center md:justify-start gap-2">
-                 <Sparkles className="w-3 h-3 text-amber-500/50" />
+           <div className="mt-8 pt-6 border-t border-white/20 w-full md:w-auto hidden md:block">
+              <p className="text-sm md:text-base font-serif italic text-white/80 flex items-center justify-center md:justify-start gap-2">
+                 <Sparkles className="w-4 h-4 text-amber-300" />
                  "Therefore encourage one another and build each other up." — 1 Thessalonians 5:11
               </p>
            </div>
@@ -490,23 +495,24 @@ const Home: React.FC = () => {
 
       {/* Christian Season Banner */}
       {currentSeason && (
-        <Link to="/christian-calendar" className="block transform hover:scale-[1.01] transition-transform duration-300">
-            <div className={`relative overflow-hidden rounded-xl md:rounded-2xl shadow-md md:shadow-lg ${currentSeason.bg} text-white`}>
-                <div className={`absolute top-0 right-0 w-24 md:w-32 h-full ${currentSeason.accent} transform skew-x-12 translate-x-8 md:translate-x-10 opacity-50`}></div>
-                <div className="relative p-4 md:p-6 flex flex-row items-center justify-between gap-4">
+        <Link to="/christian-calendar" className="block transform hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300">
+            <div className={`relative overflow-hidden rounded-2xl md:rounded-3xl shadow-xl hover:shadow-2xl ${currentSeason.bg} text-white border border-white/20`}>
+                <div className={`absolute top-0 right-0 w-32 md:w-40 h-full ${currentSeason.accent} transform skew-x-12 translate-x-10 md:translate-x-12 opacity-40 blur-sm`}></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/10"></div>
+                <div className="relative p-5 md:p-8 flex flex-row items-center justify-between gap-4">
                     <div className="flex-1">
-                        <div className="flex items-center gap-2 md:gap-3 mb-1">
-                            <span className="text-[10px] md:text-sm font-medium opacity-90 uppercase tracking-wider">Today</span>
+                        <div className="flex items-center gap-2 md:gap-3 mb-2">
+                            <span className="text-xs md:text-sm font-bold opacity-90 uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full backdrop-blur-sm">Today</span>
                         </div>
-                        <h2 className="text-xl md:text-3xl font-bold mb-1 md:mb-2 flex items-center gap-2">
+                        <h2 className="text-2xl md:text-4xl font-black mb-2 md:mb-3 flex items-center gap-2 drop-shadow-lg">
                             {currentSeason.name}
                         </h2>
-                        <p className="text-white/90 text-xs md:text-lg max-w-2xl line-clamp-1 md:line-clamp-none">
+                        <p className="text-white/95 text-sm md:text-xl max-w-2xl line-clamp-2 md:line-clamp-none font-medium">
                            {currentSeason.definition}
                         </p>
                     </div>
-                    <div className="bg-white/20 p-1.5 md:p-2 rounded-full">
-                        <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                    <div className="bg-white/30 p-2 md:p-3 rounded-full backdrop-blur-sm border border-white/40 shadow-lg hover:bg-white/40 transition-colors">
+                        <ChevronRight className="w-6 h-6 md:w-7 md:h-7 text-white" />
                     </div>
                 </div>
             </div>
@@ -601,10 +607,13 @@ const Home: React.FC = () => {
              
              {/* 1. Daily Verse Widget */}
              <div>
-                <h2 className="text-xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-2 md:gap-3">
-                    <Heart className="w-6 h-6 md:w-8 md:h-8 text-red-500" /> Verse of the Day
+                <h2 className="text-2xl md:text-4xl font-black text-gray-900 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-3 md:gap-4">
+                    <div className="p-2 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl shadow-lg">
+                        <Heart className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                    </div>
+                    Verse of the Day
                 </h2>
-                <div className="bg-white rounded-xl shadow-md border border-red-50 overflow-hidden relative group hover:shadow-lg transition-shadow">
+                <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/40 overflow-hidden relative group hover:shadow-2xl hover:scale-[1.01] transition-all duration-300">
                     {verseLoading ? (
                         <div className="flex justify-center py-12">
                             <Loader2 className="w-8 h-8 animate-spin text-red-400"/>
@@ -675,12 +684,15 @@ const Home: React.FC = () => {
 
              {/* 2. Standing Order of the Day */}
              <div>
-                <h2 className="text-xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-2 md:gap-3">
-                    <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-purple-600" /> Daily Order
+                <h2 className="text-2xl md:text-4xl font-black text-gray-900 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-3 md:gap-4">
+                    <div className="p-2 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl shadow-lg">
+                        <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                    </div>
+                    Daily Order
                 </h2>
                 {dailyOrder ? (
-                    <div className="bg-white rounded-xl shadow-md border border-purple-100 p-5 md:p-6 relative overflow-hidden group hover:shadow-lg transition-shadow">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-purple-50 rounded-bl-full -mr-4 -mt-4 z-0"></div>
+                    <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/40 p-6 md:p-8 relative overflow-hidden group hover:shadow-2xl hover:scale-[1.01] transition-all duration-300">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-bl-full -mr-6 -mt-6 z-0 opacity-50"></div>
                         <div className="relative z-10">
                             <div className="flex justify-between items-start mb-3">
                                 <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-xs md:text-sm font-bold rounded-lg">
@@ -714,10 +726,13 @@ const Home: React.FC = () => {
 
              {/* 3. Pending Tasks */}
              <div>
-                 <h2 className="text-xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-2 md:gap-3">
-                   <AlertCircle className="w-6 h-6 md:w-8 md:h-8 text-orange-500" /> Pending Tasks
+                 <h2 className="text-2xl md:text-4xl font-black text-gray-900 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-3 md:gap-4">
+                   <div className="p-2 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl shadow-lg">
+                       <AlertCircle className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                   </div>
+                   Pending Tasks
                  </h2>
-                 <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4 md:p-6">
+                 <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/40 p-5 md:p-8">
                     {recentTasks.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
                             <CheckCircle2 className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-3 opacity-20"/>
@@ -745,6 +760,7 @@ const Home: React.FC = () => {
                  </div>
              </div>
         </div>
+      </div>
       </div>
     </div>
   );
