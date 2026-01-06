@@ -28,6 +28,7 @@ export const getTodayVerse = async (): Promise<DailyVerse> => {
 };
 
 export const getVerseByReference = async (reference: string): Promise<DailyVerse> => {
+  // First, check if verse exists in Supabase
   const { data, error } = await supabase
     .from('daily_verses')
     .select('*')
@@ -38,16 +39,55 @@ export const getVerseByReference = async (reference: string): Promise<DailyVerse
     console.error("Error fetching verse:", error);
   }
 
-  if (!data) {
-    // Fallback if not found in Supabase
-    return {
-      id: `local-fallback-${Date.now()}`,
-      reference: reference,
-      translation: 'NLT',
-      text: null,
-      image_url: null
-    };
+  if (data && data.text) {
+    // Return verse from database if it has text
+    return data as DailyVerse;
   }
 
-  return data as DailyVerse;
+  // If not in database or no text, try to fetch from Bible API
+  try {
+    // Using Bible API (labs.bible.org/api)
+    const cleanRef = reference.trim();
+    const response = await fetch(`https://labs.bible.org/api/?passage=${encodeURIComponent(cleanRef)}&type=json`);
+    
+    if (response.ok) {
+      const apiData = await response.json();
+      
+      if (apiData && apiData.length > 0) {
+        // Combine all verses if multiple verses returned
+        const verseText = apiData.map((v: any) => v.text).join(' ');
+        
+        // Save to Supabase for future use
+        const verseData: DailyVerse = {
+          id: data?.id || `api-${Date.now()}`,
+          reference: reference,
+          translation: 'ASV',
+          text: verseText,
+          image_url: data?.image_url || null
+        };
+        
+        // Try to save to database (don't wait for it)
+        if (!data) {
+          supabase.from('daily_verses').insert({
+            reference: reference,
+            translation: 'ASV',
+            text: verseText
+          }).then(() => console.log('Verse saved to database'));
+        }
+        
+        return verseData;
+      }
+    }
+  } catch (apiError) {
+    console.error("Error fetching from Bible API:", apiError);
+  }
+
+  // Fallback if API fails or verse not found
+  return {
+    id: data?.id || `local-fallback-${Date.now()}`,
+    reference: reference,
+    translation: 'NLT',
+    text: `[${reference}] - Text not available. Please check the reference or add manually.`,
+    image_url: data?.image_url || null
+  };
 };
