@@ -467,8 +467,8 @@ const Home: React.FC = () => {
 
            {/* Buttons */}
            <div className="flex flex-wrap gap-3 justify-center md:justify-start w-full md:w-auto">
-              <Link to="/programs" className="group flex-1 md:flex-none relative px-6 py-3 md:px-8 md:py-4 bg-white text-indigo-950 rounded-full font-bold text-sm md:text-lg shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 md:gap-3 overflow-hidden">
-                  <span className="relative z-10">Schedule</span>
+              <Link to="/reminders" className="group flex-1 md:flex-none relative px-6 py-3 md:px-8 md:py-4 bg-white text-indigo-950 rounded-full font-bold text-sm md:text-lg shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 md:gap-3 overflow-hidden">
+                  <span className="relative z-10">Reminders</span>
                   <ArrowRight className="w-4 h-4 md:w-5 md:h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
                   <div className="absolute inset-0 bg-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </Link>
