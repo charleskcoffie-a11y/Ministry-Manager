@@ -254,7 +254,7 @@ ${generatedContent.prayer}`;
       // Dynamically import jsPDF for PDF generation
       const { jsPDF } = await import('jspdf');
       
-      // Create a new PDF document
+      // Create a new PDF document - start with A4 to calculate, we'll adjust later
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -262,32 +262,36 @@ ${generatedContent.prayer}`;
       });
 
       const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
       const margins = { top: 20, left: 20, right: 20, bottom: 20 };
       const contentWidth = pageWidth - margins.left - margins.right;
       
       let yPosition = margins.top;
+      let maxY = yPosition;
 
-      // Helper function to add text and handle page breaks
+      // Helper function to add text and track position
       const addText = (text: string, fontSize: number, isBold: boolean, color: number[] = [0, 0, 0]) => {
         doc.setFontSize(fontSize);
         doc.setFont('helvetica', isBold ? 'bold' : 'normal');
         doc.setTextColor(color[0], color[1], color[2]);
         
         const lines = doc.splitTextToSize(text, contentWidth);
-        
-        // Check if we need a new page
-        if (yPosition + (lines.length * fontSize * 0.35) > pageHeight - margins.bottom) {
-          doc.addPage();
-          yPosition = margins.top;
-        }
-        
         doc.text(lines, margins.left, yPosition);
         yPosition += lines.length * fontSize * 0.35 + 3;
+        maxY = Math.max(maxY, yPosition);
       };
 
       // Title
       addText(generatedContent.title.toUpperCase(), 16, true, [0, 0, 0]);
+      
+      // Date
+      const today = new Date();
+      const dateStr = today.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      addText(dateStr, 10, false, [107, 114, 128]);
       yPosition += 2;
 
       // Divider
@@ -296,14 +300,9 @@ ${generatedContent.prayer}`;
       doc.line(margins.left, yPosition, pageWidth - margins.right, yPosition);
       yPosition += 8;
 
-      // Scripture Reference
+      // Scripture Reference (just the reference, not the full text)
       addText(generatedContent.scripture, 12, true, [127, 29, 29]);
-      
-      // Verse Text
-      if (dailyVerse?.text) {
-        addText(dailyVerse.text, 10, false, [75, 85, 99]);
-        yPosition += 3;
-      }
+      yPosition += 3;
 
       // Main Content
       addText(generatedContent.content, 11, false, [55, 65, 81]);
@@ -327,16 +326,117 @@ ${generatedContent.prayer}`;
       
       addText('PRAYER', 10, true, [17, 24, 39]);
       addText(generatedContent.prayer, 10, false, [55, 65, 81]);
+      yPosition += 8;
 
       // Footer
       doc.setFontSize(9);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(156, 163, 175);
-      doc.text('Rev C K. Coffie', pageWidth / 2, pageHeight - 10, { align: 'center' });
+      doc.text('Rev C K. Coffie', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 5;
 
-      // Save the PDF
+      // Create new PDF with custom height to fit content
+      const finalHeight = yPosition + margins.bottom;
+      const finalDoc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [pageWidth, finalHeight]
+      });
+
+      // Recreate all content on the new sized page
+      yPosition = margins.top;
+
+      const addTextFinal = (text: string, fontSize: number, isBold: boolean, color: number[] = [0, 0, 0]) => {
+        finalDoc.setFontSize(fontSize);
+        finalDoc.setFont('helvetica', isBold ? 'bold' : 'normal');
+        finalDoc.setTextColor(color[0], color[1], color[2]);
+        const lines = finalDoc.splitTextToSize(text, contentWidth);
+        finalDoc.text(lines, margins.left, yPosition);
+        yPosition += lines.length * fontSize * 0.35 + 3;
+      };
+
+      // Title
+      addTextFinal(generatedContent.title.toUpperCase(), 16, true, [0, 0, 0]);
+      
+      // Date
+      const todayFinal = new Date();
+      const dateStrFinal = todayFinal.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      addTextFinal(dateStrFinal, 10, false, [107, 114, 128]);
+      yPosition += 2;
+
+      // Divider
+      finalDoc.setDrawColor(239, 68, 68);
+      finalDoc.setLineWidth(0.8);
+      finalDoc.line(margins.left, yPosition, pageWidth - margins.right, yPosition);
+      yPosition += 8;
+
+      // Scripture Reference
+      addTextFinal(generatedContent.scripture, 12, true, [127, 29, 29]);
+      yPosition += 3;
+
+      // Main Content
+      addTextFinal(generatedContent.content, 11, false, [55, 65, 81]);
+      yPosition += 5;
+
+      // Reflection
+      finalDoc.setDrawColor(59, 130, 246);
+      finalDoc.setLineWidth(0.5);
+      finalDoc.line(margins.left, yPosition, pageWidth - margins.right, yPosition);
+      yPosition += 5;
+      
+      addTextFinal('REFLECTION', 10, true, [30, 58, 138]);
+      addTextFinal(generatedContent.reflectionQuestion, 10, false, [30, 64, 175]);
+      yPosition += 5;
+
+      // Prayer
+      finalDoc.setDrawColor(107, 114, 128);
+      finalDoc.setLineWidth(0.5);
+      finalDoc.line(margins.left, yPosition, pageWidth - margins.right, yPosition);
+      yPosition += 5;
+      
+      addTextFinal('PRAYER', 10, true, [17, 24, 39]);
+      addTextFinal(generatedContent.prayer, 10, false, [55, 65, 81]);
+      yPosition += 8;
+
+      // Footer
+      finalDoc.setFontSize(9);
+      finalDoc.setFont('helvetica', 'italic');
+      finalDoc.setTextColor(156, 163, 175);
+      finalDoc.text('Rev C K. Coffie', pageWidth / 2, yPosition, { align: 'center' });
+
+      // Generate PDF as blob for sharing
+      const pdfBlob = finalDoc.output('blob');
       const fileName = `devotion-${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fileName);
+      
+      // Try to share via Web Share API if available (for mobile)
+      if (navigator.share && navigator.canShare) {
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        
+        if (navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: generatedContent.title,
+              text: `Daily Devotion - ${dateStrFinal}`,
+              files: [file]
+            });
+            setSharing(false);
+            return;
+          } catch (shareErr) {
+            // If user cancels or share fails, fall back to download
+            if ((shareErr as Error).name !== 'AbortError') {
+              console.log('Share failed, downloading instead:', shareErr);
+            }
+          }
+        }
+      }
+      
+      // Fallback: Download the PDF
+      finalDoc.save(fileName);
       
       // Show success message
       setTimeout(() => {
