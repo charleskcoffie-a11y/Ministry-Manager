@@ -222,8 +222,9 @@ const SermonNotes: React.FC = () => {
 
   if (mode === 'list') {
     return (
-      <div className="max-w-4xl mx-auto pb-20 animate-fade-in space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 pb-20">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 animate-fade-in space-y-6 py-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-white/40">
            <div>
               <h1 className="text-3xl font-serif font-bold text-slate-800 flex items-center gap-3">
                  <PenTool className="w-8 h-8 text-indigo-600" /> Sermon Notes
@@ -244,7 +245,7 @@ const SermonNotes: React.FC = () => {
             <input 
               type="text" 
               placeholder="Search notes by title, preacher, or scripture..." 
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm"
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white/80 backdrop-blur-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-md"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -259,11 +260,11 @@ const SermonNotes: React.FC = () => {
         </div>
 
         {loading ? (
-           <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-indigo-300"/></div>
+           <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-indigo-400"/></div>
         ) : filteredNotes.length === 0 ? (
-           <div className="text-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
-              <Book className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500 font-medium">
+           <div className="text-center py-20 bg-white/80 backdrop-blur-xl rounded-2xl border border-dashed border-gray-200">
+              <Book className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 font-medium">
                 {searchQuery ? 'No matching notes found.' : 'No sermon notes yet.'}
               </p>
            </div>
@@ -273,25 +274,25 @@ const SermonNotes: React.FC = () => {
                  <div 
                    key={note.id} 
                    onClick={() => fetchNoteDetails(note.id)}
-                   className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer group flex justify-between items-center"
+                   className="bg-white/80 backdrop-blur-xl p-5 rounded-xl border border-white/40 shadow-md hover:shadow-lg hover:scale-[1.01] transition-all cursor-pointer group flex justify-between items-center"
                  >
                     <div className="flex-1">
-                       <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                       <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
                           <Calendar className="w-3 h-3" />
                           {new Date(note.note_date).toLocaleDateString()}
-                          {note.location && <><span className="text-slate-300">•</span> {note.location}</>}
+                          {note.location && <><span className="text-gray-300">•</span> {note.location}</>}
                        </div>
-                       <h3 className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                       <h3 className="text-lg font-bold text-gray-800 group-hover:text-indigo-600 transition-colors">
                           {note.sermon_title || 'Untitled Sermon'}
                        </h3>
-                       <div className="flex items-center gap-2 mt-2 text-sm text-slate-600">
+                       <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
                           <User className="w-4 h-4 text-indigo-400" />
                           {note.preacher || 'Unknown Preacher'}
                        </div>
                     </div>
                     <button 
                        onClick={(e) => handleDelete(note.id, e)}
-                       className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                       className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
                     >
                        <Trash2 className="w-5 h-5" />
                     </button>
@@ -299,14 +300,16 @@ const SermonNotes: React.FC = () => {
               ))}
            </div>
         )}
+        </div>
       </div>
     );
   }
 
   // --- EDITOR VIEW ---
   return (
-    <div className="max-w-3xl mx-auto pb-24 animate-fade-in">
-       <div className="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-sm border-b border-gray-200 py-3 mb-6 flex justify-between items-center">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 pb-24">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 animate-fade-in py-8">
+       <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-xl border-b border-white/40 rounded-t-2xl py-3 mb-6 flex justify-between items-center px-6 shadow-md">
           <button 
             onClick={() => setMode('list')}
             className="flex items-center gap-1 text-slate-600 hover:text-slate-900 px-2 py-1 rounded-lg hover:bg-slate-200 transition-colors"
@@ -328,44 +331,45 @@ const SermonNotes: React.FC = () => {
 
        <div className="space-y-4">
           
+          
           {/* Section 1: Basic Info */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-             <button onClick={() => toggleSection(1)} className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
-                <span className="font-bold text-slate-700 flex items-center gap-2">1. Basic Information</span>
-                {openSections[1] ? <ChevronUp className="w-5 h-5 text-slate-400"/> : <ChevronDown className="w-5 h-5 text-slate-400"/>}
+          <div className="bg-white/80 backdrop-blur-xl rounded-xl shadow-md border border-white/40 overflow-hidden">
+             <button onClick={() => toggleSection(1)} className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 transition-colors">
+                <span className="font-bold text-indigo-900 flex items-center gap-2">1. Basic Information</span>
+                {openSections[1] ? <ChevronUp className="w-5 h-5 text-indigo-400"/> : <ChevronDown className="w-5 h-5 text-indigo-400"/>}
              </button>
              {openSections[1] && (
                 <div className="p-5 space-y-4 animate-fade-in">
                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Preacher</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Preacher</label>
                       <input 
-                        className="w-full p-3 bg-slate-50 border-none rounded-lg focus:ring-2 focus:ring-indigo-500" 
+                        className="w-full p-3 bg-gray-50/50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
                         value={currentNote.preacher} onChange={e => setCurrentNote({...currentNote, preacher: e.target.value})} placeholder="Name of speaker" 
                       />
                    </div>
                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Date</label>
-                        <input type="date" className="w-full p-3 bg-slate-50 border-none rounded-lg focus:ring-2 focus:ring-indigo-500" 
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Date</label>
+                        <input type="date" className="w-full p-3 bg-gray-50/50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
                            value={currentNote.note_date} onChange={e => setCurrentNote({...currentNote, note_date: e.target.value})} 
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Location</label>
-                        <input className="w-full p-3 bg-slate-50 border-none rounded-lg focus:ring-2 focus:ring-indigo-500" 
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Location</label>
+                        <input className="w-full p-3 bg-gray-50/50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
                            value={currentNote.location} onChange={e => setCurrentNote({...currentNote, location: e.target.value})} placeholder="Event or Church" 
                         />
                       </div>
                    </div>
                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Title</label>
-                      <input className="w-full p-3 bg-slate-50 border-none rounded-lg focus:ring-2 focus:ring-indigo-500 text-lg font-bold text-slate-800" 
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Title</label>
+                      <input className="w-full p-3 bg-gray-50/50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg font-bold text-gray-800" 
                          value={currentNote.sermon_title} onChange={e => setCurrentNote({...currentNote, sermon_title: e.target.value})} placeholder="Sermon Title" 
                       />
                    </div>
                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Main Scripture(s)</label>
-                      <input className="w-full p-3 bg-slate-50 border-none rounded-lg focus:ring-2 focus:ring-indigo-500" 
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Main Scripture(s)</label>
+                      <input className="w-full p-3 bg-gray-50/50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
                          value={currentNote.main_scripture} onChange={e => setCurrentNote({...currentNote, main_scripture: e.target.value})} placeholder="e.g. John 3:16" 
                       />
                    </div>
@@ -521,6 +525,7 @@ const SermonNotes: React.FC = () => {
           </div>
 
        </div>
+      </div>
     </div>
   );
 };
