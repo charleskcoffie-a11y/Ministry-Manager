@@ -8,12 +8,15 @@ import {
   MessageCircle, Edit2, Clock, X, Layout, Filter,
   ClipboardList, Check
 } from 'lucide-react';
+import Modal from './Modal';
+import { useModal } from '../hooks/useModal';
 
 const CATEGORIES: TaskCategory[] = ['Preaching', 'Visitation', 'Counseling', 'Administration', 'Prayer', 'Bible Study', 'Other'];
 const PRIORITIES: TaskPriority[] = ['Low', 'Medium', 'High', 'Critical'];
 const STATUSES: TaskStatus[] = ['Pending', 'In Progress', 'Completed'];
 
 const TaskManager: React.FC = () => {
+  const { modalState, showConfirm, closeModal } = useModal();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -82,13 +85,18 @@ const TaskManager: React.FC = () => {
         const { error } = await supabase.from('tasks').insert([taskData]);
         if (!error) fetchTasks();
     }
-    closeModal();
+    closeTaskModal();
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this task?")) return;
-    const { error } = await supabase.from('tasks').delete().eq('id', id);
-    if (!error) fetchTasks();
+    await showConfirm(
+      "Are you sure you want to delete this task? This action cannot be undone.",
+      async () => {
+        const { error } = await supabase.from('tasks').delete().eq('id', id);
+        if (!error) fetchTasks();
+      },
+      "Delete Task"
+    );
   };
 
   const handleStatusChange = async (task: Task, newStatus: TaskStatus) => {
@@ -122,7 +130,7 @@ const TaskManager: React.FC = () => {
       setIsModalOpen(true);
   };
 
-  const closeModal = () => {
+  const closeTaskModal = () => {
       setIsModalOpen(false);
       setEditingTask({});
   };
@@ -395,7 +403,7 @@ const TaskManager: React.FC = () => {
                               <h3 className="font-bold text-xl text-gray-900">{editingTask.id ? 'Edit Task' : 'New Pastoral Task'}</h3>
                               <p className="text-xs text-gray-500 mt-1">Fill in the details below</p>
                           </div>
-                          <button type="button" onClick={closeModal} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition-colors">
+                          <button type="button" onClick={closeTaskModal} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition-colors">
                               <X className="w-5 h-5" />
                           </button>
                       </div>
@@ -495,7 +503,7 @@ const TaskManager: React.FC = () => {
                       </div>
 
                       <div className="px-8 py-5 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
-                          <button type="button" onClick={closeModal} className="px-6 py-3 text-gray-600 font-bold hover:bg-gray-200 rounded-xl transition-colors">
+                          <button type="button" onClick={closeTaskModal} className="px-6 py-3 text-gray-600 font-bold hover:bg-gray-200 rounded-xl transition-colors">
                               Cancel
                           </button>
                           <button type="submit" className="px-8 py-3 bg-slate-900 text-white font-bold hover:bg-black rounded-xl transition-transform active:scale-95 shadow-md flex items-center gap-2">
@@ -506,6 +514,15 @@ const TaskManager: React.FC = () => {
               </div>
           </div>
       )}
+
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={closeModal}
+        onConfirm={modalState.onConfirm}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+      />
     </div>
   );
 };

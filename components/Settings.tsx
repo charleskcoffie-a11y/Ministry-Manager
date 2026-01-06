@@ -7,8 +7,12 @@ import {
   ShieldAlert, Upload, FileJson, Trash2, AlertTriangle, Play, FileText, 
   Lock, KeyRound, Save, Sparkles, Book
 } from 'lucide-react';
+import Modal from './Modal';
+import { useModal } from '../hooks/useModal';
 
 const Settings: React.FC = () => {
+  const { modalState, showAlert, showConfirm, closeModal } = useModal();
+  
   // Connection Test State
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -98,7 +102,7 @@ const Settings: React.FC = () => {
       if (e.target.files && e.target.files[0]) {
           const file = e.target.files[0];
           if (file.type !== "application/json" && !file.name.endsWith('.json')) {
-              alert("Please select a valid .json file");
+              showAlert("Please select a valid .json file", "error", "Invalid File");
               return;
           }
           setSelectedFile(file);
@@ -111,7 +115,7 @@ const Settings: React.FC = () => {
   // --- Import Logic ---
   const startImport = async () => {
     if (!selectedFile) {
-        alert("No file selected.");
+        showAlert("No file selected.", "warning", "No File");
         return;
     }
 
@@ -226,25 +230,31 @@ const Settings: React.FC = () => {
     } catch (err: any) {
         console.error("Import Process Error:", err);
         setImportStatusText('Error: ' + err.message);
-        alert('Import failed: ' + err.message);
+        showAlert('Import failed: ' + err.message, 'error', 'Import Error');
     } finally {
         setImporting(false);
     }
   };
 
   const clearSongs = async () => {
-      if(!confirm("DANGER: This will delete ALL songs from the database. Are you sure?")) return;
+      await showConfirm(
+        "This will delete ALL songs from the database. This action cannot be undone.",
+        async () => {
       setImporting(true);
       setImportStatusText('Clearing database...');
       const { error } = await supabase.from('songs').delete().neq('id', 0);
       if (error) {
-          alert("Error clearing table: " + error.message);
+          showAlert("Error clearing table: " + error.message, 'error', 'Database Error');
           setImportStatusText('Error clearing table');
       } else {
+          showAlert('Database cleared successfully.', 'success');
           setImportStatusText('Database cleared.');
           setImportResult(null); 
       }
       setImporting(false);
+        },
+        "⚠️ Danger: Clear All Songs"
+      );
   };
 
   // --- PIN Change Logic ---
@@ -527,7 +537,7 @@ const Settings: React.FC = () => {
                                                     const lines = result.value.split('\n').filter((line: string) => line.trim().length > 0);
                                                     content = lines.map((line: string, idx: number) => ({ id: `d-${idx}`, text: line.trim() }));
                                                 } else {
-                                                    alert('Please upload a PDF or DOCX file.');
+                                                    showAlert('Please upload a PDF or DOCX file.', 'error', 'Invalid File Type');
                                                     return;
                                                 }
 
@@ -535,13 +545,13 @@ const Settings: React.FC = () => {
                                                     .from('uploaded_documents')
                                                     .upsert({ filename: file.name, content }, { onConflict: 'filename' });
                                                 if (error) {
-                                                    alert('Failed to save document: ' + error.message);
+                                                    showAlert('Failed to save document: ' + error.message, 'error', 'Upload Failed');
                                                 } else {
-                                                    alert('Document uploaded and saved. Open Standing Orders to read it.');
+                                                    showAlert('Document uploaded and saved. Open Standing Orders to read it.', 'success');
                                                 }
                                             } catch (err: any) {
                                                 console.error(err);
-                                                alert('Error uploading document.');
+                                                showAlert('Error uploading document.', 'error', 'Upload Error');
                                             }
                                         }} />
                                     </label>
@@ -645,6 +655,15 @@ const Settings: React.FC = () => {
             </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={closeModal}
+        onConfirm={modalState.onConfirm}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+      />
     </div>
   );
 };
