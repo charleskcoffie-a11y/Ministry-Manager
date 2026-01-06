@@ -1,6 +1,6 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Heart, Sparkles, Loader2, Save, Calendar, Filter, ChevronRight, BookOpen, Sun, Moon, Leaf, Snowflake, Lightbulb, ArrowLeft, Share2 } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Heart, Sparkles, Loader2, Save, Calendar, Filter, ChevronRight, BookOpen, Sun, Moon, Leaf, Snowflake, Lightbulb, ArrowLeft, Share2, FileDown } from 'lucide-react';
 import { generateDevotional, DevotionalResponse } from '../services/geminiService';
 import { supabase } from '../supabaseClient';
 import { DailyVersePlan } from '../utils/dailyVersePlan';
@@ -85,6 +85,7 @@ function StarIcon(props: any) {
 
 const Devotion: React.FC = () => {
   const location = useLocation();
+  const pdfContentRef = useRef<HTMLDivElement>(null);
   
   // Modes: 'today', 'date', 'season'
   const [mode, setMode] = useState<'today' | 'date' | 'season'>('today');
@@ -284,6 +285,32 @@ Prayer: ${generatedContent.prayer}
       } catch (clipErr) {
         alert('Unable to share. Please try again.');
       }
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const handleGeneratePDF = async () => {
+    if (!pdfContentRef.current) return;
+    setSharing(true);
+
+    try {
+      // Dynamically import html2pdf only when needed
+      const html2pdf = (await import('html2pdf.js')).default;
+      
+      const element = pdfContentRef.current;
+      const opt = {
+        margin: 10,
+        filename: `devotion-${new Date().toISOString().split('T')[0]}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+      };
+
+      html2pdf().set(opt).from(element).save();
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      alert('Unable to generate PDF. Please try again.');
     } finally {
       setSharing(false);
     }
@@ -538,7 +565,7 @@ Prayer: ${generatedContent.prayer}
 
         {/* --- VIEW: FULL CONTENT --- */}
         {view === 'full' && generatedContent && (
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-fade-in ring-1 ring-black/5">
+            <div ref={pdfContentRef} className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-fade-in ring-1 ring-black/5">
                 <div className="bg-gradient-to-b from-white to-gray-50 p-8 md:p-12">
                     
                     {/* Header: Date & Title */}
@@ -591,12 +618,20 @@ Prayer: ${generatedContent.prayer}
                 {/* Footer Actions */}
                 <div className="bg-gray-50 px-8 py-4 flex flex-col sm:flex-row justify-between items-center border-t border-gray-100 gap-4">
                     <span className="text-sm text-gray-400 italic">Rev C K. Coffie</span>
-                    <div className="flex gap-3 w-full sm:w-auto">
+                    <div className="flex gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap">
                         <button 
                             onClick={handleReset}
                             className="flex-1 sm:flex-none px-6 py-3 border border-gray-300 bg-white rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
                         >
                             Close
+                        </button>
+                        <button 
+                            onClick={handleGeneratePDF}
+                            disabled={sharing} 
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 font-medium shadow-sm transition-colors"
+                        >
+                            {sharing ? <Loader2 className="w-4 h-4 animate-spin"/> : <FileDown className="w-4 h-4"/>}
+                            PDF
                         </button>
                         <button 
                             onClick={handleShare} 
