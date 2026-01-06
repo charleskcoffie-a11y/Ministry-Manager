@@ -105,10 +105,15 @@ const Devotion: React.FC = () => {
   const [dailyVerse, setDailyVerse] = useState<DailyVerse | null>(null);
   const [verseLoading, setVerseLoading] = useState(false);
 
+  // Track passed scripture from Home/parent
+  const [passedScripture, setPassedScripture] = useState<string | null>(null);
+
   // Check for auto-generation from Home page
   useEffect(() => {
       if (location.state && location.state.autoGenerate) {
           const { scripture, theme } = location.state;
+          // Store the passed scripture so we use it consistently
+          setPassedScripture(scripture);
           // Trigger generation immediately
           handleGenerate({
               scripture: scripture,
@@ -125,6 +130,18 @@ const Devotion: React.FC = () => {
   
   // Logic to determine active plan
   const activePlan = useMemo(() => {
+    // If scripture was passed from Home, use it instead of date-based calculation
+    if (passedScripture) {
+        return {
+            date: todayStr,
+            scripture: passedScripture,
+            theme: "Verse of the Day",
+            seasonId: "ORDINARY_TIME",
+            calendarTag: "Daily Word",
+            importance: "normal"
+        };
+    }
+
     const targetDate = mode === 'today' ? todayStr : selectedDate;
     
     // 1. Check special days first
@@ -145,7 +162,7 @@ const Devotion: React.FC = () => {
     }
     
     return null;
-  }, [mode, selectedDate, todayStr]);
+  }, [mode, selectedDate, todayStr, passedScripture]);
 
   // Fetch verse content when active plan changes
   useEffect(() => {
