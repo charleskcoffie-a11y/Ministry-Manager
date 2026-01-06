@@ -7,7 +7,6 @@ import PINLock from './components/PINLock';
 
 // Lazy load route components for code splitting
 const Home = lazy(() => import('./components/Home'));
-const ProgramManager = lazy(() => import('./components/ProgramManager'));
 const StandingOrders = lazy(() => import('./components/StandingOrders'));
 const TaskManager = lazy(() => import('./components/TaskManager'));
 const ReminderSystem = lazy(() => import('./components/ReminderSystem'));
@@ -51,8 +50,6 @@ const App: React.FC = () => {
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<Layout><Home /></Layout>} />
-          
-          <Route path="/programs" element={<Layout><ProgramManager /></Layout>} />
 
           <Route path="/sermons" element={<Layout><SermonBuilder /></Layout>} />
 

@@ -43,7 +43,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     {
       title: 'Administration',
       items: [
-        { to: '/programs', label: 'Programs', icon: LayoutDashboard, showOnBottom: true, mobileLabel: 'Programs' },
         { to: '/tasks', label: 'Tasks', icon: CheckSquare, showOnBottom: true, mobileLabel: 'Tasks' },
         { to: '/reminders', label: 'Reminders', icon: Bell, showOnBottom: true, mobileLabel: 'Alerts' },
         { to: '/meetings', label: 'Meeting Minutes', icon: ClipboardList, showOnBottom: false },
