@@ -11,15 +11,7 @@ import { Task } from '../types';
 import { explainStandingOrder, getAiDailyVerse } from '../services/geminiService';
 import { getTodayVerse } from '../services/dailyVerseService';
 
-interface Highlight {
-  id: string;
-  title: string;
-  date: string;
-  description: string;
-  image: string | null;
-  venue: string;
-  lead: string;
-}
+
 
 interface DailyOrder {
     title: string;
@@ -217,8 +209,6 @@ const getSeasonForDate = (date: Date): LiturgicalSeason => {
 
 const Home: React.FC = () => {
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
-  const [highlights, setHighlights] = useState<Highlight[]>([]);
-  const [loadingHighlights, setLoadingHighlights] = useState(true);
   const [dailyOrder, setDailyOrder] = useState<DailyOrder | null>(null);
   const [currentSeason, setCurrentSeason] = useState<LiturgicalSeason | null>(null);
   const [todaysVerse, setTodaysVerse] = useState<{reference: string, text: string, keyword?: string} | null>(null);
@@ -227,12 +217,10 @@ const Home: React.FC = () => {
   
   // State to track if the images failed to load
   const [verseImageError, setVerseImageError] = useState(false);
-  // Track errors for highlight items individually
-  const [highlightImageErrors, setHighlightImageErrors] = useState<Record<string, boolean>>({});
+
 
   useEffect(() => {
     fetchRecentTasks();
-    fetchHighlights();
     fetchDailyStandingOrder();
     setCurrentSeason(getSeasonForDate(new Date()));
     loadVerse();
@@ -300,9 +288,7 @@ const Home: React.FC = () => {
     setSharing(false);
   };
 
-  const handleHighlightImageError = (id: string) => {
-      setHighlightImageErrors(prev => ({...prev, [id]: true}));
-  };
+
 
   const fetchRecentTasks = async () => {
     // Fetch high priority or impending tasks
@@ -316,32 +302,7 @@ const Home: React.FC = () => {
     if (data) setRecentTasks(data);
   };
 
-  const fetchHighlights = async () => {
-    setLoadingHighlights(true);
-    const today = new Date().toISOString().split('T')[0];
 
-    // Fetch upcoming programs
-    const { data, error } = await supabase
-      .from('church_programs')
-      .select('*')
-      .gte('date', today)
-      .order('date', { ascending: true })
-      .limit(3);
-
-    if (data) {
-      const mappedHighlights = data.map(program => ({
-        id: program.id,
-        title: program.activity_description,
-        date: program.date,
-        description: `Venue: ${program.venue || 'Main Auditorium'} • Lead: ${program.lead || 'Minister'}`,
-        venue: program.venue,
-        lead: program.lead,
-        image: getImageForEvent(program.activity_description)
-      }));
-      setHighlights(mappedHighlights);
-    }
-    setLoadingHighlights(false);
-  };
 
   const fetchDailyStandingOrder = async () => {
     const today = new Date();
@@ -561,14 +522,6 @@ const Home: React.FC = () => {
                 <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                     {[
                         {
-                            to: "/programs",
-                            icon: Calendar,
-                            color: "blue",
-                            title: "Programs",
-                            desc: "Manage church events & schedules.",
-                            tooltip: "Church events, schedules, and programs."
-                        },
-                        {
                             to: "/tasks",
                             icon: CheckCircle2,
                             color: "green",
@@ -642,104 +595,9 @@ const Home: React.FC = () => {
                 </div>
             </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
-        {/* Monthly Highlights Section */}
-        <div className="xl:col-span-2">
-            <div className="flex justify-between items-center mb-4 md:mb-6 px-1 md:px-2">
-              <h2 className="text-xl md:text-3xl font-bold text-gray-800 flex items-center gap-2 md:gap-3">
-                <CalendarDays className="w-6 h-6 md:w-8 md:h-8 text-primary" /> Upcoming
-              </h2>
-              <Link to="/programs" className="text-primary hover:underline font-medium text-sm md:text-base">View Calendar</Link>
-            </div>
-            
-            {loadingHighlights ? (
-               <div className="flex justify-center py-12 bg-white rounded-xl shadow-sm">
-                 <div className="flex flex-col items-center">
-                   <Loader2 className="w-8 h-8 md:w-10 md:h-10 animate-spin text-primary mb-2" />
-                   <p className="text-gray-500 text-sm">Loading schedule...</p>
-                 </div>
-               </div>
-            ) : highlights.length > 0 ? (
-              <div className="flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-6">
-                {highlights.map((item, index) => (
-                  <div key={index} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 flex flex-col group">
-                    
-                    {/* Desktop View: Image Card */}
-                    <div className="hidden md:block">
-                        {item.image && !highlightImageErrors[item.id] ? (
-                            <div className="h-48 overflow-hidden relative">
-                                <img 
-                                src={item.image} 
-                                alt={item.title} 
-                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                onError={() => handleHighlightImageError(item.id)}
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
-                                <div className="absolute bottom-4 left-4 text-white">
-                                    <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-lg text-sm font-bold shadow-sm inline-block mb-2">
-                                    {new Date(item.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                                    </div>
-                                    <h3 className="text-xl font-bold leading-tight drop-shadow-sm line-clamp-1">{item.title}</h3>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="p-6 bg-gradient-to-br from-blue-50 to-white border-b border-gray-100 flex justify-between items-start">
-                                 <div className="p-3 bg-white rounded-xl shadow-sm text-primary border border-blue-100">
-                                     <Calendar className="w-8 h-8" />
-                                 </div>
-                                 <div className="text-right">
-                                      <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{new Date(item.date).toLocaleDateString(undefined, { month: 'short' })}</div>
-                                      <div className="text-4xl font-bold text-gray-800 leading-none">{new Date(item.date).getDate()}</div>
-                                      <div className="text-xs text-gray-400 font-medium">{new Date(item.date).toLocaleDateString(undefined, { weekday: 'long' })}</div>
-                                 </div>
-                            </div>
-                        )}
-                        <div className="p-5 flex-1 bg-white">
-                            {(!item.image || highlightImageErrors[item.id]) && (
-                                <h3 className="text-xl font-bold text-gray-800 mb-3 leading-tight border-l-4 border-primary pl-3 line-clamp-1">{item.title}</h3>
-                            )}
-                            <p className="text-gray-500 text-lg flex items-center gap-2 line-clamp-1">
-                                <MapPin className="w-4 h-4" />
-                                {item.venue || 'Main Auditorium'}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Mobile View: Compact List Item (No big images) */}
-                    <div className="md:hidden flex items-center gap-4 p-4">
-                        <div className="bg-blue-50 text-blue-700 rounded-lg p-2.5 flex flex-col items-center justify-center min-w-[3.5rem] border border-blue-100 shadow-sm">
-                            <span className="text-xs font-bold uppercase">{new Date(item.date).toLocaleDateString(undefined, { month: 'short' })}</span>
-                            <span className="text-xl font-bold leading-none">{new Date(item.date).getDate()}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <h3 className="text-base font-bold text-gray-900 leading-snug line-clamp-1 mb-0.5">{item.title}</h3>
-                            <div className="flex items-center text-xs text-gray-500 gap-3">
-                                <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> {new Date(item.date).toLocaleDateString(undefined, { weekday: 'short' })}</span>
-                                <span className="flex items-center gap-1 truncate"><MapPin className="w-3 h-3"/> {item.venue || 'TBA'}</span>
-                            </div>
-                        </div>
-                        <div className="text-gray-300">
-                            <ChevronRight className="w-5 h-5" />
-                        </div>
-                    </div>
-
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-gray-100">
-                 <Calendar className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-                 <h3 className="text-xl font-semibold text-gray-700 mb-2">No upcoming programs</h3>
-                 <p className="text-gray-500 mb-4">The schedule is clear for the coming days.</p>
-                 <Link to="/programs" className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700">
-                    Schedule an Event
-                 </Link>
-              </div>
-            )}
-        </div>
-
+      <div className="grid grid-cols-1 gap-6 md:gap-8">
         {/* Right Sidebar */}
-        <div className="xl:col-span-1 space-y-6 md:space-y-8">
+        <div className="space-y-6 md:space-y-8">
              
              {/* 1. Daily Verse Widget */}
              <div>

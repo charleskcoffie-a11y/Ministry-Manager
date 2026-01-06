@@ -278,74 +278,98 @@ const Hymnal: React.FC = () => {
   // --- Render Reading View (Overlay) ---
   if (selectedItem) {
       const stanzas = parseStanzas(selectedItem.lyrics);
+      const styles = getCollectionStyle(selectedItem.collection);
 
       return (
-          <div className="fixed inset-0 z-50 bg-slate-50 flex flex-col animate-fade-in overflow-hidden">
+          <div className="fixed inset-0 z-50 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col overflow-hidden">
+              {/* Animated Background Blobs */}
+              <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                  <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+                  <div className="absolute top-40 right-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+                  <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+              </div>
+
               {/* Reading Header */}
-              <div className="bg-white/90 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+              <div className="relative bg-white/70 backdrop-blur-xl border-b border-white/20 px-4 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
                   <button 
                     onClick={() => setSelectedItem(null)} 
-                    className="flex items-center gap-2 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-full transition-colors font-medium text-sm"
+                    className="flex items-center gap-2 text-white bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 px-5 py-2.5 rounded-full transition-all duration-300 font-semibold text-sm shadow-lg hover:shadow-xl hover:scale-105"
                   >
                       <ArrowLeft className="w-4 h-4" /> Back
                   </button>
                   
-                  <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-full border border-gray-200 mr-2">
-                          <button onClick={() => setFontSize(Math.max(14, fontSize - 2))} className="p-2 hover:bg-white rounded-full text-slate-600 transition-all"><ZoomOut className="w-4 h-4"/></button>
-                          <span className="text-xs font-bold w-8 text-center text-slate-500">{fontSize}</span>
-                          <button onClick={() => setFontSize(Math.min(48, fontSize + 2))} className="p-2 hover:bg-white rounded-full text-slate-600 transition-all"><ZoomIn className="w-4 h-4"/></button>
+                  <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md p-1.5 rounded-full border border-white/30 shadow-sm hover:bg-white/80 transition-all">
+                          <button 
+                            onClick={() => setFontSize(Math.max(14, fontSize - 2))} 
+                            className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-all duration-200 hover:scale-110"
+                          >
+                            <ZoomOut className="w-4 h-4"/>
+                          </button>
+                          <span className="text-xs font-bold w-8 text-center text-slate-700 bg-slate-50 rounded px-1 py-0.5">{fontSize}</span>
+                          <button 
+                            onClick={() => setFontSize(Math.min(48, fontSize + 2))} 
+                            className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-all duration-200 hover:scale-110"
+                          >
+                            <ZoomIn className="w-4 h-4"/>
+                          </button>
                       </div>
 
                       <button 
                         onClick={(e) => toggleFavorite(e, selectedItem)}
-                        className={`p-2.5 rounded-full transition-all border ${selectedItem.is_favorite 
-                            ? 'bg-amber-50 text-amber-500 border-amber-200 shadow-sm' 
-                            : 'bg-white text-slate-400 border-gray-200 hover:text-slate-600'}`}
+                        className={`p-2.5 rounded-full transition-all duration-300 border shadow-md hover:scale-110 ${selectedItem.is_favorite 
+                            ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-white border-amber-300 shadow-amber-200/50' 
+                            : 'bg-white/60 backdrop-blur-md text-slate-400 border-white/30 hover:text-amber-500 hover:from-amber-50 hover:to-amber-50'}`}
                       >
-                         <Star className={`w-5 h-5 ${selectedItem.is_favorite ? 'fill-amber-500' : ''}`} />
+                         <Star className={`w-5 h-5 ${selectedItem.is_favorite ? 'fill-white' : ''}`} />
                       </button>
                   </div>
               </div>
 
               {/* Reading Content */}
-              <div className="flex-1 overflow-y-auto">
-                  <div className="max-w-3xl mx-auto min-h-full bg-white shadow-2xl my-6 md:my-10 rounded-2xl overflow-hidden border border-gray-100">
-                      {/* Song Title Header */}
-                      <div className="bg-gradient-to-b from-slate-50 to-white px-8 pt-10 pb-6 text-center border-b border-slate-50">
-                          <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4 shadow-sm border ${getCollectionStyle(selectedItem.collection).bg} ${getCollectionStyle(selectedItem.collection).border}`}>
-                             <span className={`text-xs font-bold tracking-wider uppercase ${getCollectionStyle(selectedItem.collection).text}`}>
-                                {selectedItem.code || selectedItem.collection}
-                             </span>
-                             <span className={`text-sm font-black ${getCollectionStyle(selectedItem.collection).text}`}>
-                                #{selectedItem.number}
-                             </span>
+              <div className="flex-1 overflow-y-auto relative z-10">
+                  <div className="max-w-3xl mx-auto min-h-full bg-white/80 backdrop-blur-xl shadow-2xl my-6 md:my-10 rounded-3xl overflow-hidden border border-white/40">
+                      {/* Song Title Header - Modern Gradient */}
+                      <div className={`bg-gradient-to-br ${styles.gradient} text-white relative px-8 pt-12 pb-8 text-center`}>
+                          {/* Decorative elements */}
+                          <div className="absolute top-0 left-0 w-40 h-40 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>
+                          <div className="absolute bottom-0 right-0 w-40 h-40 bg-white/10 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl"></div>
+
+                          <div className="relative z-10">
+                              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4 shadow-lg border border-white/30 bg-white/20 backdrop-blur-sm`}>
+                                 <span className="text-xs font-bold tracking-wider uppercase opacity-90">
+                                    {selectedItem.code || selectedItem.collection}
+                                 </span>
+                                 <span className="text-lg font-black">
+                                    #{selectedItem.number}
+                                 </span>
+                              </div>
+                              
+                              <h1 className="text-4xl md:text-5xl font-serif font-black text-white leading-tight mb-3 drop-shadow-lg">
+                                  {selectedItem.title}
+                              </h1>
+                              
+                              {selectedItem.author && (
+                                <p className="text-white/90 italic text-sm font-medium drop-shadow">
+                                    {selectedItem.author}
+                                </p>
+                              )}
                           </div>
-                          
-                          <h1 className="text-3xl md:text-4xl font-serif font-black text-slate-900 leading-tight mb-3">
-                              {selectedItem.title}
-                          </h1>
-                          
-                          {selectedItem.author && (
-                            <p className="text-slate-500 italic text-sm font-medium">
-                                {selectedItem.author}
-                            </p>
-                          )}
                       </div>
 
                       {/* Lyrics Body - Stanza Mapped */}
-                      <div className="px-8 pb-16 pt-6 md:px-16 md:pb-20">
+                      <div className="px-8 pb-16 pt-10 md:px-16 md:pb-20">
                         <div className="max-w-2xl mx-auto">
                             {stanzas.map((lines, i) => (
-                                <div key={i} className="mb-8 last:mb-0 text-center">
+                                <div key={i} className="mb-10 last:mb-0 text-center animate-fade-in" style={{ animationDelay: `${i * 100}ms` }}>
                                     {lines.map((line, j) => (
                                         <div 
                                             key={j} 
-                                            className="font-serif text-slate-800"
+                                            className="font-serif text-slate-800 leading-relaxed"
                                             style={{ 
                                                 fontSize: `${fontSize}px`, 
-                                                lineHeight: '1.4', 
-                                                marginBottom: '0.4em' 
+                                                lineHeight: '1.6', 
+                                                marginBottom: '0.5em' 
                                             }}
                                         >
                                             {line}
@@ -358,8 +382,8 @@ const Hymnal: React.FC = () => {
 
                       {/* Footer Metadata */}
                       {(selectedItem.tags || selectedItem.copyright) && (
-                          <div className="bg-slate-50 p-6 text-center text-xs text-slate-400 border-t border-slate-100">
-                              {selectedItem.copyright && <p className="mb-1">© {selectedItem.copyright}</p>}
+                          <div className="bg-gradient-to-r from-slate-50 to-blue-50 p-6 text-center text-xs text-slate-500 border-t border-slate-100">
+                              {selectedItem.copyright && <p className="mb-1 font-medium">© {selectedItem.copyright}</p>}
                           </div>
                       )}
                   </div>
@@ -367,8 +391,8 @@ const Hymnal: React.FC = () => {
 
                {/* Toast */}
                 <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ${toast.visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                    <div className="bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 font-medium text-sm">
-                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 font-bold text-sm border border-amber-400/50 backdrop-blur-sm">
+                        <Star className="w-4 h-4 fill-white" />
                         {toast.message}
                     </div>
                 </div>
