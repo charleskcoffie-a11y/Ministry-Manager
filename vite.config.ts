@@ -5,11 +5,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
-    const isProd = mode === 'production';
-
     return {
-      // Use an absolute base only for production (GitHub Pages) so local dev/preview works at the server root
-      base: isProd ? '/Ministry-Manager/' : '/',
+      base: '/Ministry-Manager/', // Ensures correct asset loading from subdirectory
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -28,7 +25,6 @@ export default defineConfig(({ mode }) => {
             display: "standalone",
             theme_color: "#1e1b4b",
             background_color: "#0f172a"
-            // icons removed temporarily to prevent 404 errors
           }
         }),
       ],
