@@ -259,7 +259,13 @@ ${generatedContent.prayer}`;
         margin: 10,
         filename: `devotion-${new Date().toISOString().split('T')[0]}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
+        html2canvas: { 
+          scale: 3,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          letterRendering: true
+        },
         jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
       };
 

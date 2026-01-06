@@ -45,3 +45,19 @@ body {
 .animate-fade-in {
   animation: fadeIn 0.6s ease-out;
 }
+
+/* Print/PDF styles to preserve colors and styling */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  body {
+    background-color: white;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+}
