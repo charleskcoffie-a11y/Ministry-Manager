@@ -25,20 +25,6 @@
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6",
-    "papaparse": "https://aistudiocdn.com/papaparse@^5.5.3"
-  }
-}
-</script>
 <style>
   /* Global font size boost */
   html { 
@@ -68,5 +54,6 @@
     <div id="root"></div>
     <!-- Vite injects the correct JS bundle during build -->
     <!-- CSS is now imported via index.tsx for Vite compatibility -->
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>
