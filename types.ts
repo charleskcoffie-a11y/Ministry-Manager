@@ -271,6 +271,44 @@ export interface MeetingMinutesData {
   };
 }
 
+// --- MINISTER'S DIARY ---
+export type DiaryCategory =
+  | 'Appointment'
+  | 'Church Program'
+  | 'Prayer Journal'
+  | 'Personal Reflection'
+  | 'Vision & Calling'
+  | 'Testimony'
+  | 'Congregational Observation'
+  | 'Spiritual Warfare'
+  | 'Gratitude'
+  | 'Ministry Milestone'
+  | 'Other';
+
+export type DiarySpiritualTone =
+  | 'Peaceful'
+  | 'Joyful'
+  | 'Burdened'
+  | 'Wrestling'
+  | 'Grateful'
+  | 'Weary'
+  | 'Inspired'
+  | 'Uncertain';
+
+export interface DiaryEntry {
+  id: string;
+  entry_date: string;   // YYYY-MM-DD
+  title: string;
+  category: DiaryCategory;
+  spiritual_tone: DiarySpiritualTone;
+  body: string;
+  scripture_ref?: string;
+  prayer_response?: string;
+  is_private: boolean;
+  remind_on?: string | null;  // YYYY-MM-DD – optional reminder date
+  created_at?: string;
+}
+
 // --- DAILY VERSE ---
 export interface DailyVerse {
   id: string;

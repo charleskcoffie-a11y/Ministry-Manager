@@ -5,7 +5,7 @@ import { APP_CONSTANTS } from '../constants';
 import { 
   Settings as SettingsIcon, CheckCircle2, XCircle, Loader2, Database, 
   ShieldAlert, Upload, FileJson, Trash2, AlertTriangle, Play, FileText, 
-  Lock, KeyRound, Save, Sparkles, Book
+  Lock, KeyRound, Save, Sparkles, Book, Copy, Check
 } from 'lucide-react';
 import Modal from './Modal';
 import { useModal } from '../hooks/useModal';
@@ -33,6 +33,46 @@ const Settings: React.FC = () => {
 
   // Verse Settings
   const [verseSource, setVerseSource] = useState('ai');
+  const [sqlCopied, setSqlCopied] = useState(false);
+
+  const DIARY_SQL = `CREATE TABLE IF NOT EXISTS public.diary_entries (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  entry_date      DATE NOT NULL,
+  title           TEXT NOT NULL,
+  category        TEXT NOT NULL DEFAULT 'Personal Reflection',
+  spiritual_tone  TEXT NOT NULL DEFAULT 'Peaceful',
+  body            TEXT NOT NULL,
+  scripture_ref   TEXT,
+  prayer_response TEXT,
+  is_private      BOOLEAN NOT NULL DEFAULT FALSE,
+  remind_on       DATE,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_diary_remind_on
+  ON public.diary_entries (remind_on);
+
+CREATE INDEX IF NOT EXISTS idx_diary_entry_date
+  ON public.diary_entries (entry_date DESC);
+
+ALTER TABLE public.diary_entries ENABLE ROW LEVEL SECURITY;
+
+-- If NOT using Supabase Auth, use this open policy:
+CREATE POLICY "Allow all"
+  ON public.diary_entries
+  FOR ALL USING (true);
+
+-- If using Supabase Auth, replace policy above with:
+-- CREATE POLICY "Allow authenticated"
+--   ON public.diary_entries
+--   FOR ALL USING (auth.role() = 'authenticated');`;
+
+  const handleCopySQL = () => {
+    navigator.clipboard.writeText(DIARY_SQL).then(() => {
+      setSqlCopied(true);
+      setTimeout(() => setSqlCopied(false), 2500);
+    });
+  };
 
   useEffect(() => {
       setVerseSource(localStorage.getItem('dailyVerseSource') || 'ai');
@@ -653,6 +693,33 @@ const Settings: React.FC = () => {
                     )}
                 </div>
             </div>
+        </div>
+      </div>
+
+      {/* 5. Database Setup SQL */}
+      <div className="bg-white rounded-lg shadow-md p-8 border border-gray-100">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-2 flex items-center gap-3 border-b pb-4">
+          <Database className="w-6 h-6 text-teal-600" />
+          Database Setup SQL
+        </h2>
+        <p className="text-sm text-gray-500 mb-4">
+          File: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono text-teal-700">sql/diary_entries.sql</code>
+          &nbsp;— Run this in <strong>Supabase → SQL Editor → New query</strong> to create the Minister's Diary table.
+        </p>
+        <div className="relative">
+          <pre className="bg-slate-900 text-green-300 text-xs font-mono rounded-xl p-5 overflow-x-auto whitespace-pre leading-relaxed border border-slate-700">
+{DIARY_SQL}
+          </pre>
+          <button
+            onClick={handleCopySQL}
+            className={`absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              sqlCopied
+                ? 'bg-green-500 text-white'
+                : 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+            }`}
+          >
+            {sqlCopied ? <><Check className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+          </button>
         </div>
       </div>
 

@@ -19,6 +19,8 @@ const SermonBuilder = lazy(() => import('./components/SermonBuilder'));
 const Hymnal = lazy(() => import('./components/Hymnal'));
 const SermonNotes = lazy(() => import('./components/SermonNotes'));
 const MeetingMinutes = lazy(() => import('./components/MeetingMinutes'));
+const MinisterDiary = lazy(() => import('./components/MinisterDiary'));
+const JohnWesley = lazy(() => import('./components/JohnWesley'));
 
 // Loading component
 const LoadingFallback = () => (
@@ -72,6 +74,10 @@ const App: React.FC = () => {
           <Route path="/counseling" element={<Layout><CounselingManager /></Layout>} />
           
           <Route path="/ideas" element={<Layout><IdeasJournal /></Layout>} />
+          
+          <Route path="/diary" element={<Layout><MinisterDiary /></Layout>} />
+
+          <Route path="/john-wesley" element={<Layout><JohnWesley /></Layout>} />
           
           <Route path="/settings" element={<Layout><Settings /></Layout>} />
           

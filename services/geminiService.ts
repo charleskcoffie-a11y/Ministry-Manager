@@ -483,3 +483,105 @@ export const assistMeetingMinutes = async (
     return "";
   }
 };
+
+  // ── John Wesley ────────────────────────────────────────────────────────────
+  export interface WesleySermonContent {
+    title: string;
+    sermonNumber: number;
+    summary: string;
+    keyPoints: string[];
+    mainScripture: string;
+    modernApplication: string;
+  }
+
+  export const getWesleySermonContent = async (
+    sermonTitle: string,
+    sermonNumber: number
+  ): Promise<WesleySermonContent | null> => {
+    if (!ai) return null;
+
+    const CACHE_KEY = `wesley_sermon_${sermonNumber}`;
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) return JSON.parse(cached);
+    } catch (_) {}
+
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `You are a scholarly Methodist theologian. Provide detailed content for John Wesley's Sermon #${sermonNumber}: "${sermonTitle}".
+
+  Return valid JSON with:
+  - "title": the exact sermon title
+  - "sermonNumber": ${sermonNumber}
+  - "summary": A 3-4 sentence summary of the sermon's main argument and theological message
+  - "keyPoints": An array of 4-6 key theological points Wesley made in this sermon (each as a string)
+  - "mainScripture": The primary scripture text Wesley used
+  - "modernApplication": 2-3 sentences on how this sermon applies to the life of a minister today`,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              title:             { type: Type.STRING },
+              sermonNumber:      { type: Type.NUMBER },
+              summary:           { type: Type.STRING },
+              keyPoints:         { type: Type.ARRAY, items: { type: Type.STRING } },
+              mainScripture:     { type: Type.STRING },
+              modernApplication: { type: Type.STRING },
+            },
+            required: ['title', 'sermonNumber', 'summary', 'keyPoints', 'mainScripture', 'modernApplication'],
+          },
+        },
+      });
+
+      const data: WesleySermonContent = JSON.parse(response.text || '{}');
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch (_) {}
+      return data;
+    } catch (error) {
+      console.error('Wesley sermon error:', error);
+      return null;
+    }
+  };
+
+  export interface WesleyQuote {
+    quote: string;
+    source: string;
+    theme: string;
+  }
+
+  export const getWesleyQuotes = async (count = 5): Promise<WesleyQuote[]> => {
+    if (!ai) return [];
+
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `You are a Methodist scholar. Provide ${count} authentic, well-known quotes from John Wesley (1703-1791).
+
+  Return valid JSON — an array of objects, each with:
+  - "quote": the exact quotation
+  - "source": where it comes from (sermon name, letter, journal entry, etc.)
+  - "theme": one-word theme (e.g. "Holiness", "Grace", "Prayer", "Love", "Zeal", "Works", "Faith")`,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                quote:  { type: Type.STRING },
+                source: { type: Type.STRING },
+                theme:  { type: Type.STRING },
+              },
+              required: ['quote', 'source', 'theme'],
+            },
+          },
+        },
+      });
+
+      return JSON.parse(response.text || '[]');
+    } catch (error) {
+      console.error('Wesley quotes error:', error);
+      return [];
+    }
+  };

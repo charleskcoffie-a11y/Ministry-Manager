@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Book, CheckSquare, Lightbulb, Menu, X, Settings, 
   Home, Calendar, Music, Bell, Scroll, Flame, HeartHandshake, 
-  Church, ChevronRight, PenTool, ClipboardList
+  Church, ChevronRight, PenTool, ClipboardList, BookHeart, BookOpen
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -38,6 +38,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         { to: '/christian-calendar', label: 'Calendar', icon: Calendar, showOnBottom: false },
         { to: '/counseling', label: 'Counseling', icon: HeartHandshake, showOnBottom: false },
         { to: '/ideas', label: 'Ideas Journal', icon: Lightbulb, showOnBottom: false },
+        { to: '/diary', label: 'Minister\'s Diary', icon: BookHeart, showOnBottom: false },
+        { to: '/john-wesley', label: 'John Wesley', icon: BookOpen, showOnBottom: false },
       ]
     },
     {

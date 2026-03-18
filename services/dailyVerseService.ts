@@ -47,7 +47,8 @@ export const getVerseByReference = async (reference: string): Promise<DailyVerse
   // If not in database or no text, try to fetch from Bible API
   try {
     // Using Bible API (labs.bible.org/api)
-    const cleanRef = reference.trim();
+    // Normalize em-dashes and en-dashes to hyphens for API compatibility
+    const cleanRef = reference.trim().replace(/[\u2013\u2014]/g, '-');
     const response = await fetch(`https://labs.bible.org/api/?passage=${encodeURIComponent(cleanRef)}&type=json`);
     
     if (response.ok) {

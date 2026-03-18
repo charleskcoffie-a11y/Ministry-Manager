@@ -4,10 +4,11 @@ import { Link } from 'react-router-dom';
 import { 
   Calendar, CheckCircle2, BookOpen, Lightbulb, ArrowRight, Star, 
   CalendarDays, AlertCircle, Loader2, MapPin, ChevronRight,
-  Crown, Scroll, Sparkles, ShieldCheck, Clock, Share2, Heart, Quote
+  Crown, Scroll, Sparkles, ShieldCheck, Clock, Share2, Heart, Quote,
+  Bell, BookHeart
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
-import { Task } from '../types';
+import { Task, DiaryEntry } from '../types';
 import { explainStandingOrder, getAiDailyVerse } from '../services/geminiService';
 import { getTodayVerse } from '../services/dailyVerseService';
 
@@ -209,6 +210,10 @@ const getSeasonForDate = (date: Date): LiturgicalSeason => {
 
 const Home: React.FC = () => {
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
+  const [upcomingDiary, setUpcomingDiary] = useState<DiaryEntry[]>([]);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>(
+    typeof Notification !== 'undefined' ? Notification.permission : 'denied'
+  );
   const [dailyOrder, setDailyOrder] = useState<DailyOrder | null>(null);
   const [currentSeason, setCurrentSeason] = useState<LiturgicalSeason | null>(null);
   const [todaysVerse, setTodaysVerse] = useState<{reference: string, text: string, keyword?: string} | null>(null);
@@ -222,6 +227,7 @@ const Home: React.FC = () => {
   useEffect(() => {
     fetchRecentTasks();
     fetchDailyStandingOrder();
+    fetchUpcomingDiary();
     setCurrentSeason(getSeasonForDate(new Date()));
     loadVerse();
   }, []);
@@ -289,6 +295,59 @@ const Home: React.FC = () => {
   };
 
 
+
+  const fetchUpcomingDiary = async () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+    const in14 = new Date(today);
+    in14.setDate(today.getDate() + 14);
+    const in14Str = in14.toISOString().split('T')[0];
+
+    const { data } = await supabase
+      .from('diary_entries')
+      .select('*')
+      .not('remind_on', 'is', null)
+      .gte('remind_on', todayStr)
+      .lte('remind_on', in14Str)
+      .order('remind_on', { ascending: true })
+      .limit(5);
+
+    if (data) {
+      setUpcomingDiary(data as DiaryEntry[]);
+      fireNotifications(data as DiaryEntry[], todayStr);
+    }
+  };
+
+  const fireNotifications = (items: DiaryEntry[], todayStr: string) => {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    const sessionKey = 'diary-notified-' + todayStr;
+    const alreadyNotified = new Set<string>(JSON.parse(sessionStorage.getItem(sessionKey) || '[]'));
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    for (const entry of items) {
+      if (!entry.remind_on || alreadyNotified.has(entry.id)) continue;
+      const d = new Date(entry.remind_on + 'T00:00:00');
+      const days = Math.round((d.getTime() - today.getTime()) / 86400000);
+      const when = days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days} days`;
+      new Notification(`📅 ${entry.category}: ${entry.title}`, {
+        body: when + (entry.remind_on !== todayStr ? ` – ${entry.remind_on}` : ''),
+        icon: '/Ministry-Manager/apple-touch-icon.png',
+      });
+      alreadyNotified.add(entry.id);
+    }
+    sessionStorage.setItem(sessionKey, JSON.stringify([...alreadyNotified]));
+  };
+
+  const requestNotifPermission = async () => {
+    if (typeof Notification === 'undefined') return;
+    const perm = await Notification.requestPermission();
+    setNotifPermission(perm);
+    if (perm === 'granted') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      fireNotifications(upcomingDiary, todayStr);
+    }
+  };
 
   const fetchRecentTasks = async () => {
     // Fetch high priority or impending tasks
@@ -605,7 +664,62 @@ const Home: React.FC = () => {
         {/* Right Sidebar */}
         <div className="space-y-6 md:space-y-8">
              
-             {/* 1. Daily Verse Widget */}
+             {/* 0. Notification permission banner */}
+             {notifPermission === 'default' && upcomingDiary.length > 0 && (
+               <div className="flex items-center justify-between gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl px-5 py-3">
+                 <div className="flex items-center gap-2 text-sm text-indigo-700">
+                   <Bell className="w-4 h-4 shrink-0" />
+                   <span>Enable notifications to get reminders for upcoming diary events.</span>
+                 </div>
+                 <button
+                   onClick={requestNotifPermission}
+                   className="shrink-0 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+                 >
+                   Enable
+                 </button>
+               </div>
+             )}
+
+             {/* 1. Upcoming Diary Events */}
+             {upcomingDiary.length > 0 && (
+               <div>
+                 <h2 className="text-2xl md:text-4xl font-black text-gray-900 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-3 md:gap-4">
+                   <div className="p-2 bg-gradient-to-br from-rose-500 to-pink-500 rounded-xl shadow-lg">
+                     <BookHeart className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                   </div>
+                   Upcoming Diary
+                 </h2>
+                 <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/40 p-5 md:p-6 space-y-3">
+                   {upcomingDiary.map(entry => {
+                     const today = new Date(); today.setHours(0,0,0,0);
+                     const d = new Date(entry.remind_on! + 'T00:00:00');
+                     const days = Math.round((d.getTime() - today.getTime()) / 86400000);
+                     const whenLabel = days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days} days`;
+                     const urgentCls = days === 0 ? 'text-red-600 bg-red-50 border-red-200' :
+                       days === 1 ? 'text-orange-600 bg-orange-50 border-orange-200' :
+                       'text-yellow-700 bg-yellow-50 border-yellow-200';
+                     return (
+                       <Link key={entry.id} to="/diary"
+                         className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 hover:bg-indigo-50 hover:border-indigo-100 border border-transparent transition-all group">
+                         <div className={`shrink-0 mt-0.5 px-2 py-0.5 rounded-lg border text-xs font-bold ${urgentCls}`}>
+                           {whenLabel}
+                         </div>
+                         <div className="flex-1 min-w-0">
+                           <p className="font-semibold text-gray-800 text-sm line-clamp-1 group-hover:text-indigo-700 transition-colors">{entry.title}</p>
+                           <p className="text-xs text-gray-400 mt-0.5">{entry.category} · {entry.remind_on}</p>
+                         </div>
+                         <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-400 shrink-0 mt-1 transition-colors" />
+                       </Link>
+                     );
+                   })}
+                   <Link to="/diary" className="block text-center pt-2 text-indigo-600 text-sm font-medium hover:text-indigo-800">
+                     Open Diary →
+                   </Link>
+                 </div>
+               </div>
+             )}
+
+             {/* 2. Daily Verse Widget */}
              <div>
                 <h2 className="text-2xl md:text-4xl font-black text-gray-900 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-3 md:gap-4">
                     <div className="p-2 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl shadow-lg">
@@ -682,7 +796,7 @@ const Home: React.FC = () => {
                 </div>
              </div>
 
-             {/* 2. Standing Order of the Day */}
+             {/* 3. Standing Order of the Day */}
              <div>
                 <h2 className="text-2xl md:text-4xl font-black text-gray-900 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-3 md:gap-4">
                     <div className="p-2 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl shadow-lg">
@@ -724,7 +838,7 @@ const Home: React.FC = () => {
                 )}
              </div>
 
-             {/* 3. Pending Tasks */}
+             {/* 4. Pending Tasks */}
              <div>
                  <h2 className="text-2xl md:text-4xl font-black text-gray-900 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-3 md:gap-4">
                    <div className="p-2 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl shadow-lg">
