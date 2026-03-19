@@ -1,0 +1,211 @@
+{
+  "summary": {
+    "generatedAt": "2026-03-19T15:40:40.155Z",
+    "canTotal": 344,
+    "explicitCanStoryRefs": 0,
+    "strictTitleMappedCount": 0,
+    "numberDerivedCandidateCount": 14,
+    "note": "strictTitleMappedCount represents only direct CAN-title to story-title matches; numberDerivedCandidateCount is heuristic only and not a confirmed local CAN story mapping."
+  },
+  "strictMapped": [],
+  "numberDerivedCandidates": [
+    {
+      "code": "CAN1",
+      "number": 1,
+      "title": "Meenya Ngyirama Apem Matow Ndwom",
+      "matches": [
+        {
+          "id": "o-for-a-thousand-tongues",
+          "title": "O for a Thousand Tongues to Sing",
+          "mhbNumbers": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CAN91",
+      "number": 91,
+      "title": "Kanea A Yedze Hwe Hen Kwan Mu",
+      "matches": [
+        {
+          "id": "all-hail-the-power-of-jesus-name",
+          "title": "All Hail the Power of Jesus' Name",
+          "mhbNumbers": [
+            91
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CAN110",
+      "number": 110,
+      "title": "Bra Jesus Ho Sesei",
+      "matches": [
+        {
+          "id": "jesu-lover-of-my-soul",
+          "title": "Jesu, Lover of My Soul",
+          "mhbNumbers": [
+            110
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CAN117",
+      "number": 117,
+      "title": "Migyinaa Abow N' ekyir",
+      "matches": [
+        {
+          "id": "hark-the-herald-angels-sing",
+          "title": "Hark! the Herald Angels Sing",
+          "mhbNumbers": [
+            117
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CAN182",
+      "number": 182,
+      "title": "Ao, Nkye Meenya 'Koma A Bon Nnyim",
+      "matches": [
+        {
+          "id": "when-i-survey-the-wondrous-cross",
+          "title": "When I Survey the Wondrous Cross",
+          "mhbNumbers": [
+            182
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CAN204",
+      "number": 204,
+      "title": "O Adom Hen, Fi Sor Ahengua N' do",
+      "matches": [
+        {
+          "id": "christ-the-lord-is-risen-today",
+          "title": "Christ the Lord Is Risen Today",
+          "mhbNumbers": [
+            204
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CAN238",
+      "number": 238,
+      "title": "Jesus, 'Nye W' Asor Ntsena",
+      "matches": [
+        {
+          "id": "my-faith-looks-up-to-thee",
+          "title": "My Faith Looks Up to Thee",
+          "mhbNumbers": [
+            238
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CAN242",
+      "number": 242,
+      "title": "Hwe Mbre Israel Guanhwefo",
+      "matches": [
+        {
+          "id": "come-thou-long-expected-jesus",
+          "title": "Come, Thou Long-Expected Jesus",
+          "mhbNumbers": [
+            242
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CAN247",
+      "number": 247,
+      "title": "Agyenkwa No Do Ho Nkaa Ntsi",
+      "matches": [
+        {
+          "id": "rejoice-the-lord-is-king",
+          "title": "Rejoice, the Lord Is King",
+          "mhbNumbers": [
+            247
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CAN313",
+      "number": 313,
+      "title": "Nyew, Nyame Ye",
+      "matches": [
+        {
+          "id": "to-god-be-the-glory",
+          "title": "To God Be the Glory",
+          "mhbNumbers": [
+            313
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CAN323",
+      "number": 323,
+      "title": "Mbo Na Ko, Sordaanyi Pa",
+      "matches": [
+        {
+          "id": "come-sinners-to-the-gospel-feast",
+          "title": "Come, Sinners, to the Gospel Feast",
+          "mhbNumbers": [
+            323
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CAN335",
+      "number": 335,
+      "title": "Buebue Sor Ntokura",
+      "matches": [
+        {
+          "id": "pass-me-not",
+          "title": "Pass Me Not, O Gentle Saviour",
+          "mhbNumbers": [
+            335
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CAN339",
+      "number": 339,
+      "title": "Oba Dzeseefo Nye Me",
+      "matches": [
+        {
+          "id": "come-o-thou-traveler-unknown",
+          "title": "Come, O Thou Traveler Unknown",
+          "mhbNumbers": [
+            339,
+            340
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CAN340",
+      "number": 340,
+      "title": "Oba No Woawo No O",
+      "matches": [
+        {
+          "id": "come-o-thou-traveler-unknown",
+          "title": "Come, O Thou Traveler Unknown",
+          "mhbNumbers": [
+            339,
+            340
+          ]
+        }
+      ]
+    }
+  ]
+}

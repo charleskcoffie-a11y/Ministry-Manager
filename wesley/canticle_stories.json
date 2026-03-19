@@ -1,0 +1,197 @@
+[
+  {
+    "id": "venite-exultemus-domino",
+    "title": "Venite, Exultemus Domino",
+    "writer": "Psalm 95 in the daily office tradition",
+    "firstPublished": "Ancient Latin office usage",
+    "hymnalHint": "Opening canticle of invitation",
+    "story": "Venite comes from Psalm 95 and has been used for centuries to call God's people into gathered worship. In the daily office, it serves as a strong opening declaration: worship begins with joy, reverence, and attentiveness to God's voice.",
+    "methodistConnection": "Methodist liturgical worship has preserved Venite as a practical way to begin prayer and congregational praise with Scripture itself.",
+    "themes": ["Worship", "Invitation", "Praise", "Obedience"],
+    "source": "https://en.wikipedia.org/wiki/Venite",
+    "mhbNumbers": [],
+    "alternateTitles": ["Venite", "O come, let us sing unto the Lord"],
+    "songRefs": [
+      { "collection": "CANTICLES_EN", "code": "CANT1", "number": 1 },
+      { "collection": "CANTICLES_FANTE", "code": "FANTECANT1", "number": 1 }
+    ]
+  },
+  {
+    "id": "te-deum-laudamus",
+    "title": "Te Deum Laudamus",
+    "writer": "Early Christian hymn tradition",
+    "firstPublished": "Late 4th to 5th century tradition",
+    "hymnalHint": "Historic hymn of thanksgiving",
+    "story": "Te Deum is one of the Church's most enduring hymns of praise. It moves from adoration of the Triune God to confession of Christ's saving work, making it both doxology and creed in sung form.",
+    "methodistConnection": "Methodist congregations use Te Deum to anchor worship in historic Christian faith while preserving congregational participation in praise.",
+    "themes": ["Doxology", "Trinity", "Incarnation", "Thanksgiving"],
+    "source": "https://en.wikipedia.org/wiki/Te_Deum",
+    "mhbNumbers": [],
+    "alternateTitles": ["Te Deum", "We praise thee, O God"],
+    "songRefs": [
+      { "collection": "CANTICLES_EN", "code": "CANT2", "number": 2 },
+      { "collection": "CANTICLES_FANTE", "code": "FANTECANT2", "number": 2 }
+    ]
+  },
+  {
+    "id": "benedicite-omnia-opera",
+    "title": "Benedicite, Omnia Opera",
+    "writer": "Song of the Three (liturgical tradition)",
+    "firstPublished": "Ancient Christian office usage",
+    "hymnalHint": "Creation praise canticle",
+    "story": "Benedicite summons all creation to bless the Lord: heavens, waters, sun, moon, earth, and all peoples. Its repeated call to praise gives congregations a powerful language of cosmic worship.",
+    "methodistConnection": "It resonates with Methodist thanksgiving theology by inviting the whole created order into praise of God the Creator and Redeemer.",
+    "themes": ["Creation", "Praise", "Thanksgiving", "Providence"],
+    "source": "https://en.wikipedia.org/wiki/Benedicite",
+    "mhbNumbers": [],
+    "alternateTitles": ["Benedicite", "O all ye works of the Lord"],
+    "songRefs": [
+      { "collection": "CANTICLES_EN", "code": "CANT3", "number": 3 },
+      { "collection": "CANTICLES_FANTE", "code": "FANTECANT3", "number": 3 }
+    ]
+  },
+  {
+    "id": "cantemus-cuncti",
+    "title": "Cantemus Cuncti",
+    "writer": "Latin canticle tradition",
+    "firstPublished": "Historic church office usage",
+    "hymnalHint": "Congregational call to sing",
+    "story": "Cantemus Cuncti reflects a classic liturgical impulse: the gathered people are summoned to sing together in gratitude and reverence. Its language preserves the corporate character of Christian worship.",
+    "methodistConnection": "Methodist worship values this shared voice approach, where doctrine and devotion are carried by the whole congregation.",
+    "themes": ["Congregational Song", "Praise", "Unity", "Liturgy"],
+    "source": "https://hymnary.org/",
+    "mhbNumbers": [],
+    "alternateTitles": ["Let us all sing", "Cantemus"],
+    "songRefs": [
+      { "collection": "CANTICLES_EN", "code": "CANT4", "number": 4 }
+    ]
+  },
+  {
+    "id": "benedictus",
+    "title": "Benedictus",
+    "writer": "Zechariah (Luke 1)",
+    "firstPublished": "New Testament era",
+    "hymnalHint": "Song of Zechariah",
+    "story": "Benedictus is Zechariah's prophetic song in Luke 1, blessing God for promised redemption and the coming Messiah. It links covenant hope with fulfilled salvation in Christ.",
+    "methodistConnection": "Methodist prayer traditions use Benedictus to rehearse God's saving promises and mission language in daily worship.",
+    "themes": ["Redemption", "Promise", "Messiah", "Mission"],
+    "source": "https://en.wikipedia.org/wiki/Benedictus_(Song_of_Zechariah)",
+    "mhbNumbers": [],
+    "alternateTitles": ["Song of Zechariah", "Blessed be the Lord God of Israel"],
+    "songRefs": [
+      { "collection": "CANTICLES_EN", "code": "CANT5", "number": 5 }
+    ]
+  },
+  {
+    "id": "jubilate-deo",
+    "title": "Jubilate Deo",
+    "writer": "Psalm 100",
+    "firstPublished": "Biblical psalm tradition",
+    "hymnalHint": "Joyful psalm canticle",
+    "story": "Jubilate Deo adapts Psalm 100 as a joyful summons to serve the Lord with gladness. It is short, memorable, and especially suited for congregational response and processional worship.",
+    "methodistConnection": "Methodist congregations have long used Jubilate language to join thanksgiving, service, and joyful confession of God's goodness.",
+    "themes": ["Joy", "Service", "Thanksgiving", "Praise"],
+    "source": "https://en.wikipedia.org/wiki/Jubilate_Deo",
+    "mhbNumbers": [],
+    "alternateTitles": ["Jubilate", "O be joyful in the Lord"],
+    "songRefs": [
+      { "collection": "CANTICLES_EN", "code": "CANT6", "number": 6 }
+    ]
+  },
+  {
+    "id": "magnificat",
+    "title": "Magnificat",
+    "writer": "Mary (Luke 1)",
+    "firstPublished": "New Testament era",
+    "hymnalHint": "Song of Mary",
+    "story": "Magnificat is Mary's song of praise in Luke 1, celebrating God's mercy, justice, and faithfulness to covenant promises. It has shaped Christian evening prayer for centuries.",
+    "methodistConnection": "Methodist liturgical life values Magnificat for its union of personal devotion, social holiness, and confidence in God's kingdom reversal.",
+    "themes": ["Mercy", "Justice", "Praise", "Kingdom Hope"],
+    "source": "https://en.wikipedia.org/wiki/Magnificat",
+    "mhbNumbers": [],
+    "alternateTitles": ["Magnificant", "Song of Mary", "My soul doth magnify the Lord"],
+    "songRefs": [
+      { "collection": "CANTICLES_EN", "code": "CANT7", "number": 7 }
+    ]
+  },
+  {
+    "id": "cantate-domino",
+    "title": "Cantate Domino",
+    "writer": "Psalm tradition",
+    "firstPublished": "Biblical psalm tradition",
+    "hymnalHint": "New song canticle",
+    "story": "Cantate Domino carries the biblical call to sing a new song to the Lord for His mighty acts. In worship history, it often marked moments of thanksgiving and proclamation.",
+    "methodistConnection": "Methodist singing theology embraces this emphasis on fresh praise rooted in God's continuing work among His people.",
+    "themes": ["New Song", "Thanksgiving", "Witness", "Praise"],
+    "source": "https://en.wikipedia.org/wiki/Cantate_Domino",
+    "mhbNumbers": [],
+    "alternateTitles": ["Cantate", "Sing unto the Lord a new song"],
+    "songRefs": [
+      { "collection": "CANTICLES_EN", "code": "CANT8", "number": 8 }
+    ]
+  },
+  {
+    "id": "deus-misereatur",
+    "title": "Deus Misereatur",
+    "writer": "Psalm 67",
+    "firstPublished": "Biblical psalm tradition",
+    "hymnalHint": "Mission and blessing canticle",
+    "story": "Deus Misereatur draws from Psalm 67 and joins prayer for divine mercy with the missionary vision that all nations may know God's salvation. It links blessing with global witness.",
+    "methodistConnection": "Methodist mission identity is echoed here: grace received is grace proclaimed among all peoples.",
+    "themes": ["Mission", "Blessing", "Mercy", "Nations"],
+    "source": "https://en.wikipedia.org/wiki/Psalm_67",
+    "mhbNumbers": [],
+    "alternateTitles": ["God be merciful unto us", "Psalm 67 canticle"],
+    "songRefs": [
+      { "collection": "CANTICLES_EN", "code": "CANT9", "number": 9 }
+    ]
+  },
+  {
+    "id": "nunc-dimittis",
+    "title": "Nunc Dimittis",
+    "writer": "Simeon (Luke 2)",
+    "firstPublished": "New Testament era",
+    "hymnalHint": "Song of Simeon",
+    "story": "Nunc Dimittis is Simeon's song after seeing the Christ child, expressing peace, fulfillment, and salvation for all peoples. It has become a central canticle at evening prayer and funeral liturgies.",
+    "methodistConnection": "Methodists value Nunc Dimittis as a pastoral song of peace, hope, and confidence in Christ's completed saving work.",
+    "themes": ["Peace", "Fulfillment", "Salvation", "Hope"],
+    "source": "https://en.wikipedia.org/wiki/Nunc_dimittis",
+    "mhbNumbers": [],
+    "alternateTitles": ["Song of Simeon", "Lord, now lettest thou thy servant depart in peace"],
+    "songRefs": [
+      { "collection": "CANTICLES_EN", "code": "CANT10", "number": 10 }
+    ]
+  },
+  {
+    "id": "salvator-mundi",
+    "title": "Salvator Mundi",
+    "writer": "Latin devotional tradition",
+    "firstPublished": "Historic Western liturgy",
+    "hymnalHint": "Prayer to Christ the Savior",
+    "story": "Salvator Mundi addresses Christ directly as the Savior of the world and often appears in penitential and intercessory contexts. Its devotional tone stresses dependence on Christ's mercy.",
+    "methodistConnection": "Its Christ-centered prayer language aligns with Methodist emphasis on repentance, grace, and active trust in the Savior.",
+    "themes": ["Christ", "Mercy", "Repentance", "Prayer"],
+    "source": "https://hymnary.org/",
+    "mhbNumbers": [],
+    "alternateTitles": ["Saviour of the world"],
+    "songRefs": [
+      { "collection": "CANTICLES_EN", "code": "CANT11", "number": 11 }
+    ]
+  },
+  {
+    "id": "sursum-corda",
+    "title": "Sursum Corda",
+    "writer": "Ancient Eucharistic dialogue",
+    "firstPublished": "Earliest Christian liturgy",
+    "hymnalHint": "Eucharistic call-and-response",
+    "story": "Sursum Corda means 'Lift up your hearts' and is among the oldest continuous liturgical dialogues in Christian worship. It marks the congregation's movement into thanksgiving before communion.",
+    "methodistConnection": "Methodist sacramental worship retains this language because it frames Holy Communion as grateful participation in God's redeeming grace.",
+    "themes": ["Eucharist", "Thanksgiving", "Communion", "Liturgy"],
+    "source": "https://en.wikipedia.org/wiki/Sursum_corda",
+    "mhbNumbers": [],
+    "alternateTitles": ["Lift up your hearts"],
+    "songRefs": [
+      { "collection": "CANTICLES_EN", "code": "CANT12", "number": 12 }
+    ]
+  }
+]
