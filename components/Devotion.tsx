@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Heart, Sparkles, Loader2, Save, Calendar, Filter, ChevronRight, BookOpen, Sun, Moon, Leaf, Snowflake, Lightbulb, ArrowLeft, Share2, FileDown } from 'lucide-react';
-import { generateDevotional, DevotionalResponse } from '../services/geminiService';
+import { generateDevotional, DevotionalResponse, getAiErrorMessage } from '../services/geminiService';
 import { supabase } from '../supabaseClient';
 import { DailyVersePlan } from '../utils/dailyVersePlan';
 import { getVerseByReference } from '../services/dailyVerseService';
@@ -211,7 +211,7 @@ const Devotion: React.FC = () => {
         setGeneratedContent(result);
         setView('full');
     } else {
-        alert("Could not generate devotion. Please check your API key or try again.");
+        alert(getAiErrorMessage('Could not generate devotion right now. Please try again.'));
     }
     setLoading(false);
   };

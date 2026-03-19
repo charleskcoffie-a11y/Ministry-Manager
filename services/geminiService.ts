@@ -1,65 +1,210 @@
+import { Type } from "@google/genai";
+import type { ServiceHymnAiGuidance, ServiceHymnSlot } from '../types';
 
-import { GoogleGenAI, Type } from "@google/genai";
+const configuredSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const configuredSupabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const useSupabaseEdgeFunction = Boolean(configuredSupabaseUrl && configuredSupabaseAnonKey);
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || ''; 
+const AI_PROXY_MISSING_MESSAGE = useSupabaseEdgeFunction
+  ? 'AI features are unavailable because the Supabase Edge Function gemini-proxy is not deployed or reachable. Deploy it to your Supabase project and rebuild the app.'
+  : 'AI features are unavailable because the secure AI proxy is not running. Start the app with npm run dev:secure or npm run preview:secure.';
+const MISSING_AI_KEY_MESSAGE = useSupabaseEdgeFunction
+  ? 'AI features are unavailable because GEMINI_API_KEY is not configured in Supabase Edge Function secrets. Set it in Supabase and redeploy the function.'
+  : 'AI features are unavailable because GEMINI_API_KEY is not configured on the server. Add it to .env and restart the secure app server.';
+const BLOCKED_AI_KEY_MESSAGE = useSupabaseEdgeFunction
+  ? 'AI features are unavailable because the Gemini key configured in Supabase was rejected. Replace GEMINI_API_KEY in your Supabase secrets and redeploy the function.'
+  : 'AI features are unavailable because the server-side Gemini key was rejected. Replace GEMINI_API_KEY with a new key and restart the secure app server.';
+const GENERIC_AI_ERROR_MESSAGE = useSupabaseEdgeFunction
+  ? 'Could not reach the Supabase AI function right now. Please try again later.'
+  : 'Could not reach the secure AI proxy right now. Please try again later.';
 
-// Initialize Gemini
-let ai: GoogleGenAI | null = null;
-if (apiKey) {
-    ai = new GoogleGenAI({ apiKey: apiKey });
+let aiFailureReason: AiFeatureStatus['reason'] = 'ready';
+let aiUnavailableMessage = '';
+
+export interface AiFeatureStatus {
+  available: boolean;
+  reason: 'ready' | 'proxy-missing' | 'missing-key' | 'blocked-key';
+  message: string;
 }
 
+interface GeminiProxyRequest {
+  model: string;
+  contents: unknown;
+  config?: Record<string, unknown>;
+}
+
+const extractGeminiErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  try {
+    const serialized = JSON.stringify(error);
+    if (serialized && serialized !== '{}') {
+      return serialized;
+    }
+  } catch {
+    // Ignore serialization failures and fall back to String below.
+  }
+
+  return String(error ?? 'Unknown Gemini error');
+};
+
+const isBlockedGeminiError = (message: string) =>
+  /reported as leaked|permission_denied|api key.+(?:invalid|rejected|disabled|revoked)|status":"PERMISSION_DENIED"|code":403/iu.test(message);
+
+const getSupabaseEdgeUrl = () => `${configuredSupabaseUrl.replace(/\/+$/u, '')}/functions/v1/gemini-proxy`;
+
+const getAiProxyUrl = () => {
+  const baseUrl = import.meta.env.BASE_URL || '/';
+  return new URL('api/gemini', `${window.location.origin}${baseUrl}`).toString();
+};
+
+const rememberAiFailure = (statusCode: number, message: string) => {
+  let nextReason: AiFeatureStatus['reason'] | null = null;
+  let nextMessage = '';
+
+  if (statusCode === 404 || /failed to fetch|networkerror|load failed|not found/iu.test(message)) {
+    nextReason = 'proxy-missing';
+    nextMessage = AI_PROXY_MISSING_MESSAGE;
+  } else if (statusCode === 503 || /GEMINI_API_KEY|not configured on the server/iu.test(message)) {
+    nextReason = 'missing-key';
+    nextMessage = MISSING_AI_KEY_MESSAGE;
+  } else if (statusCode === 403 || isBlockedGeminiError(message)) {
+    nextReason = 'blocked-key';
+    nextMessage = BLOCKED_AI_KEY_MESSAGE;
+  }
+
+  if (!nextReason) {
+    return;
+  }
+
+  aiFailureReason = nextReason;
+  if (aiUnavailableMessage !== nextMessage) {
+    aiUnavailableMessage = nextMessage;
+    console.warn(nextMessage);
+  }
+};
+
+const clearAiFailure = () => {
+  aiFailureReason = 'ready';
+  aiUnavailableMessage = '';
+};
+
+const handleGeminiError = (label: string, error: unknown, statusCode = 0) => {
+  rememberAiFailure(statusCode, extractGeminiErrorMessage(error));
+  console.error(label, error);
+};
+
+const invokeGeminiText = async ({ model, contents, config }: GeminiProxyRequest) => {
+  try {
+    const response = await fetch(useSupabaseEdgeFunction ? getSupabaseEdgeUrl() : getAiProxyUrl(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(useSupabaseEdgeFunction
+          ? {
+              apikey: configuredSupabaseAnonKey,
+              Authorization: `Bearer ${configuredSupabaseAnonKey}`,
+            }
+          : {}),
+      },
+      body: JSON.stringify({ model, contents, config }),
+    });
+
+    const payload = await response.json().catch(() => null) as { error?: string; text?: string } | null;
+    if (!response.ok) {
+      const message = typeof payload?.error === 'string'
+        ? payload.error
+        : `Gemini request failed with status ${response.status}.`;
+      handleGeminiError(useSupabaseEdgeFunction ? 'Supabase Gemini Function Error:' : 'Gemini Proxy Error:', message, response.status);
+      return null;
+    }
+
+    clearAiFailure();
+    return typeof payload?.text === 'string' ? payload.text : null;
+  } catch (error) {
+    handleGeminiError(useSupabaseEdgeFunction ? 'Supabase Gemini Function Error:' : 'Gemini Proxy Error:', error);
+    return null;
+  }
+};
+
+export const getAiFeatureStatus = (): AiFeatureStatus => {
+  if (aiFailureReason !== 'ready') {
+    return {
+      available: false,
+      reason: aiFailureReason,
+      message: aiUnavailableMessage,
+    };
+  }
+
+  return {
+    available: true,
+    reason: 'ready',
+    message: useSupabaseEdgeFunction ? 'AI features are available via Supabase.' : 'AI features are available.',
+  };
+};
+
+export const getAiErrorMessage = (fallback = GENERIC_AI_ERROR_MESSAGE) => {
+  const status = getAiFeatureStatus();
+  return status.available ? fallback : status.message;
+};
+
+const canUseAi = () => getAiFeatureStatus().reason !== 'blocked-key';
+
 export const expandIdea = async (ideaNote: string, title?: string): Promise<string> => {
-  if (!ai) return "API Key not configured.";
+  if (!canUseAi()) return getAiErrorMessage();
 
   try {
     const context = title ? `Title: ${title}\nNote: ${ideaNote}` : `Note: ${ideaNote}`;
-    
-    const response = await ai.models.generateContent({
+
+    const text = await invokeGeminiText({
       model: 'gemini-2.5-flash',
       contents: `You are a helpful ministry assistant. Take the following ministry idea or thought and expand it into a brief outline for a sermon or detailed action plan. Keep it concise (under 200 words).
       
       ${context}`,
     });
-    
-    return response.text || "Could not generate content.";
+
+    return text || "Could not generate content.";
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    return "Error generating AI response.";
+    handleGeminiError("Gemini API Error:", error);
+    return getAiErrorMessage('Could not generate AI response right now.');
   }
 };
 
 export const explainStandingOrder = async (code: string, content: string): Promise<string> => {
-    if (!ai) return "API Key not configured.";
-  
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: `Explain the following church standing order in simple terms for a layperson.
-        
-        Code: ${code}
-        Content: "${content}"`,
-      });
+  if (!canUseAi()) return getAiErrorMessage();
+
+  try {
+    const text = await invokeGeminiText({
+      model: 'gemini-2.5-flash',
+      contents: `Explain the following church standing order in simple terms for a layperson.
       
-      return response.text || "Could not generate explanation.";
-    } catch (error) {
-      console.error("Gemini API Error:", error);
-      return "Error generating AI response.";
-    }
-  };
+      Code: ${code}
+      Content: "${content}"`,
+    });
 
-export const getAiDailyVerse = async (): Promise<{reference: string, text: string, keyword: string} | null> => {
-  if (!ai) return null;
+    return text || "Could not generate explanation.";
+  } catch (error) {
+    handleGeminiError("Gemini API Error:", error);
+    return getAiErrorMessage('Could not generate explanation right now.');
+  }
+};
 
-  // 1. Check Local Storage Cache first to prevent regeneration during the same day
+export const getAiDailyVerse = async (): Promise<{ reference: string, text: string, keyword: string } | null> => {
+  if (!canUseAi()) return null;
+
   const CACHE_KEY = 'ministry_daily_verse_cache';
-  const todayKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const todayKey = new Date().toISOString().split('T')[0];
 
   try {
     const cachedRaw = localStorage.getItem(CACHE_KEY);
     if (cachedRaw) {
       const cached = JSON.parse(cachedRaw);
-      // If cached data exists and matches today's date, use it
       if (cached.date === todayKey && cached.verse) {
         return cached.verse;
       }
@@ -68,48 +213,45 @@ export const getAiDailyVerse = async (): Promise<{reference: string, text: strin
     console.warn("Error reading verse cache", e);
   }
 
-  // 2. Generate new verse if not cached or date changed
   const todayDisplay = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-  
+
   try {
-    const response = await ai.models.generateContent({
+    const text = await invokeGeminiText({
       model: 'gemini-2.5-flash',
       contents: `Generate a short, encouraging bible verse for a Methodist Minister for today (${todayDisplay}). 
       Return valid JSON with:
       1. "reference" (e.g. John 3:16)
       2. "text" (The verse text in NIV or NKJV)
       3. "keyword" (A single visual noun that represents the verse theme, e.g. "light", "mountain", "water", "sheep", "cross", "bread", "sky", "path")`,
-      config: { 
-          responseMimeType: 'application/json',
-          responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                  reference: { type: Type.STRING },
-                  text: { type: Type.STRING },
-                  keyword: { type: Type.STRING }
-              },
-              required: ['reference', 'text', 'keyword']
-          }
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            reference: { type: Type.STRING },
+            text: { type: Type.STRING },
+            keyword: { type: Type.STRING }
+          },
+          required: ['reference', 'text', 'keyword']
+        }
       }
     });
-    
-    const text = response.text;
+
     if (!text) return null;
     const verseData = JSON.parse(text);
 
-    // 3. Save to Cache
     try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({
-            date: todayKey,
-            verse: verseData
-        }));
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        date: todayKey,
+        verse: verseData
+      }));
     } catch (storageErr) {
-        console.warn("Failed to cache verse:", storageErr);
+      console.warn("Failed to cache verse:", storageErr);
     }
 
     return verseData;
   } catch (e) {
-    console.error("AI Verse Error:", e);
+    handleGeminiError("AI Verse Error:", e);
     return null;
   }
 };
@@ -136,32 +278,29 @@ export interface DevotionalResponse {
 }
 
 export const generateDevotional = async (params: DevotionalParams | string): Promise<DevotionalResponse | null> => {
-    if (!ai) {
-        console.error("API Key not configured");
-        return null;
-    }
-  
-    // Prepare structured context
-    let context: any = {};
-    if (typeof params === 'string') {
-        context = { 
-            theme: params, 
-            date: new Date().toISOString().split('T')[0],
-            seasonId: 'ORDINARY_TIME',
-            calendarTag: 'Ordinary Day'
-        };
-    } else {
-        context = { ...params };
-        // Map 'topic' to 'theme' if theme is missing (for custom input compatibility)
-        if (!context.theme && context.topic) {
-            context.theme = context.topic;
-        }
-        // Defaults
-        if (!context.date) context.date = new Date().toISOString().split('T')[0];
-        if (!context.seasonId) context.seasonId = 'ORDINARY_TIME';
-    }
+  if (!canUseAi()) {
+    console.error(getAiErrorMessage());
+    return null;
+  }
 
-    const systemPrompt = `You are a Christian devotional writer for a ministry mobile app.
+  let context: any = {};
+  if (typeof params === 'string') {
+    context = {
+      theme: params,
+      date: new Date().toISOString().split('T')[0],
+      seasonId: 'ORDINARY_TIME',
+      calendarTag: 'Ordinary Day'
+    };
+  } else {
+    context = { ...params };
+    if (!context.theme && context.topic) {
+      context.theme = context.topic;
+    }
+    if (!context.date) context.date = new Date().toISOString().split('T')[0];
+    if (!context.seasonId) context.seasonId = 'ORDINARY_TIME';
+  }
+
+  const systemPrompt = `You are a Christian devotional writer for a ministry mobile app.
 You will receive a JSON object with:
 
 date (YYYY-MM-DD)
@@ -176,8 +315,8 @@ Requirements:
 
 Use the given scripture as the main text.
 If calendarTag is a special day (Good Friday, Easter, Christmas, etc.), mention it in the content.
-Main devotional content length: 120–200 words.
-Include a short prayer (1–3 sentences).
+Main devotional content length: 120-200 words.
+Include a short prayer (1-3 sentences).
 Include one reflection question.
 Tone: biblical, pastoral, encouraging, Jesus-centered.
 
@@ -192,32 +331,29 @@ reflectionQuestion
 seasonId
 calendarTag`;
 
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: JSON.stringify(context),
-        config: {
-            systemInstruction: systemPrompt,
-            responseMimeType: 'application/json'
-        }
-      });
-      
-      const text = response.text;
-      if (!text) return null;
-
-      try {
-          return JSON.parse(text) as DevotionalResponse;
-      } catch (parseError) {
-          console.error("Failed to parse JSON response:", text);
-          return null;
+  try {
+    const text = await invokeGeminiText({
+      model: 'gemini-2.5-flash',
+      contents: JSON.stringify(context),
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: 'application/json'
       }
-    } catch (error) {
-      console.error("Gemini API Error:", error);
+    });
+
+    if (!text) return null;
+
+    try {
+      return JSON.parse(text) as DevotionalResponse;
+    } catch {
+      console.error("Failed to parse JSON response:", text);
       return null;
     }
-  };
-
-// --- Sermon Builder Service ---
+  } catch (error) {
+    handleGeminiError("Gemini API Error:", error);
+    return null;
+  }
+};
 
 export interface SermonAIResponse {
   title: string;
@@ -235,10 +371,104 @@ export interface SermonAIResponse {
   altar_call: string;
 }
 
+export type ServiceHymnAiPlan = Record<ServiceHymnSlot, ServiceHymnAiGuidance>;
+
+export const generateServiceHymnGuidance = async (
+  title: string,
+  theme: string,
+  scripture: string
+): Promise<ServiceHymnAiPlan | null> => {
+  if (!canUseAi()) {
+    console.error(getAiErrorMessage());
+    return null;
+  }
+
+  const prompt = `
+    You are a Methodist worship planner for the Methodist Church Ghana.
+    Suggest four hymn-selection guidance slots for a typical service built around a sermon.
+
+    Context:
+    Sermon Title: ${title}
+    Theme: ${theme}
+    Scripture Reading: ${scripture}
+
+    Return JSON for exactly these four slots:
+    1. opening: hymn of adoration and praise
+    2. scripture: hymn before scripture reading
+    3. sermon: hymn that reinforces the sermon theme
+    4. closing: hymn of commitment, dedication, or sending forth
+
+    For each slot return:
+    - focus: one short sentence describing the worship purpose
+    - keywords: 5 to 8 short search keywords or phrases that should help match hymns
+    - rationale: one short sentence explaining why that slot fits the sermon context
+
+    Keep keywords practical for hymn searching. Use Wesleyan/Methodist worship language where appropriate.
+  `;
+
+  try {
+    const text = await invokeGeminiText({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            opening: {
+              type: Type.OBJECT,
+              properties: {
+                focus: { type: Type.STRING },
+                keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+                rationale: { type: Type.STRING },
+              },
+              required: ['focus', 'keywords', 'rationale'],
+            },
+            scripture: {
+              type: Type.OBJECT,
+              properties: {
+                focus: { type: Type.STRING },
+                keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+                rationale: { type: Type.STRING },
+              },
+              required: ['focus', 'keywords', 'rationale'],
+            },
+            sermon: {
+              type: Type.OBJECT,
+              properties: {
+                focus: { type: Type.STRING },
+                keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+                rationale: { type: Type.STRING },
+              },
+              required: ['focus', 'keywords', 'rationale'],
+            },
+            closing: {
+              type: Type.OBJECT,
+              properties: {
+                focus: { type: Type.STRING },
+                keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+                rationale: { type: Type.STRING },
+              },
+              required: ['focus', 'keywords', 'rationale'],
+            },
+          },
+          required: ['opening', 'scripture', 'sermon', 'closing'],
+        },
+      },
+    });
+
+    if (!text) return null;
+    return JSON.parse(text) as ServiceHymnAiPlan;
+  } catch (error) {
+    handleGeminiError('Service hymn guidance error:', error);
+    return null;
+  }
+};
+
 export const generateSermonOutline = async (title: string, theme: string, scripture: string): Promise<SermonAIResponse | null> => {
-  if (!ai) {
-      console.error("API Key missing");
-      return null;
+  if (!canUseAi()) {
+    console.error(getAiErrorMessage());
+    return null;
   }
 
   const prompt = `
@@ -268,64 +498,59 @@ export const generateSermonOutline = async (title: string, theme: string, script
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const text = await invokeGeminiText({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-                title: { type: Type.STRING },
-                main_scripture: { type: Type.STRING },
-                theme: { type: Type.STRING },
-                introduction: { type: Type.STRING },
-                background_context: { type: Type.STRING },
-                main_point_1: { type: Type.STRING },
-                main_point_2: { type: Type.STRING },
-                main_point_3: { type: Type.STRING },
-                application_points: { type: Type.ARRAY, items: { type: Type.STRING } },
-                gospel_connection: { type: Type.STRING },
-                conclusion: { type: Type.STRING },
-                prayer_points: { type: Type.ARRAY, items: { type: Type.STRING } },
-                altar_call: { type: Type.STRING },
-            },
-            required: [
-                'title', 'main_scripture', 'theme', 'introduction', 'background_context', 
-                'main_point_1', 'main_point_2', 'main_point_3', 
-                'application_points', 'gospel_connection', 'conclusion', 'prayer_points', 'altar_call'
-            ]
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            main_scripture: { type: Type.STRING },
+            theme: { type: Type.STRING },
+            introduction: { type: Type.STRING },
+            background_context: { type: Type.STRING },
+            main_point_1: { type: Type.STRING },
+            main_point_2: { type: Type.STRING },
+            main_point_3: { type: Type.STRING },
+            application_points: { type: Type.ARRAY, items: { type: Type.STRING } },
+            gospel_connection: { type: Type.STRING },
+            conclusion: { type: Type.STRING },
+            prayer_points: { type: Type.ARRAY, items: { type: Type.STRING } },
+            altar_call: { type: Type.STRING },
+          },
+          required: [
+            'title', 'main_scripture', 'theme', 'introduction', 'background_context',
+            'main_point_1', 'main_point_2', 'main_point_3',
+            'application_points', 'gospel_connection', 'conclusion', 'prayer_points', 'altar_call'
+          ]
         }
       }
     });
 
-    const text = response.text;
     if (!text) return null;
     return JSON.parse(text) as SermonAIResponse;
   } catch (error) {
-    console.error("Sermon Gen Error", error);
+    handleGeminiError("Sermon Gen Error", error);
     return null;
   }
 };
 
-/**
- * Generates or Polishes a single section of the sermon.
- */
 export const generateSermonSection = async (
-    title: string, 
-    theme: string, 
-    scripture: string, 
-    sectionLabel: string, 
-    currentContent: string
+  title: string,
+  theme: string,
+  scripture: string,
+  sectionLabel: string,
+  currentContent: string
 ): Promise<string | null> => {
-    if (!ai) return null;
+  if (!canUseAi()) return getAiErrorMessage();
 
-    let systemInstruction = '';
-    
-    if (currentContent && currentContent.length > 5) {
-        // Mode: Polish and Expand
-        systemInstruction = `
-            You are a Methodist Minister's editor. 
+  let systemInstruction = '';
+
+  if (currentContent && currentContent.length > 5) {
+    systemInstruction = `
+            You are a Methodist Minister's editor.
             The user has drafted a section for a sermon.
             
             Task:
@@ -342,9 +567,8 @@ export const generateSermonSection = async (
             
             Return ONLY the improved text. Do not add meta-commentary.
         `;
-    } else {
-        // Mode: Generate from Scratch
-        systemInstruction = `
+  } else {
+    systemInstruction = `
             You are a Methodist Minister assistant.
             Write the specific section '${sectionLabel}' for a sermon.
             
@@ -360,21 +584,19 @@ export const generateSermonSection = async (
             
             Return ONLY the text for this section.
         `;
-    }
+  }
 
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: systemInstruction, // Using the instruction as the prompt content for simplicity in single-turn
-        });
-        return response.text || currentContent;
-    } catch (error) {
-        console.error("Section Gen Error", error);
-        return null;
-    }
-}
-
-// --- NEW: Pastoral Reminder Suggestions ---
+  try {
+    const text = await invokeGeminiText({
+      model: 'gemini-2.5-flash',
+      contents: systemInstruction,
+    });
+    return text || currentContent;
+  } catch (error) {
+    handleGeminiError("Section Gen Error", error);
+    return null;
+  }
+};
 
 export interface ReminderSuggestion {
   title: string;
@@ -385,7 +607,7 @@ export interface ReminderSuggestion {
 }
 
 export const suggestPastoralReminders = async (contextData: string): Promise<ReminderSuggestion[]> => {
-  if (!ai) return [];
+  if (!canUseAi()) return [];
 
   const prompt = `
     You are a specialized pastoral assistant for a Methodist Minister.
@@ -412,47 +634,43 @@ export const suggestPastoralReminders = async (contextData: string): Promise<Rem
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const text = await invokeGeminiText({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
-           type: Type.ARRAY,
-           items: {
-             type: Type.OBJECT,
-             properties: {
-               title: { type: Type.STRING },
-               category: { type: Type.STRING },
-               frequency: { type: Type.STRING },
-               start_date: { type: Type.STRING },
-               notes: { type: Type.STRING }
-             },
-             required: ['title', 'category', 'frequency', 'start_date', 'notes']
-           }
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              category: { type: Type.STRING },
+              frequency: { type: Type.STRING },
+              start_date: { type: Type.STRING },
+              notes: { type: Type.STRING }
+            },
+            required: ['title', 'category', 'frequency', 'start_date', 'notes']
+          }
         }
       }
     });
 
-    const text = response.text;
     if (!text) return [];
     return JSON.parse(text) as ReminderSuggestion[];
   } catch (error) {
-    console.error("Reminder Suggestion Error", error);
+    handleGeminiError("Reminder Suggestion Error", error);
     return [];
   }
 };
 
-/**
- * AI Assistance for Meeting Minutes
- */
 export const assistMeetingMinutes = async (
   meetingTitle: string,
   meetingType: string,
   sectionName: string,
   currentText: string
 ): Promise<string> => {
-  if (!ai) return "";
+  if (!canUseAi()) return "";
 
   const systemPrompt = `
     You are a secretary assistant for a Methodist Church meeting (e.g., Diocesan, Circuit, or Society level).
@@ -473,115 +691,114 @@ export const assistMeetingMinutes = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const text = await invokeGeminiText({
       model: 'gemini-2.5-flash',
       contents: systemPrompt,
     });
-    return response.text || "";
+    return text || "";
   } catch (error) {
-    console.error("Meeting Minute Assist Error", error);
+    handleGeminiError("Meeting Minute Assist Error", error);
     return "";
   }
 };
 
-  // ── John Wesley ────────────────────────────────────────────────────────────
-  export interface WesleySermonContent {
-    title: string;
-    sermonNumber: number;
-    summary: string;
-    keyPoints: string[];
-    mainScripture: string;
-    modernApplication: string;
+export interface WesleySermonContent {
+  title: string;
+  sermonNumber: number;
+  summary: string;
+  keyPoints: string[];
+  mainScripture: string;
+  modernApplication: string;
+}
+
+export const getWesleySermonContent = async (
+  sermonTitle: string,
+  sermonNumber: number
+): Promise<WesleySermonContent | null> => {
+  if (!canUseAi()) return null;
+
+  const CACHE_KEY = `wesley_sermon_${sermonNumber}`;
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) return JSON.parse(cached);
+  } catch (_) {}
+
+  try {
+    const text = await invokeGeminiText({
+      model: 'gemini-2.5-flash',
+      contents: `You are a scholarly Methodist theologian. Provide detailed content for John Wesley's Sermon #${sermonNumber}: "${sermonTitle}".
+
+Return valid JSON with:
+- "title": the exact sermon title
+- "sermonNumber": ${sermonNumber}
+- "summary": A 3-4 sentence summary of the sermon's main argument and theological message
+- "keyPoints": An array of 4-6 key theological points Wesley made in this sermon (each as a string)
+- "mainScripture": The primary scripture text Wesley used
+- "modernApplication": 2-3 sentences on how this sermon applies to the life of a minister today`,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            sermonNumber: { type: Type.NUMBER },
+            summary: { type: Type.STRING },
+            keyPoints: { type: Type.ARRAY, items: { type: Type.STRING } },
+            mainScripture: { type: Type.STRING },
+            modernApplication: { type: Type.STRING },
+          },
+          required: ['title', 'sermonNumber', 'summary', 'keyPoints', 'mainScripture', 'modernApplication'],
+        },
+      },
+    });
+
+    const data: WesleySermonContent = JSON.parse(text || '{}');
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch (_) {}
+    return data;
+  } catch (error) {
+    handleGeminiError('Wesley sermon error:', error);
+    return null;
   }
+};
 
-  export const getWesleySermonContent = async (
-    sermonTitle: string,
-    sermonNumber: number
-  ): Promise<WesleySermonContent | null> => {
-    if (!ai) return null;
+export interface WesleyQuote {
+  quote: string;
+  source: string;
+  theme: string;
+}
 
-    const CACHE_KEY = `wesley_sermon_${sermonNumber}`;
-    try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) return JSON.parse(cached);
-    } catch (_) {}
+export const getWesleyQuotes = async (count = 5): Promise<WesleyQuote[]> => {
+  if (!canUseAi()) return [];
 
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: `You are a scholarly Methodist theologian. Provide detailed content for John Wesley's Sermon #${sermonNumber}: "${sermonTitle}".
+  try {
+    const text = await invokeGeminiText({
+      model: 'gemini-2.5-flash',
+      contents: `You are a Methodist scholar. Provide ${count} authentic, well-known quotes from John Wesley (1703-1791).
 
-  Return valid JSON with:
-  - "title": the exact sermon title
-  - "sermonNumber": ${sermonNumber}
-  - "summary": A 3-4 sentence summary of the sermon's main argument and theological message
-  - "keyPoints": An array of 4-6 key theological points Wesley made in this sermon (each as a string)
-  - "mainScripture": The primary scripture text Wesley used
-  - "modernApplication": 2-3 sentences on how this sermon applies to the life of a minister today`,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
+Return valid JSON - an array of objects, each with:
+- "quote": the exact quotation
+- "source": where it comes from (sermon name, letter, journal entry, etc.)
+- "theme": one-word theme (e.g. "Holiness", "Grace", "Prayer", "Love", "Zeal", "Works", "Faith")`,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
             type: Type.OBJECT,
             properties: {
-              title:             { type: Type.STRING },
-              sermonNumber:      { type: Type.NUMBER },
-              summary:           { type: Type.STRING },
-              keyPoints:         { type: Type.ARRAY, items: { type: Type.STRING } },
-              mainScripture:     { type: Type.STRING },
-              modernApplication: { type: Type.STRING },
+              quote: { type: Type.STRING },
+              source: { type: Type.STRING },
+              theme: { type: Type.STRING },
             },
-            required: ['title', 'sermonNumber', 'summary', 'keyPoints', 'mainScripture', 'modernApplication'],
+            required: ['quote', 'source', 'theme'],
           },
         },
-      });
+      },
+    });
 
-      const data: WesleySermonContent = JSON.parse(response.text || '{}');
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch (_) {}
-      return data;
-    } catch (error) {
-      console.error('Wesley sermon error:', error);
-      return null;
-    }
-  };
-
-  export interface WesleyQuote {
-    quote: string;
-    source: string;
-    theme: string;
+    return JSON.parse(text || '[]');
+  } catch (error) {
+    handleGeminiError('Wesley quotes error:', error);
+    return [];
   }
-
-  export const getWesleyQuotes = async (count = 5): Promise<WesleyQuote[]> => {
-    if (!ai) return [];
-
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: `You are a Methodist scholar. Provide ${count} authentic, well-known quotes from John Wesley (1703-1791).
-
-  Return valid JSON — an array of objects, each with:
-  - "quote": the exact quotation
-  - "source": where it comes from (sermon name, letter, journal entry, etc.)
-  - "theme": one-word theme (e.g. "Holiness", "Grace", "Prayer", "Love", "Zeal", "Works", "Faith")`,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                quote:  { type: Type.STRING },
-                source: { type: Type.STRING },
-                theme:  { type: Type.STRING },
-              },
-              required: ['quote', 'source', 'theme'],
-            },
-          },
-        },
-      });
-
-      return JSON.parse(response.text || '[]');
-    } catch (error) {
-      console.error('Wesley quotes error:', error);
-      return [];
-    }
-  };
+};

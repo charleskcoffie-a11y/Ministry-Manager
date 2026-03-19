@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { Reminder, ReminderCategory, ReminderFrequency } from '../types';
-import { suggestPastoralReminders } from '../services/geminiService';
+import { getAiErrorMessage, suggestPastoralReminders } from '../services/geminiService';
 import { 
   Bell, CalendarClock, User, BookOpen, HeartHandshake, Mic2, 
   Users, Sparkles, Plus, Trash2, Edit2, X, RefreshCw, Loader2, Check 
@@ -34,6 +34,7 @@ const ReminderSystem: React.FC = () => {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiMessage, setAiMessage] = useState('');
 
   useEffect(() => {
     fetchReminders();
@@ -111,6 +112,7 @@ const ReminderSystem: React.FC = () => {
     setIsAiModalOpen(true);
     setAiLoading(true);
     setAiSuggestions([]);
+    setAiMessage('');
 
     try {
         // 1. Fetch Context (Tasks & Programs)
@@ -126,9 +128,13 @@ const ReminderSystem: React.FC = () => {
         // 2. Call Service
         const suggestions = await suggestPastoralReminders(context);
         setAiSuggestions(suggestions);
+        if (!suggestions.length) {
+          setAiMessage(getAiErrorMessage('No reminder suggestions were generated. Try adding more tasks first.'));
+        }
 
     } catch (e) {
         console.error("AI Suggestion failed", e);
+        setAiMessage(getAiErrorMessage('Could not generate reminder suggestions right now.'));
     }
     setAiLoading(false);
   };
@@ -371,7 +377,7 @@ const ReminderSystem: React.FC = () => {
                           </div>
                       ) : aiSuggestions.length === 0 ? (
                           <div className="text-center py-10">
-                              <p className="text-gray-500">No suggestions found. Try adding more tasks first.</p>
+                            <p className="text-gray-500">{aiMessage || 'No suggestions found. Try adding more tasks first.'}</p>
                           </div>
                       ) : (
                           <div className="space-y-4">

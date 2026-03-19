@@ -1,17 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
+import { DEFAULT_SUPABASE_ANON_KEY, DEFAULT_SUPABASE_URL } from './config/supabaseDefaults.js';
 
-// NOTE: In a real deployment, these should be environment variables.
-// For this demo structure, we access process.env.
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const legacyEnv = typeof process !== 'undefined' ? process.env : undefined;
+const configuredUrl = import.meta.env.VITE_SUPABASE_URL || legacyEnv?.REACT_APP_SUPABASE_URL || legacyEnv?.NEXT_PUBLIC_SUPABASE_URL;
+const configuredAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY || legacyEnv?.REACT_APP_SUPABASE_ANON_KEY || legacyEnv?.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const hasCompleteClientConfig = Boolean(configuredUrl && configuredAnonKey);
+const isPartiallyConfigured = Boolean(configuredUrl || configuredAnonKey) && !hasCompleteClientConfig;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("Supabase credentials missing. Please set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY.");
+if (isPartiallyConfigured) {
+  console.warn(
+    'Supabase env vars are only partially configured. Falling back to the shared default project until both VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.'
+  );
+} else if (!hasCompleteClientConfig) {
+  console.warn(
+    'Supabase credentials missing. Falling back to the shared default project. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to point at your own database.'
+  );
 }
 
-// Fallback to prevent crash if env vars are missing. 
-// The app will load but auth/database calls will fail.
-const url = supabaseUrl || 'https://wtvnyyfxjefuprcntjta.supabase.co';
-const key = supabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0dm55eWZ4amVmdXByY250anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyMjY5NjUsImV4cCI6MjA4MDgwMjk2NX0.O569-gYigdB84xmjOTicMU2aSghDYm2ItPjl8EPmOm8';
+const url = hasCompleteClientConfig ? configuredUrl : DEFAULT_SUPABASE_URL;
+const key = hasCompleteClientConfig ? configuredAnonKey : DEFAULT_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(url, key);

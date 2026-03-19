@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { MeetingMinutesData, MeetingAgendaItem, MeetingActionItem } from '../types';
-import { assistMeetingMinutes } from '../services/geminiService';
+import { assistMeetingMinutes, getAiErrorMessage } from '../services/geminiService';
 import { 
   Save, FileDown, Plus, Trash2, ChevronDown, ChevronUp, 
   Wand2, Loader2, Calendar, Clock, User, Users,
@@ -151,6 +151,8 @@ const MeetingMinutes: React.FC = () => {
     );
     if (suggestion) {
       fieldSetter(currentText + (currentText ? '\n' : '') + suggestion);
+      } else {
+         showNotification(getAiErrorMessage('Could not generate meeting-minute assistance right now.'), 'error');
     }
     setActiveSectionAi(null);
   };

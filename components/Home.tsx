@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Task, DiaryEntry } from '../types';
-import { explainStandingOrder, getAiDailyVerse } from '../services/geminiService';
+import { explainStandingOrder, getAiDailyVerse, getAiFeatureStatus } from '../services/geminiService';
 import { getTodayVerse } from '../services/dailyVerseService';
 
 
@@ -218,6 +218,7 @@ const Home: React.FC = () => {
   const [currentSeason, setCurrentSeason] = useState<LiturgicalSeason | null>(null);
   const [todaysVerse, setTodaysVerse] = useState<{reference: string, text: string, keyword?: string} | null>(null);
   const [verseLoading, setVerseLoading] = useState(false);
+    const [verseNotice, setVerseNotice] = useState('');
   const [sharing, setSharing] = useState(false);
   
   // State to track if the images failed to load
@@ -235,11 +236,27 @@ const Home: React.FC = () => {
   const loadVerse = async () => {
     setVerseLoading(true);
     setVerseImageError(false); // Reset error state on new load
-    const source = localStorage.getItem('dailyVerseSource') || 'ai';
+    setVerseNotice('');
+    const source = localStorage.getItem('dailyVerseSource') || (getAiFeatureStatus().available ? 'ai' : 'plan');
     
     if (source === 'ai') {
         const v = await getAiDailyVerse();
-        if (v) setTodaysVerse(v);
+        if (v) {
+            setTodaysVerse(v);
+        } else {
+            const plannedVerse = await getTodayVerse();
+            setTodaysVerse({ 
+                reference: plannedVerse.reference, 
+                text: plannedVerse.text || "Tap to read full devotion text online or generate content.",
+                keyword: 'light'
+            });
+            const aiStatus = getAiFeatureStatus();
+            setVerseNotice(
+                aiStatus.available
+                    ? 'AI daily verse is temporarily unavailable. Showing the planned verse instead.'
+                    : aiStatus.message
+            );
+        }
     } else {
         const v = await getTodayVerse();
         // If plan has no text, provide a default or placeholder
@@ -409,15 +426,21 @@ const Home: React.FC = () => {
 
                 // Fetch AI explanation in background to improve the text
                 try {
-                     explainStandingOrder(title, item.text).then(explanation => {
-                         if (explanation && !explanation.includes("Error")) {
-                            setDailyOrder(prev => prev ? { 
-                                ...prev, 
-                                preview: explanation,
-                                isAiGenerated: true
-                            } : null);
-                         }
-                     });
+                     if (getAiFeatureStatus().available) {
+                         explainStandingOrder(title, item.text).then(explanation => {
+                             if (
+                                 getAiFeatureStatus().available &&
+                                 explanation &&
+                                 !explanation.toLowerCase().startsWith('could not')
+                             ) {
+                                setDailyOrder(prev => prev ? { 
+                                    ...prev, 
+                                    preview: explanation,
+                                    isAiGenerated: true
+                                } : null);
+                             }
+                         });
+                     }
                 } catch(err) {
                     console.log("AI Explanation failed", err);
                 }
@@ -761,6 +784,12 @@ const Home: React.FC = () => {
                                     <h3 className="font-bold text-red-800 text-lg mb-1 flex items-center gap-2">
                                         {todaysVerse.reference}
                                     </h3>
+                                    {verseNotice && (
+                                        <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                                            <span>{verseNotice}</span>
+                                        </div>
+                                    )}
                                     <p className="text-gray-700 italic font-serif text-sm leading-relaxed border-l-2 border-red-200 pl-3">
                                         "{todaysVerse.text}"
                                     </p>

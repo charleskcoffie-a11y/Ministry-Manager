@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import Modal from './Modal';
 import { useModal } from '../hooks/useModal';
+import { getAiFeatureStatus } from '../services/geminiService';
+import { isDocxDocument, isPdfDocument, parseDocxFile, parsePdfFile } from '../utils/documentParsers';
 
 const Settings: React.FC = () => {
   const { modalState, showAlert, showConfirm, closeModal } = useModal();
@@ -32,7 +34,7 @@ const Settings: React.FC = () => {
   const [pinMessage, setPinMessage] = useState({ text: '', type: '' });
 
   // Verse Settings
-  const [verseSource, setVerseSource] = useState('ai');
+  const [verseSource, setVerseSource] = useState('plan');
   const [sqlCopied, setSqlCopied] = useState(false);
 
   const DIARY_SQL = `CREATE TABLE IF NOT EXISTS public.diary_entries (
@@ -75,10 +77,12 @@ CREATE POLICY "Allow all"
   };
 
   useEffect(() => {
-      setVerseSource(localStorage.getItem('dailyVerseSource') || 'ai');
+      setVerseSource(localStorage.getItem('dailyVerseSource') || (getAiFeatureStatus().available ? 'ai' : 'plan'));
       // Check Supabase connection on component mount
       checkConnection();
   }, []);
+
+    const aiStatus = getAiFeatureStatus();
 
   const checkConnection = async () => {
     try {
@@ -94,6 +98,10 @@ CREATE POLICY "Allow all"
   };
 
   const handleVerseSourceChange = (val: string) => {
+      if (val === 'ai' && !getAiFeatureStatus().available) {
+        return;
+      }
+
       setVerseSource(val);
       localStorage.setItem('dailyVerseSource', val);
   };
@@ -393,11 +401,12 @@ CREATE POLICY "Allow all"
 
                 <button 
                     onClick={() => handleVerseSourceChange('ai')}
+                  disabled={!aiStatus.available}
                     className={`flex-1 p-4 rounded-xl border-2 transition-all text-left flex items-start gap-3 ${
                         verseSource === 'ai' 
                         ? 'border-purple-600 bg-purple-50 text-purple-900' 
-                        : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-                    }`}
+                    : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                  } ${!aiStatus.available ? 'cursor-not-allowed opacity-60 hover:border-slate-200' : ''}`}
                 >
                     <div className={`p-2 rounded-full ${verseSource === 'ai' ? 'bg-purple-200' : 'bg-slate-100'}`}>
                         <Sparkles className="w-5 h-5" />
@@ -408,6 +417,13 @@ CREATE POLICY "Allow all"
                     </div>
                 </button>
             </div>
+
+              {!aiStatus.available && (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                  <span>{aiStatus.message}</span>
+                </div>
+              )}
         </div>
       </div>
 
@@ -562,20 +578,10 @@ CREATE POLICY "Allow all"
                                             try {
                                                 // Basic parsing similar to StandingOrders
                                                 let content: any[] = [];
-                                                if (file.type === 'application/pdf' && (window as any).pdfjsLib) {
-                                                    const arrayBuffer = await file.arrayBuffer();
-                                                    const pdf = await (window as any).pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                                                    for (let i = 1; i <= pdf.numPages; i++) {
-                                                        const page = await pdf.getPage(i);
-                                                        const textContent = await page.getTextContent();
-                                                        const pageText = textContent.items.map((item: any) => item.str).join(' ');
-                                                        if (pageText.trim()) content.push({ id: `p-${i}`, text: pageText, page: i });
-                                                    }
-                                                } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' && (window as any).mammoth) {
-                                                    const arrayBuffer = await file.arrayBuffer();
-                                                    const result = await (window as any).mammoth.extractRawText({ arrayBuffer });
-                                                    const lines = result.value.split('\n').filter((line: string) => line.trim().length > 0);
-                                                    content = lines.map((line: string, idx: number) => ({ id: `d-${idx}`, text: line.trim() }));
+                                              if (isPdfDocument(file)) {
+                                                content = await parsePdfFile(file);
+                                              } else if (isDocxDocument(file)) {
+                                                content = await parseDocxFile(file);
                                                 } else {
                                                     showAlert('Please upload a PDF or DOCX file.', 'error', 'Invalid File Type');
                                                     return;

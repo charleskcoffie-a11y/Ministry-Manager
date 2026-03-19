@@ -1,24 +1,27 @@
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
+import { readFile } from 'node:fs/promises';
+import {
+  expectedWesleyCount,
+  isMissingWesleyTableError,
+  resolveSupabaseEnv,
+  wesleyJsonPath,
+  wesleySchemaSetupHint,
+} from './wesleyUtils.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const {
+  supabaseUrl,
+  supabaseKey,
+  supabaseServiceRoleKey,
+  keyLabel,
+  usingDefaultProject,
+  isPartiallyConfigured,
+} = resolveSupabaseEnv();
 
-const supabaseUrl =
-  process.env.SUPABASE_URL ||
-  process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  process.env.REACT_APP_SUPABASE_URL;
-
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseServiceRoleKey) {
-  console.error('Missing env vars. Required: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Missing Supabase credentials. Set VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY or SUPABASE_URL/SUPABASE_ANON_KEY.');
   process.exit(1);
 }
 
-const jsonPath = path.resolve(__dirname, '..', 'public', 'wesley', 'sermons.json');
 const BATCH_SIZE = Number(process.env.WESLEY_SEED_BATCH_SIZE || 2);
 
 if (!Number.isInteger(BATCH_SIZE) || BATCH_SIZE < 1) {
@@ -26,7 +29,7 @@ if (!Number.isInteger(BATCH_SIZE) || BATCH_SIZE < 1) {
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
@@ -58,21 +61,71 @@ CREATE POLICY "Allow all"
 
   const { error } = await supabase.rpc('exec_sql', { sql });
 
-  if (error) {
-    // Some projects do not expose an exec_sql helper function.
-    // In that case, require a one-time manual schema run.
-    console.warn('Schema auto-setup skipped. If table does not exist, run 00_schema_min.sql once.');
+  if (!error) {
+    console.log('Ensured John Wesley schema via exec_sql.');
+    return true;
   }
+
+  const detail = error?.message || 'Unknown schema bootstrap error.';
+  if (supabaseServiceRoleKey) {
+    console.warn(`Schema auto-setup did not run via exec_sql: ${detail}`);
+  } else {
+    console.warn(`Schema auto-setup skipped: ${detail}`);
+  }
+
+  return false;
+};
+
+const getRemoteCount = async () => {
+  const { count, error } = await supabase
+    .from('john_wesley_sermons')
+    .select('sermon_number', { count: 'exact' })
+    .limit(1);
+
+  return {
+    count: count ?? 0,
+    error,
+  };
 };
 
 const main = async () => {
+  if (isPartiallyConfigured) {
+    console.warn(
+      'Supabase env vars are only partially configured. Falling back to the shared default project until both URL and anon key are provided.'
+    );
+  }
+
+  if (usingDefaultProject) {
+    console.warn(
+      'Using the shared fallback Supabase project. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env to target your own database.'
+    );
+  }
+
+  console.log(`Using ${keyLabel} key for John Wesley seeding.`);
+
   await ensureSchema();
 
-  const raw = await readFile(jsonPath, 'utf8');
-  const sermons = JSON.parse(raw);
+  const preflight = await getRemoteCount();
+  if (preflight.error) {
+    if (isMissingWesleyTableError(preflight.error)) {
+      throw new Error(wesleySchemaSetupHint());
+    }
+
+    throw new Error(`Could not access public.john_wesley_sermons: ${preflight.error.message}`);
+  }
+
+  const raw = await readFile(wesleyJsonPath, 'utf8');
+  const sermons = JSON.parse(raw.replace(/^\uFEFF/u, ''));
 
   if (!Array.isArray(sermons) || sermons.length === 0) {
-    throw new Error('Sermon JSON is empty or invalid.');
+    throw new Error('Local Wesley sermon corpus is empty or invalid.');
+  }
+
+  const uniqueNumbers = new Set(sermons.map((item) => item.number)).size;
+  if (sermons.length !== expectedWesleyCount || uniqueNumbers !== expectedWesleyCount) {
+    throw new Error(
+      `Expected ${expectedWesleyCount} local Wesley sermons, found ${sermons.length} rows and ${uniqueNumbers} unique sermon numbers.`
+    );
   }
 
   const rows = sermons.map((item) => ({
@@ -95,24 +148,29 @@ const main = async () => {
       .upsert(batch, { onConflict: 'sermon_number' });
 
     if (error) {
+      if (isMissingWesleyTableError(error)) {
+        throw new Error(wesleySchemaSetupHint());
+      }
+
       throw new Error(`Batch ${start}-${end} failed: ${error.message}`);
     }
 
     console.log(`Inserted/updated sermons ${start}-${end}`);
   }
 
-  const { count, error: countError } = await supabase
-    .from('john_wesley_sermons')
-    .select('*', { count: 'exact', head: true });
-
-  if (countError) {
-    throw new Error(`Count check failed: ${countError.message}`);
+  const postflight = await getRemoteCount();
+  if (postflight.error) {
+    throw new Error(`Count check failed: ${postflight.error.message}`);
   }
 
-  console.log(`Done. Table now has ${count ?? 0} sermons.`);
+  if (postflight.count !== rows.length) {
+    throw new Error(`Seed completed but remote count is ${postflight.count}; expected ${rows.length}.`);
+  }
+
+  console.log(`Done. Table now has ${postflight.count} sermons.`);
 };
 
 main().catch((error) => {
   console.error(error.message || error);
-  process.exit(1);
+  process.exitCode = 1;
 });

@@ -10,13 +10,7 @@ import {
 } from 'lucide-react';
 import { explainStandingOrder } from '../services/geminiService';
 import { useLocation, useNavigate } from 'react-router-dom';
-
-declare global {
-  interface Window {
-    pdfjsLib: any;
-    mammoth: any;
-  }
-}
+import { isDocxDocument, isPdfDocument, parseDocxFile, parsePdfFile } from '../utils/documentParsers';
 
 interface DocContent {
   id: string;
@@ -197,9 +191,9 @@ const StandingOrders = () => {
     try {
       let extractedContent: DocContent[] = [];
 
-      if (file.type === 'application/pdf') {
+      if (isPdfDocument(file)) {
         extractedContent = await parsePDF(file);
-      } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      } else if (isDocxDocument(file)) {
         extractedContent = await parseDocx(file);
       } else {
         alert('Please upload a PDF or DOCX file.');
@@ -219,37 +213,11 @@ const StandingOrders = () => {
   };
 
   const parsePDF = async (file: File): Promise<DocContent[]> => {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    
-    const extractedLines: DocContent[] = [];
-    
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items.map((item: any) => item.str).join(' ');
-      
-      if (pageText.trim()) {
-        extractedLines.push({
-          id: `p-${i}`,
-          text: pageText,
-          page: i
-        });
-      }
-    }
-    return extractedLines;
+    return parsePdfFile(file);
   };
 
   const parseDocx = async (file: File): Promise<DocContent[]> => {
-    const arrayBuffer = await file.arrayBuffer();
-    const result = await window.mammoth.extractRawText({ arrayBuffer: arrayBuffer });
-    
-    const lines = result.value.split('\n').filter((line: string) => line.trim().length > 0);
-    const extracted = lines.map((line: string, idx: number) => ({
-      id: `d-${idx}`,
-      text: line.trim()
-    }));
-    return extracted;
+    return parseDocxFile(file);
   };
 
   const clearDocument = () => {

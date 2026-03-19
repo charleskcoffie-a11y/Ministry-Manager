@@ -1,0 +1,945 @@
+[
+  {
+    "id": "o-for-a-thousand-tongues",
+    "title": "O for a Thousand Tongues to Sing",
+    "writer": "Charles Wesley",
+    "firstPublished": "1739",
+    "hymnalHint": "Opening praise hymn",
+    "story": "Charles Wesley wrote this hymn to mark the first anniversary of his evangelical conversion in May 1738. Methodist tradition connects the text with the joy of newly discovered salvation by grace. It quickly became one of the defining songs of Methodist praise and witness.",
+    "methodistConnection": "It has long served as a signature Methodist hymn because it joins testimony, praise, and evangelistic joy in one text.",
+    "themes": [
+      "Conversion",
+      "Praise",
+      "Grace",
+      "Mission"
+    ],
+    "source": "https://hymnary.org/text/o_for_a_thousand_tongues_to_sing",
+    "mhbNumbers": [
+      1
+    ],
+    "alternateTitles": [
+      "O for a thousand tongues",
+      "O for a Thousand Tongues"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "and-can-it-be",
+    "title": "And Can It Be",
+    "writer": "Charles Wesley",
+    "firstPublished": "1738",
+    "hymnalHint": "Conversion and assurance hymn",
+    "story": "This hymn came from the same season of awakening that changed the Wesley brothers in 1738. Its language of astonishment expresses the wonder of a sinner receiving pardon through Christ. The prison-door imagery gave it special force in Methodist revival preaching and song.",
+    "methodistConnection": "Methodists sing it as a classic declaration of justification by faith, assurance, and liberty in Christ.",
+    "themes": [
+      "Assurance",
+      "Grace",
+      "Freedom",
+      "Salvation"
+    ],
+    "source": "https://hymnary.org/text/and_can_it_be_that_i_should_gain",
+    "mhbNumbers": [
+      371
+    ],
+    "alternateTitles": [
+      "And Can It Be That I Should Gain"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "love-divine-all-loves-excelling",
+    "title": "Love Divine, All Loves Excelling",
+    "writer": "Charles Wesley",
+    "firstPublished": "1747",
+    "hymnalHint": "Holy love and sanctification hymn",
+    "story": "Charles Wesley wrote this hymn as a prayer for the indwelling love of Christ and the completion of God's renewing work in the believer. Its language moves from adoration to transformation, ending with the hope of final restoration in glory.",
+    "methodistConnection": "It is one of the clearest hymn expressions of Wesleyan holiness, perfect love, and sanctifying grace.",
+    "themes": [
+      "Holy Love",
+      "Sanctification",
+      "Prayer",
+      "Hope"
+    ],
+    "source": "https://hymnary.org/text/love_divine_all_loves_excelling",
+    "mhbNumbers": [
+      431
+    ],
+    "alternateTitles": [
+      "Love Divine"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "hark-the-herald-angels-sing",
+    "title": "Hark! the Herald Angels Sing",
+    "writer": "Charles Wesley (text)",
+    "firstPublished": "1739",
+    "hymnalHint": "Christmas hymn",
+    "story": "Charles Wesley first published the hymn with the line 'Hark, how all the welkin rings.' George Whitefield later helped popularize the opening now sung by most congregations. The familiar tune came later, showing how hymn texts often traveled through several generations before reaching their present form.",
+    "methodistConnection": "It shows how Methodist hymnody can carry rich doctrine into memorable congregational song, especially at Christmas.",
+    "themes": [
+      "Incarnation",
+      "Joy",
+      "Christmas",
+      "Doctrine"
+    ],
+    "source": "https://hymnary.org/text/hark_the_herald_angels_sing_glory_to",
+    "mhbNumbers": [
+      117
+    ],
+    "alternateTitles": [
+      "Hark the Herald Angels Sing"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "christ-the-lord-is-risen-today",
+    "title": "Christ the Lord Is Risen Today",
+    "writer": "Charles Wesley tradition",
+    "firstPublished": "1739",
+    "hymnalHint": "Easter hymn",
+    "story": "Early Methodist collections helped establish this as one of the Church's great Easter hymns. Later editorial work strengthened the familiar alleluias, but the central note remained unchanged: Christ is risen and death is defeated.",
+    "methodistConnection": "Methodists sing it as a triumphant proclamation of resurrection faith and living hope.",
+    "themes": [
+      "Resurrection",
+      "Victory",
+      "Easter",
+      "Praise"
+    ],
+    "source": "https://hymnary.org/text/christ_the_lord_is_risen_today_alleluia",
+    "mhbNumbers": [
+      204
+    ],
+    "alternateTitles": [
+      "Christ the Lord is Risen Today Alleluia"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "jesu-lover-of-my-soul",
+    "title": "Jesu, Lover of My Soul",
+    "writer": "Charles Wesley",
+    "firstPublished": "1740",
+    "hymnalHint": "Comfort and refuge hymn",
+    "story": "This is one of Charles Wesley's most personal prayers, asking Christ for shelter, mercy, and cleansing. Stories about storms and persecution surround the hymn, though not all are certain. What is certain is its deep spiritual tenderness and its lasting power in times of grief and need.",
+    "methodistConnection": "Methodist people have used it for pastoral comfort, funerals, visitation, and personal devotion because of its language of trust and refuge.",
+    "themes": [
+      "Refuge",
+      "Prayer",
+      "Comfort",
+      "Mercy"
+    ],
+    "source": "https://hymnary.org/text/jesu_lover_of_my_soul",
+    "mhbNumbers": [
+      110
+    ],
+    "alternateTitles": [
+      "Jesu Lover of My Soul",
+      "Jesus, Lover of My Soul"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "come-thou-long-expected-jesus",
+    "title": "Come, Thou Long-Expected Jesus",
+    "writer": "Charles Wesley",
+    "firstPublished": "1744",
+    "hymnalHint": "Advent hymn",
+    "story": "Charles Wesley wrote this short Advent hymn as a prayer for Christ's coming reign. The text joins Israel's hope, the Church's longing, and the believer's desire for inward freedom from sin.",
+    "methodistConnection": "Methodists sing it in Advent because it joins personal renewal and kingdom hope in classic Wesleyan fashion.",
+    "themes": [
+      "Advent",
+      "Hope",
+      "Deliverance",
+      "Kingdom"
+    ],
+    "source": "https://hymnary.org/text/come_thou_long_expected_jesus",
+    "mhbNumbers": [
+      242
+    ],
+    "alternateTitles": [
+      "Come Thou Long Expected Jesus"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "rejoice-the-lord-is-king",
+    "title": "Rejoice, the Lord Is King",
+    "writer": "Charles Wesley",
+    "firstPublished": "1744",
+    "hymnalHint": "Praise and kingship hymn",
+    "story": "This hymn celebrates the risen Christ as reigning Lord, intercessor, and coming King. Wesley's joy is not sentimental; it is rooted in the finished work and present rule of Christ.",
+    "methodistConnection": "It became a strong Methodist congregational hymn because it combines doctrinal confidence with joyful worship.",
+    "themes": [
+      "Kingship of Christ",
+      "Joy",
+      "Hope",
+      "Praise"
+    ],
+    "source": "https://hymnary.org/text/rejoice_the_lord_is_king",
+    "mhbNumbers": [
+      247
+    ],
+    "alternateTitles": [
+      "Rejoice the Lord Is King"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "forth-in-thy-name-o-lord",
+    "title": "Forth in Thy Name, O Lord, I Go",
+    "writer": "Charles Wesley",
+    "firstPublished": "1749",
+    "hymnalHint": "Work and vocation hymn",
+    "story": "Charles Wesley wrote this hymn to dedicate ordinary work to God. It asks that daily labor be offered in Christ's name and carried out in obedience, humility, and love.",
+    "methodistConnection": "It reflects classic Methodist practical holiness: serving God in everyday work, not only in church services.",
+    "themes": [
+      "Vocation",
+      "Daily Discipleship",
+      "Holiness",
+      "Prayer"
+    ],
+    "source": "https://hymnary.org/text/forth_in_thy_name_o_lord_i_go",
+    "mhbNumbers": [
+      590
+    ],
+    "alternateTitles": [
+      "Forth in Thy Name O Lord I Go"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "a-charge-to-keep-i-have",
+    "title": "A Charge to Keep I Have",
+    "writer": "Charles Wesley",
+    "firstPublished": "1762",
+    "hymnalHint": "Commitment and stewardship hymn",
+    "story": "This hymn presents the Christian life as a trust received from God. Its language of charge, calling, and account has made it especially meaningful at ordinations, covenant services, and times of recommitment.",
+    "methodistConnection": "Methodist ministers and laity alike have sung it as a solemn reminder that life and ministry belong to God.",
+    "themes": [
+      "Calling",
+      "Stewardship",
+      "Commitment",
+      "Service"
+    ],
+    "source": "https://hymnary.org/text/a_charge_to_keep_i_have_a_god_to_glorify",
+    "mhbNumbers": [
+      578
+    ],
+    "alternateTitles": [
+      "A Charge to Keep I Have A God to Glorify"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "o-for-a-heart-to-praise-my-god",
+    "title": "O for a Heart to Praise My God",
+    "writer": "Charles Wesley",
+    "firstPublished": "1742",
+    "hymnalHint": "Renewal and holiness hymn",
+    "story": "The hymn is a prayer for inward cleansing and a heart fully given to God. Wesley does not ask only for better behavior; he asks for renewed affections, holy desire, and true love.",
+    "methodistConnection": "It embodies the Methodist conviction that grace changes the heart as well as the outward life.",
+    "themes": [
+      "Holiness",
+      "Renewal",
+      "Heart Religion",
+      "Prayer"
+    ],
+    "source": "https://hymnary.org/text/o_for_a_heart_to_praise_my_god",
+    "mhbNumbers": [
+      550
+    ],
+    "alternateTitles": [
+      "O for a Heart to Praise My God"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "soldiers-of-christ-arise",
+    "title": "Soldiers of Christ, Arise",
+    "writer": "Charles Wesley",
+    "firstPublished": "1749",
+    "hymnalHint": "Spiritual warfare hymn",
+    "story": "Drawing on Ephesians 6, Wesley portrays the Christian life as disciplined spiritual struggle. The hymn calls believers to put on God's armor, persevere in prayer, and stand firm against sin and evil.",
+    "methodistConnection": "Methodist societies used it to encourage watchfulness, accountability, and courageous discipleship.",
+    "themes": [
+      "Spiritual Warfare",
+      "Perseverance",
+      "Discipleship",
+      "Prayer"
+    ],
+    "source": "https://hymnary.org/text/soldiers_of_christ_arise_and_put_your_arm",
+    "mhbNumbers": [
+      484
+    ],
+    "alternateTitles": [
+      "Soldiers of Christ Arise"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "arise-my-soul-arise",
+    "title": "Arise, My Soul, Arise",
+    "writer": "Charles Wesley",
+    "firstPublished": "1742",
+    "hymnalHint": "Assurance and intercession hymn",
+    "story": "This hymn celebrates Christ's intercession on behalf of the believer. Wesley paints a vivid picture of the risen Christ pleading before the throne, giving the Christian confidence to approach God.",
+    "methodistConnection": "It has served Methodists as a hymn of confidence, prayer, and assurance grounded in Christ's priestly work.",
+    "themes": [
+      "Intercession",
+      "Assurance",
+      "Prayer",
+      "Atonement"
+    ],
+    "source": "https://hymnary.org/text/arise_my_soul_arise_shake_off_thy_guilty",
+    "mhbNumbers": [
+      368
+    ],
+    "alternateTitles": [
+      "Arise My Soul Arise"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "o-thou-who-camest-from-above",
+    "title": "O Thou Who Camest from Above",
+    "writer": "Charles Wesley",
+    "firstPublished": "1762",
+    "hymnalHint": "Consecration hymn",
+    "story": "Wesley uses the imagery of heavenly fire to describe a heart wholly offered to God. The hymn is often sung at ordinations, prayer meetings, and consecration services because of its earnest plea for a pure and burning love.",
+    "methodistConnection": "It is cherished in Methodist worship for its strong language of dedication and sanctified zeal.",
+    "themes": [
+      "Consecration",
+      "Holiness",
+      "Prayer",
+      "Holy Spirit"
+    ],
+    "source": "https://hymnary.org/text/o_thou_who_camest_from_above",
+    "mhbNumbers": [
+      386
+    ],
+    "alternateTitles": [
+      "O Thou Who Camest from Above The Pure Celestial Fire"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "christ-whose-glory-fills-the-skies",
+    "title": "Christ, Whose Glory Fills the Skies",
+    "writer": "Charles Wesley",
+    "firstPublished": "1740",
+    "hymnalHint": "Morning hymn",
+    "story": "This hymn asks Christ, the true Light, to shine on the believer at the start of the day. Wesley links physical morning light with spiritual awakening, healing, and joy in God.",
+    "methodistConnection": "Methodists have used it as a morning prayer hymn that joins devotion, illumination, and holy living.",
+    "themes": [
+      "Morning Prayer",
+      "Light",
+      "Renewal",
+      "Hope"
+    ],
+    "source": "https://hymnary.org/text/christ_whose_glory_fills_the_skies",
+    "mhbNumbers": [
+      924
+    ],
+    "alternateTitles": [
+      "Christ Whose Glory Fills the Skies"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "depth-of-mercy",
+    "title": "Depth of Mercy! Can There Be",
+    "writer": "Charles Wesley",
+    "firstPublished": "1740",
+    "hymnalHint": "Repentance hymn",
+    "story": "Here Wesley gives voice to the sinner who can hardly believe mercy is still possible. The hymn is a vivid testimony to repentance, grace, and the wideness of divine pardon.",
+    "methodistConnection": "It became a valued Methodist hymn because revival preaching and class-meeting life depended on honest confession and hope in mercy.",
+    "themes": [
+      "Repentance",
+      "Mercy",
+      "Grace",
+      "Salvation"
+    ],
+    "source": "https://hymnary.org/text/depth_of_mercy_can_there_be",
+    "mhbNumbers": [
+      358
+    ],
+    "alternateTitles": [
+      "Depth of Mercy Can There Be",
+      "Depth of Mercy! Can There Be Mercy Still"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "ye-servants-of-god",
+    "title": "Ye Servants of God, Your Master Proclaim",
+    "writer": "Charles Wesley",
+    "firstPublished": "1744",
+    "hymnalHint": "Mission and praise hymn",
+    "story": "This hymn summons God's people to proclaim the greatness of the Lord publicly and joyfully. It reflects the evangelistic energy of early Methodism and the conviction that praise should overflow into witness.",
+    "methodistConnection": "Methodists have long used it as a rallying hymn for worship, mission, and conference gatherings.",
+    "themes": [
+      "Mission",
+      "Praise",
+      "Witness",
+      "Kingship of God"
+    ],
+    "source": "https://hymnary.org/text/ye_servants_of_god_your_master_proclaim",
+    "mhbNumbers": [
+      426
+    ],
+    "alternateTitles": [
+      "Ye Servants of God"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "author-of-faith-eternal-word",
+    "title": "Author of Faith, Eternal Word",
+    "writer": "Charles Wesley",
+    "firstPublished": "1745",
+    "hymnalHint": "Prayer for faith hymn",
+    "story": "This hymn asks Christ to give, sustain, and deepen living faith. Charles Wesley often turned doctrine into direct prayer, making theology singable and pastoral, and this hymn is a clear example of that gift.",
+    "methodistConnection": "It fits Methodist spirituality by joining heartfelt prayer with confidence in God's active grace.",
+    "themes": [
+      "Faith",
+      "Prayer",
+      "Grace",
+      "Trust"
+    ],
+    "source": "https://hymnary.org/text/author_of_faith_eternal_word",
+    "mhbNumbers": [
+      362
+    ],
+    "alternateTitles": [
+      "Author of Faith Eternal Word"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "o-love-that-wilt-not-let-me-go",
+    "title": "O Love That Wilt Not Let Me Go",
+    "writer": "George Matheson",
+    "firstPublished": "1882",
+    "hymnalHint": "Trust and surrender hymn",
+    "story": "George Matheson wrote this hymn in a brief burst of composition during a deeply emotional period in his life. Though often associated with personal sorrow and physical blindness, the hymn's lasting power lies in its confidence that divine love does not release its hold on the soul.",
+    "methodistConnection": "Methodist congregations have embraced it for funerals, devotion, and pastoral care because it speaks strongly of grace that sustains suffering believers.",
+    "themes": [
+      "Divine Love",
+      "Trust",
+      "Suffering",
+      "Hope"
+    ],
+    "source": "https://hymnary.org/text/o_love_that_wilt_not_let_me_go",
+    "mhbNumbers": [
+      448
+    ],
+    "alternateTitles": [
+      "O Love That Wilt Not Let Me Go"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "rock-of-ages",
+    "title": "Rock of Ages, Cleft for Me",
+    "writer": "Augustus M. Toplady",
+    "firstPublished": "1776",
+    "hymnalHint": "Refuge and salvation hymn",
+    "story": "Popular stories connect the hymn with Toplady taking shelter from a storm in a rocky cleft, though the historical certainty of that scene is debated. What is not debated is the hymn's unforgettable picture of Christ as the sinner's refuge and only hope.",
+    "methodistConnection": "Though written outside the Wesleyan stream, it became a staple in Methodist hymnals because of its strong language of grace, refuge, and trust in Christ.",
+    "themes": [
+      "Refuge",
+      "Atonement",
+      "Grace",
+      "Trust"
+    ],
+    "source": "https://hymnary.org/text/rock_of_ages_cleft_for_me",
+    "mhbNumbers": [
+      498
+    ],
+    "alternateTitles": [
+      "Rock of Ages"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "guide-me-o-thou-great-jehovah",
+    "title": "Guide Me, O Thou Great Jehovah",
+    "writer": "William Williams",
+    "firstPublished": "1745",
+    "hymnalHint": "Pilgrimage hymn",
+    "story": "Originally written in Welsh, this hymn presents the Christian journey through the imagery of Israel in the wilderness. Its themes of guidance, bread from heaven, and safe arrival made it beloved far beyond Wales.",
+    "methodistConnection": "Methodist worshipers cherish it because it portrays the Christian life as a pilgrim walk sustained by grace and divine leadership.",
+    "themes": [
+      "Guidance",
+      "Pilgrimage",
+      "Providence",
+      "Hope"
+    ],
+    "source": "https://hymnary.org/text/guide_me_o_thou_great_jehovah",
+    "mhbNumbers": [
+      615
+    ],
+    "alternateTitles": [
+      "Guide Me O Thou Great Jehovah",
+      "Guide me O Thou Great Redeemer"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "blessed-assurance",
+    "title": "Blessed Assurance",
+    "writer": "Fanny J. Crosby",
+    "firstPublished": "1873",
+    "hymnalHint": "Assurance hymn",
+    "story": "Fanny Crosby wrote the text after hearing a melody played by Phoebe Knapp, who is said to have asked what the tune suggested. Crosby reportedly answered at once, 'Blessed assurance, Jesus is mine!' The hymn became one of the most widely loved expressions of Christian certainty.",
+    "methodistConnection": "Its joyful language of salvation and testimony made it at home in Methodist revival meetings, choirs, and congregational worship.",
+    "themes": [
+      "Assurance",
+      "Testimony",
+      "Joy",
+      "Salvation"
+    ],
+    "source": "https://hymnary.org/text/blessed_assurance_jesus_is_mine",
+    "mhbNumbers": [
+      422
+    ],
+    "alternateTitles": [
+      "Blessed Assurance Jesus Is Mine"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "pass-me-not",
+    "title": "Pass Me Not, O Gentle Saviour",
+    "writer": "Fanny J. Crosby",
+    "firstPublished": "1868",
+    "hymnalHint": "Invitation and prayer hymn",
+    "story": "Fanny Crosby wrote this hymn as a plea for Christ's mercy and attention. Its repeated request not to be passed by gave it special emotional force in evangelistic meetings and altar-call settings.",
+    "methodistConnection": "Methodists have used it in revival worship and prayer services where personal response to grace is emphasized.",
+    "themes": [
+      "Mercy",
+      "Invitation",
+      "Prayer",
+      "Grace"
+    ],
+    "source": "https://hymnary.org/text/pass_me_not_o_gentle_saviour_hear_my",
+    "mhbNumbers": [
+      335
+    ],
+    "alternateTitles": [
+      "Pass Me Not O Gentle Saviour"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "i-need-thee-every-hour",
+    "title": "I Need Thee Every Hour",
+    "writer": "Annie S. Hawks",
+    "firstPublished": "1872",
+    "hymnalHint": "Dependence on God hymn",
+    "story": "Annie Hawks said the text came to her during an ordinary day while she reflected on her constant need of Christ. That simple beginning helped give the hymn its enduring directness: the believer's life depends on God at every moment.",
+    "methodistConnection": "Methodist congregations value it because it expresses humble dependence, prayerful living, and daily grace.",
+    "themes": [
+      "Dependence",
+      "Prayer",
+      "Grace",
+      "Daily Life"
+    ],
+    "source": "https://hymnary.org/text/i_need_thee_every_hour_most_gracious_lor",
+    "mhbNumbers": [
+      475
+    ],
+    "alternateTitles": [
+      "I Need Thee Every Hour"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "take-my-life-and-let-it-be",
+    "title": "Take My Life, and Let It Be",
+    "writer": "Frances R. Havergal",
+    "firstPublished": "1874",
+    "hymnalHint": "Consecration hymn",
+    "story": "Frances Havergal wrote this hymn after a spiritual experience that deepened her desire for full consecration to God. Each stanza offers another part of life to the Lord, making the hymn a complete act of surrender.",
+    "methodistConnection": "It has been welcomed in Methodist worship because of its clear call to holy living, stewardship, and personal dedication.",
+    "themes": [
+      "Consecration",
+      "Holiness",
+      "Service",
+      "Surrender"
+    ],
+    "source": "https://hymnary.org/text/take_my_life_and_let_it_be_consecrate",
+    "mhbNumbers": [
+      400
+    ],
+    "alternateTitles": [
+      "Take My Life and Let It Be"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "what-a-friend-we-have-in-jesus",
+    "title": "What a Friend We Have in Jesus",
+    "writer": "Joseph M. Scriven",
+    "firstPublished": "1855",
+    "hymnalHint": "Prayer and comfort hymn",
+    "story": "Joseph Scriven wrote this text as a poem of comfort for his mother during a painful period in his own life. The hymn's lasting strength is its simple reminder that every sorrow and burden may be taken to God in prayer.",
+    "methodistConnection": "It has become a beloved Methodist pastoral hymn because it brings prayer, suffering, and divine help together so plainly.",
+    "themes": [
+      "Prayer",
+      "Comfort",
+      "Friendship with Jesus",
+      "Burden Bearing"
+    ],
+    "source": "https://hymnary.org/text/what_a_friend_we_have_in_jesus",
+    "mhbNumbers": [
+      538
+    ],
+    "alternateTitles": [
+      "What a Friend We Have in Jesus"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "be-thou-my-vision",
+    "title": "Be Thou My Vision",
+    "writer": "Ancient Irish text, translated by Eleanor Hull",
+    "firstPublished": "1912 translation",
+    "hymnalHint": "Prayer for guidance hymn",
+    "story": "The text comes from an ancient Irish devotional tradition and entered English hymnody through translation. Its prayer that God be the believer's vision, wisdom, and treasure has made it one of the most durable hymn texts of the modern era.",
+    "methodistConnection": "Methodists sing it as a prayer for spiritual focus, discipleship, and a life ordered around God rather than the world.",
+    "themes": [
+      "Guidance",
+      "Devotion",
+      "Wisdom",
+      "Discipleship"
+    ],
+    "source": "https://hymnary.org/text/be_thou_my_vision_o_lord_of_my_heart",
+    "mhbNumbers": [
+      632
+    ],
+    "alternateTitles": [
+      "Be Thou My Vision O Lord of My Heart",
+      "Be Thou My Vision, Or Lord Of My Heart"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "o-jesus-i-have-promised",
+    "title": "O Jesus, I Have Promised",
+    "writer": "John E. Bode",
+    "firstPublished": "1866",
+    "hymnalHint": "Commitment hymn",
+    "story": "Bode wrote this hymn for the confirmation of his children, and its tone reflects that setting: a serious promise of lifelong discipleship. The text became widely used wherever the Church wanted to frame Christian life as loyal following of Christ.",
+    "methodistConnection": "Methodists have used it in youth dedication, confirmation, and discipleship settings because of its covenant language.",
+    "themes": [
+      "Commitment",
+      "Discipleship",
+      "Following Christ",
+      "Covenant"
+    ],
+    "source": "https://hymnary.org/text/o_jesus_i_have_promised_to_serve_thee",
+    "mhbNumbers": [
+      526
+    ],
+    "alternateTitles": [
+      "O Jesus I Have Promised"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "standing-on-the-promises",
+    "title": "Standing on the Promises",
+    "writer": "R. Kelso Carter",
+    "firstPublished": "1886",
+    "hymnalHint": "Confidence in God's word hymn",
+    "story": "R. Kelso Carter, a teacher, athlete, and later minister, wrote this hymn to affirm confidence in the promises of God. Its repeated refrain gave it strong congregational energy and made it a favorite in revival and testimony meetings.",
+    "methodistConnection": "Methodists adopted it readily because it emphasizes trust in Scripture, assurance, and steadfast Christian life.",
+    "themes": [
+      "Promises of God",
+      "Faith",
+      "Assurance",
+      "Perseverance"
+    ],
+    "source": "https://hymnary.org/text/standing_on_the_promises_of_christ_my",
+    "mhbNumbers": [],
+    "alternateTitles": [
+      "Standing on the Promises"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "when-i-survey-the-wondrous-cross",
+    "title": "When I Survey the Wondrous Cross",
+    "writer": "Isaac Watts",
+    "firstPublished": "1707",
+    "hymnalHint": "Passion hymn",
+    "story": "Isaac Watts wrote this hymn to place the believer at the foot of the cross in reverent awe. Its movement from contemplation to surrender helped shape English-language hymnody for generations.",
+    "methodistConnection": "Methodists treasure it because it invites deep reflection on Christ's sacrifice and a fitting response of total devotion.",
+    "themes": [
+      "Cross",
+      "Atonement",
+      "Worship",
+      "Surrender"
+    ],
+    "source": "https://hymnary.org/text/when_i_survey_the_wondrous_cross",
+    "mhbNumbers": [
+      182
+    ],
+    "alternateTitles": [
+      "When I Survey the Wondrous Cross"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "all-hail-the-power-of-jesus-name",
+    "title": "All Hail the Power of Jesus' Name",
+    "writer": "Edward Perronet",
+    "firstPublished": "1779",
+    "hymnalHint": "Coronation hymn",
+    "story": "Perronet wrote this hymn as a majestic declaration of Christ's universal lordship. Over time it became one of the Church's great procession and festival hymns, often called a coronation hymn for King Jesus.",
+    "methodistConnection": "Its strong Christ-centered praise made it a natural fit for Methodist worship and conference gatherings.",
+    "themes": [
+      "Lordship of Christ",
+      "Praise",
+      "Kingship",
+      "Worship"
+    ],
+    "source": "https://hymnary.org/text/all_hail_the_power_of_jesus_name_let_ang",
+    "mhbNumbers": [
+      91
+    ],
+    "alternateTitles": [
+      "All Hail the Power of Jesus Name"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "amazing-grace",
+    "title": "Amazing Grace",
+    "writer": "John Newton",
+    "firstPublished": "1779",
+    "hymnalHint": "Grace and testimony hymn",
+    "story": "John Newton wrote the text out of his own experience of sin, conversion, and pastoral ministry. The hymn gradually became one of the most recognized Christian songs in the world because its testimony is simple, honest, and unforgettable.",
+    "methodistConnection": "Methodists embraced it because the language of grace, repentance, and changed life fits revival spirituality so naturally.",
+    "themes": [
+      "Grace",
+      "Testimony",
+      "Conversion",
+      "Mercy"
+    ],
+    "source": "https://hymnary.org/text/amazing_grace_how_sweet_the_sound",
+    "mhbNumbers": [],
+    "alternateTitles": [
+      "Amazing Grace How Sweet the Sound"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "to-god-be-the-glory",
+    "title": "To God Be the Glory",
+    "writer": "Fanny J. Crosby",
+    "firstPublished": "1875",
+    "hymnalHint": "Celebration and praise hymn",
+    "story": "Fanny Crosby's text is full of gospel celebration and doxology. Though some of her hymns gained popularity in America first, this one later became an international congregational favorite because of its expansive praise and joyful refrain.",
+    "methodistConnection": "Methodists use it gladly because it centers salvation in Christ and directs all praise back to God.",
+    "themes": [
+      "Praise",
+      "Redemption",
+      "Joy",
+      "Doxology"
+    ],
+    "source": "https://hymnary.org/text/to_god_be_the_glory_great_things_he_hath",
+    "mhbNumbers": [
+      313
+    ],
+    "alternateTitles": [
+      "To God Be the Glory Great Things He Hath Done"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "great-is-thy-faithfulness",
+    "title": "Great Is Thy Faithfulness",
+    "writer": "Thomas O. Chisholm",
+    "firstPublished": "1923",
+    "hymnalHint": "Faithfulness of God hymn",
+    "story": "Thomas Chisholm wrote the text out of steady reflection on God's constancy rather than out of a dramatic event. Its quiet confidence in divine faithfulness, mercy, and daily provision gave it wide appeal across many churches.",
+    "methodistConnection": "Methodists have received it warmly because it speaks to pastoral life, gratitude, and trust in God's daily mercies.",
+    "themes": [
+      "Faithfulness",
+      "Providence",
+      "Gratitude",
+      "Hope"
+    ],
+    "source": "https://hymnary.org/text/great_is_thy_faithfulness_o_god_my_fathe",
+    "mhbNumbers": [],
+    "alternateTitles": [
+      "Great Is Thy Faithfulness O God My Father"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "blest-be-the-tie-that-binds",
+    "title": "Blest Be the Tie That Binds",
+    "writer": "John Fawcett",
+    "firstPublished": "1782",
+    "hymnalHint": "Fellowship hymn",
+    "story": "John Fawcett wrote this hymn around the pain and blessing of Christian fellowship after nearly leaving a congregation he deeply loved. The hymn's emphasis on mutual care, prayer, and shared burdens made it a favorite in many traditions.",
+    "methodistConnection": "Its stress on spiritual fellowship connects naturally with Methodist class meetings, societies, and connectional life.",
+    "themes": [
+      "Fellowship",
+      "Unity",
+      "Pastoral Care",
+      "Love"
+    ],
+    "source": "https://hymnary.org/text/blest_be_the_tie_that_binds",
+    "mhbNumbers": [],
+    "alternateTitles": [
+      "Blest Be the Tie That Binds"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "my-faith-looks-up-to-thee",
+    "title": "My Faith Looks Up to Thee",
+    "writer": "Ray Palmer",
+    "firstPublished": "1830",
+    "hymnalHint": "Faith and trust hymn",
+    "story": "Ray Palmer wrote the text while reflecting on salvation and consecration as a young man. Its prayerful tone and simple focus on Christ made it useful in worship, mission, and personal devotion.",
+    "methodistConnection": "Methodists have valued it because it speaks directly to faith, grace, and steady dependence on Christ.",
+    "themes": [
+      "Faith",
+      "Trust",
+      "Prayer",
+      "Devotion"
+    ],
+    "source": "https://hymnary.org/text/my_faith_looks_up_to_thee",
+    "mhbNumbers": [
+      238
+    ],
+    "alternateTitles": [
+      "My Faith Looks Up to Thee"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "jesus-thy-blood-and-righteousness",
+    "title": "Jesus, Thy Blood and Righteousness",
+    "writer": "Nikolaus von Zinzendorf, translated by John Wesley",
+    "firstPublished": "18th-century Wesley translation",
+    "hymnalHint": "Justification hymn",
+    "story": "John Wesley translated this Moravian text because its teaching on Christ's righteousness spoke directly to the evangelical awakening. The hymn became a strong confession of justification and bold access to God through Christ.",
+    "methodistConnection": "It shows how early Methodism could receive and adapt hymns from other traditions when they clearly expressed evangelical truth.",
+    "themes": [
+      "Justification",
+      "Righteousness",
+      "Grace",
+      "Assurance"
+    ],
+    "source": "https://hymnary.org/text/jesus_thy_blood_and_righteousness",
+    "mhbNumbers": [
+      370
+    ],
+    "alternateTitles": [
+      "Jesus Thy Blood and Righteousness",
+      "Jesu Thy Blood And Righteousness"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "come-sinners-to-the-gospel-feast",
+    "title": "Come, Sinners, to the Gospel Feast",
+    "writer": "Charles Wesley",
+    "firstPublished": "1747",
+    "hymnalHint": "Invitation hymn",
+    "story": "This hymn turns the gospel invitation into congregational song. Wesley uses the image of the feast to proclaim grace that welcomes the unworthy and calls all to come to Christ.",
+    "methodistConnection": "It expresses the evangelistic openness of early Methodism and its confidence that the gospel invitation is genuinely for all.",
+    "themes": [
+      "Invitation",
+      "Grace",
+      "Evangelism",
+      "Salvation"
+    ],
+    "source": "https://hymnary.org/text/come_sinners_to_the_gospel_feast",
+    "mhbNumbers": [
+      323
+    ],
+    "alternateTitles": [
+      "Come Sinners to the Gospel Feast"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "help-us-to-help-each-other-lord",
+    "title": "Help Us to Help Each Other, Lord",
+    "writer": "Charles Wesley",
+    "firstPublished": "1742",
+    "hymnalHint": "Marriage and fellowship hymn",
+    "story": "Though often sung at weddings, the hymn has a wider concern: mutual support, holy love, and faithful Christian companionship. Wesley's language shows that Christian love should strengthen holiness, service, and perseverance.",
+    "methodistConnection": "Methodists value it because it joins love, accountability, and spiritual growth in one prayer.",
+    "themes": [
+      "Christian Love",
+      "Marriage",
+      "Fellowship",
+      "Holiness"
+    ],
+    "source": "https://hymnary.org/text/help_us_to_help_each_other_lord",
+    "mhbNumbers": [
+      717
+    ],
+    "alternateTitles": [
+      "Help Us to Help Each Other Lord"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "come-o-thou-traveler-unknown",
+    "title": "Come, O Thou Traveler Unknown",
+    "writer": "Charles Wesley",
+    "firstPublished": "1742",
+    "hymnalHint": "Wrestling prayer hymn",
+    "story": "Wesley built this hymn on Jacob's wrestling at Peniel in Genesis 32. The long poem became famous for its portrayal of spiritual struggle that ends in blessing, revelation, and praise.",
+    "methodistConnection": "It reflects Methodist seriousness about prayer, perseverance, and the transforming encounter with God.",
+    "themes": [
+      "Prayer",
+      "Perseverance",
+      "Encounter with God",
+      "Blessing"
+    ],
+    "source": "https://hymnary.org/text/come_o_thou_traveler_unknown_whom_still",
+    "mhbNumbers": [
+      339,
+      340
+    ],
+    "alternateTitles": [
+      "Come O Thou Traveler Unknown",
+      "Come, O Thou Traveller Unknown"
+    ],
+    "songRefs": []
+  },
+  {
+    "id": "the-churchs-one-foundation",
+    "title": "The Church's One Foundation",
+    "writer": "Samuel J. Stone",
+    "firstPublished": "1866",
+    "hymnalHint": "Church unity hymn",
+    "story": "Stone wrote this hymn during a period of doctrinal controversy to affirm the Church's identity in Christ. Its lasting appeal comes from its balance of suffering, hope, catholicity, and loyalty to Jesus as the one foundation.",
+    "methodistConnection": "Methodists often sing it at connectional and ecumenical gatherings because it combines church identity with humility and hope.",
+    "themes": [
+      "Church",
+      "Unity",
+      "Hope",
+      "Christ"
+    ],
+    "source": "https://hymnary.org/text/the_churchs_one_foundation_is_jesus_ch",
+    "mhbNumbers": [
+      701
+    ],
+    "alternateTitles": [
+      "The Churchs One Foundation"
+    ],
+    "songRefs": []
+  }
+]

@@ -95,6 +95,37 @@ export interface ProgramCSV {
   Lead: string;
 }
 
+export type ServiceHymnSlot = 'opening' | 'scripture' | 'sermon' | 'closing';
+
+export interface ServiceHymnSelection {
+  slot: ServiceHymnSlot;
+  songId: number;
+  collection: string;
+  code: string;
+  number: number | null;
+  title: string;
+  previewLine?: string | null;
+  reasons?: string[];
+}
+
+export interface ServiceHymnAiGuidance {
+  focus: string;
+  keywords: string[];
+  rationale: string;
+}
+
+export interface ServiceHymnPlanRecord {
+  selections: ServiceHymnSelection[];
+  generatedAt?: string;
+  generatedFrom?: {
+    title?: string;
+    theme?: string;
+    main_scripture?: string;
+  };
+  aiAssisted?: boolean;
+  aiGuidance?: Partial<Record<ServiceHymnSlot, ServiceHymnAiGuidance>>;
+}
+
 export interface Sermon {
   id: string;
   created_at?: string;
@@ -137,6 +168,7 @@ export interface Sermon {
   outline_points?: string[];
   supporting_scriptures?: string[];
   date_to_preach?: string;
+  service_hymns?: ServiceHymnPlanRecord | null;
 }
 
 // Unified Song Interface for MHB, Canticles, and CAN

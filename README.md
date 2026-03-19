@@ -10,21 +10,28 @@ This is a React application built with TypeScript and Tailwind CSS, using Supaba
    npm install
    ```
 
-2. **Set up your API keys:**
+2. **Set up your environment:**
    - Copy `.env.example` to `.env`:
      ```bash
      cp .env.example .env
      ```
-   - Get your Gemini API key from: https://aistudio.google.com/app/apikey
-   - Open `.env` and add your API key:
+  - If you want AI to work from a shared GitHub Pages link, also set your own Supabase project URL and anon key.
+  - Get your Gemini API key from: https://aistudio.google.com/app/apikey
+  - Open `.env` and add your values:
      ```
-     VITE_GEMINI_API_KEY=your-actual-api-key-here
+    VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+    VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+    GEMINI_API_KEY=your-actual-api-key-here
      ```
 
-3. **Build and preview:**
+3. **Choose an AI backend:**
+  - Local only: run `npm run dev:secure` and keep Gemini on the local secure proxy.
+  - Shared/public link: deploy the Supabase Edge Function in [supabase/functions/gemini-proxy/index.ts](supabase/functions/gemini-proxy/index.ts) and build the frontend with your `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` values.
+
+4. **Build and preview locally:**
    ```bash
    npm run build
-   npm run preview
+   npm run preview:secure
    ```
    - Open `http://localhost:4173/Ministry-Manager/` in your browser
 
@@ -32,11 +39,36 @@ This is a React application built with TypeScript and Tailwind CSS, using Supaba
 
 1. Install dependencies: `npm install`
 2. Run a production build to ensure the bundle compiles: `npm run build`
-3. Preview the built site locally (mirrors the GitHub Pages base path):
-   `npm run preview -- --host --port 4173 --strictPort`
+3. Preview the built site locally with the secure Gemini proxy:
+  `npm run preview:secure`
 4. Open `http://localhost:4173/Ministry-Manager/` in your browser to verify the app renders instead of a blank screen.
 
+If you only run `npm run dev` or `npm run preview`, the app still loads, but Gemini-powered features will not work unless you have also configured and deployed the Supabase Edge Function.
+
 The `vite.config.ts` `base` value is already set to `/Ministry-Manager/` so the preview and GitHub Pages deployment load assets correctly from the subdirectory.
+
+## Supabase AI Hosting
+
+Use Supabase if you want the GitHub Pages version of the app to keep AI working without exposing your Gemini key in the browser.
+
+1. Create or use your own Supabase project.
+2. Put these values in `.env` before building the frontend:
+  ```env
+  VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+  VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+  ```
+3. Install and log in to the Supabase CLI on the machine where you deploy.
+4. Set the Gemini secret on Supabase:
+  ```bash
+  supabase secrets set GEMINI_API_KEY=your-new-gemini-key
+  ```
+5. Deploy the Edge Function from this repo:
+  ```bash
+  supabase functions deploy gemini-proxy --project-ref your-project-ref
+  ```
+6. Build and deploy the frontend as usual.
+
+Once `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are present at build time, the frontend will call the Supabase Edge Function automatically instead of the local proxy.
 
 ## 1. Supabase Setup (Required)
 
@@ -373,9 +405,13 @@ using (bucket_id = 'meeting-minutes-json');
 Create a `.env` file in the root directory:
 
 ```env
-REACT_APP_SUPABASE_URL=your_supabase_project_url
-REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
-API_KEY=your_gemini_api_key
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+GEMINI_API_KEY=your_gemini_api_key
+
+# Optional: only for Node helper scripts that can bootstrap schema automatically.
+# Never expose this in client-side code.
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
 
 ### How to get these keys:
@@ -384,16 +420,69 @@ API_KEY=your_gemini_api_key
 *   Log in to your [Supabase Dashboard](https://supabase.com/dashboard).
 *   Select your project.
 *   Go to **Project Settings** (gear icon) -> **API**.
-*   Copy the **Project URL** -> `REACT_APP_SUPABASE_URL`.
-*   Copy the **Project API keys** (anon / public) -> `REACT_APP_SUPABASE_ANON_KEY`.
+*   Copy the **Project URL** -> `VITE_SUPABASE_URL`.
+*   Copy the **Project API keys** (anon / public) -> `VITE_SUPABASE_ANON_KEY`.
+*   Optional: copy the **service_role** key only if you want Node helper scripts to create schema automatically -> `SUPABASE_SERVICE_ROLE_KEY`.
 
 **2. Gemini API Key:**
 *   Go to [Google AI Studio](https://aistudio.google.com/).
 *   Click on **Get API key**.
 *   Create a key in a new or existing Google Cloud project.
-*   Copy the key string -> `API_KEY`.
+*   Copy the key string -> `GEMINI_API_KEY`.
+*   For local-only AI, start the app with `npm run dev:secure` or `npm run preview:secure` so the key stays server-side.
+*   For GitHub Pages or other static hosting, store `GEMINI_API_KEY` in Supabase Edge Function secrets instead of the frontend.
 
-*Note: If using Vite, use `VITE_SUPABASE_URL` etc., and update `supabaseClient.ts` accordingly.*
+### John Wesley Library (Sermons + Quotes + Diary + Hymn Stories)
+
+The app already ships with the full John Wesley sermon library in [public/wesley/sermons.json](public/wesley/sermons.json).
+
+The app also ships with an expanded Wesley quote library in [public/wesley/quotes.json](public/wesley/quotes.json).
+
+The app also ships with a searchable Wesley diary corpus in [public/wesley/diary.json](public/wesley/diary.json).
+
+The diary also ships as a lightweight list index in [public/wesley/diary_index.json](public/wesley/diary_index.json) plus a full-text lookup in [public/wesley/diary_texts.json](public/wesley/diary_texts.json) so the diary tab can render faster before the full text finishes loading.
+
+The app also ships with an expanded hymn-story corpus in [public/wesley/hymn_stories.json](public/wesley/hymn_stories.json).
+
+The app also ships with canticle story mappings in [public/wesley/canticle_stories.json](public/wesley/canticle_stories.json).
+
+- No Supabase table is required to read the 44 sermons in the app.
+- The John Wesley page uses bundled local JSON corpora for sermons, quotes, diary entries, and hymn stories.
+- A quote of the day is generated automatically from the local quote set, based on the current date.
+- Wesley diary entries can be searched, filtered by year, and read directly in the `Wesley Diary` tab.
+- Stories behind classic Methodist hymns can be searched and read in the `Hymn Stories` tab.
+- Stories behind Methodist canticles are also available and matched by explicit collection/code references.
+- When a hymn in the Hymnal matches a curated story, the reader shows a `Story Behind This Hymn` action and an in-reader story panel.
+- Run `npm run sync:hymn-stories` to refresh MHB/canticle mappings from the hymnal export JSON.
+- The SQL and seed scripts remain optional only if you later want a separate Supabase copy for querying or editing.
+
+Build / refresh the diary corpus locally:
+
+1. Run `npm run build:wesley:diary`.
+2. This fetches CCEL journal pages and rewrites `public/wesley/diary.json`, `public/wesley/diary_index.json`, and `public/wesley/diary_texts.json`.
+
+Song dedupe helper:
+
+1. Run `npm run songs:dedupe` for a dry-run duplicate report.
+2. Run `npm run songs:dedupe:apply` only when you are ready to delete exact duplicate `songs` rows.
+3. The script keeps one canonical row per exact duplicate group and leaves conflicting rows untouched for manual review.
+4. Run `npm run songs:dedupe:report` to export all remaining conflicting collection/code/number groups to `reports/song-conflicts.json`.
+5. Run `npm run songs:dedupe:csv` to export a prioritized review template CSV at `reports/song-conflicts-review.csv`.
+6. If no conflicts remain, `npm run songs:dedupe:csv` writes a header-only CSV and exits successfully with `Rows exported: 0`.
+7. Full-cleanup baseline: after conflict resolution, `npm run songs:dedupe:report` should show `conflictingGroups: 0` and `exactDuplicateGroups: 0`.
+8. One-off SQL cleanup scripts used during remediation are archived in `sql/archive/song-cleanup-2026-03-19/`.
+
+Quote theme consistency checks:
+
+1. Run `npm run hooks:install` once to enable repository-managed Git hooks.
+2. Every commit will run `npm run check:wesley:themes` via `.githooks/pre-commit`.
+3. Run `npm run check:wesley:themes:strict` for CI-style strict checking.
+
+Optional Supabase sync later:
+
+1. Run `sql/john_wesley_sermons_chunks/00_schema_min.sql` once in **Supabase -> SQL Editor -> New query**.
+2. Run `npm run seed:wesley` to upsert all 44 sermons into `public.john_wesley_sermons`.
+3. Run `npm run wesley:status` to verify that Supabase now has `44/44` sermons.
 
 
 ## 3. Running the Web App

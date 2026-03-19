@@ -1,8 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Song } from '../types';
-import { Search, Music, BookOpen, ChevronRight, ArrowLeft, Loader2, Database, ZoomIn, ZoomOut, Globe, List, X, AlertCircle, PlayCircle, Star, Heart } from 'lucide-react';
+import { Search, Music, BookOpen, ChevronRight, ArrowLeft, Loader2, ZoomIn, ZoomOut, Globe, List, X, AlertCircle, PlayCircle, Star, Heart } from 'lucide-react';
+import localWesleyHymnStories from '../public/wesley/hymn_stories.json';
+import localWesleyCanticleStories from '../public/wesley/canticle_stories.json';
+import { findHymnStoryForSong, getStoryReferenceLabels, normalizeHymnStories } from '../utils/hymnStories';
 
 // --- Helper: Advanced Stanza Parser ---
 const parseStanzas = (raw: string | undefined | null): string[][] => {
@@ -21,8 +25,8 @@ const parseStanzas = (raw: string | undefined | null): string[][] => {
 
         // Detect Stanza Breakers (Empty lines or Headers)
         const isHeader = 
-            /^\d+\.?$/.test(text) || // "1", "1."
-            /^[-0-9\s]*(Verse|Stanza|Hymn)\s*\d*/i.test(text); // "Verse 1", "Stanza 2"
+            /^\d+\.?$/.test(text) ||
+            /^[-0-9\s]*(Verse|Stanza|Hymn)\s*\d*/i.test(text);
 
         const isEmpty = !text;
 
@@ -92,7 +96,210 @@ const getCollectionStyle = (collection: string) => {
     };
 };
 
+const BUNDLED_HYMN_STORIES = normalizeHymnStories([
+    ...(Array.isArray(localWesleyHymnStories) ? localWesleyHymnStories : []),
+    ...(Array.isArray(localWesleyCanticleStories) ? localWesleyCanticleStories : []),
+]);
+
+const SONG_BATCH_SIZE = 1000;
+
+const COLLECTION_ORDER: Record<string, number> = {
+    MHB: 1,
+    HYMNS: 1,
+    GENERAL: 1,
+    SONGS: 1,
+    CANTICLES_EN: 2,
+    CANTICLES: 2,
+    CANTICLE: 2,
+    CANTICLES_FANTE: 3,
+    CAN: 4,
+    LOCAL: 4,
+    GHANA: 4,
+};
+
+const normalizeCollectionKey = (value: string | null | undefined) => String(value ?? '').trim().toUpperCase();
+const normalizeSongCode = (value: string | null | undefined) => String(value ?? '').trim().toUpperCase();
+const normalizeSongTitle = (value: string | null | undefined) => String(value ?? '').toLowerCase().replace(/\s+/gu, ' ').trim();
+
+const toPositiveSongNumber = (value: number | null | undefined) => {
+    if (Number.isInteger(value) && Number(value) > 0) {
+        return Number(value);
+    }
+
+    return null;
+};
+
+const buildSongIdentityKey = (song: Song) => {
+    const collection = normalizeCollectionKey(song.collection);
+    const code = normalizeSongCode(song.code);
+    const number = toPositiveSongNumber(song.number);
+
+    if (collection && code && number !== null) {
+        return `CODE_NUMBER|${collection}|${code}|${number}`;
+    }
+
+    if (collection && code) {
+        return `CODE|${collection}|${code}`;
+    }
+
+    if (collection && number !== null) {
+        return `NUMBER|${collection}|${number}`;
+    }
+
+    return `TITLE|${collection}|${normalizeSongTitle(song.title)}`;
+};
+
+const hasLyrics = (value: string | null | undefined) => Boolean(String(value ?? '').trim());
+
+const selectPreferredSong = (currentSong: Song, candidateSong: Song) => {
+    const currentHasLyrics = hasLyrics(currentSong.lyrics);
+    const candidateHasLyrics = hasLyrics(candidateSong.lyrics);
+
+    if (currentHasLyrics !== candidateHasLyrics) {
+        return candidateHasLyrics ? candidateSong : currentSong;
+    }
+
+    return Number(candidateSong.id) < Number(currentSong.id) ? candidateSong : currentSong;
+};
+
+const dedupeSongs = (items: Song[]) => {
+    const canonicalByIdentity = new Map<string, Song>();
+
+    for (const song of items) {
+        const identityKey = buildSongIdentityKey(song);
+        const existingSong = canonicalByIdentity.get(identityKey);
+
+        if (!existingSong) {
+            canonicalByIdentity.set(identityKey, song);
+            continue;
+        }
+
+        canonicalByIdentity.set(identityKey, selectPreferredSong(existingSong, song));
+    }
+
+    return [...canonicalByIdentity.values()];
+};
+
+const sortSongs = (left: Song, right: Song) => {
+    const leftCollectionOrder = COLLECTION_ORDER[normalizeCollectionKey(left.collection)] ?? 99;
+    const rightCollectionOrder = COLLECTION_ORDER[normalizeCollectionKey(right.collection)] ?? 99;
+
+    if (leftCollectionOrder !== rightCollectionOrder) {
+        return leftCollectionOrder - rightCollectionOrder;
+    }
+
+    const leftNumber = left.number ?? Number.MAX_SAFE_INTEGER;
+    const rightNumber = right.number ?? Number.MAX_SAFE_INTEGER;
+    if (leftNumber !== rightNumber) {
+        return leftNumber - rightNumber;
+    }
+
+    return left.title.localeCompare(right.title);
+};
+
+const normalizeSearchText = (value: string | number | null | undefined) =>
+    String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/gu, '')
+        .replace(/[ɛƐ]/gu, 'e')
+        .replace(/[ɔƆ]/gu, 'o')
+        .replace(/[ŋŊ]/gu, 'n')
+        .replace(/[ɖƉ]/gu, 'd')
+        .replace(/&/gu, ' and ')
+        .replace(/['’`]/gu, '')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .toLowerCase()
+        .replace(/\s+/gu, ' ')
+        .trim();
+
+const getUniqueQueryTokens = (value: string) => Array.from(new Set(normalizeSearchText(value).split(' ').filter(Boolean)));
+
+const buildSongSearchIndex = (song: Song) => {
+    const title = normalizeSearchText(song.title);
+    const rawTitle = normalizeSearchText(song.raw_title);
+    const lyrics = normalizeSearchText(song.lyrics);
+    const preview = normalizeSearchText(getPreviewText(song.lyrics));
+    const code = normalizeSearchText(song.code);
+    const collection = normalizeSearchText(song.collection);
+    const number = normalizeSearchText(song.number);
+    const author = normalizeSearchText(song.author);
+    const tags = normalizeSearchText(song.tags);
+    const referenceNumber = normalizeSearchText(song.reference_number);
+
+    const fields = [title, rawTitle, preview, lyrics, code, collection, number, author, tags, referenceNumber].filter(Boolean);
+    const tokenSet = new Set(fields.flatMap((field) => field.split(' ').filter(Boolean)));
+
+    return {
+        title,
+        rawTitle,
+        lyrics,
+        preview,
+        code,
+        collection,
+        number,
+        author,
+        tags,
+        referenceNumber,
+        combined: fields.join(' '),
+        tokenSet,
+    };
+};
+
+const getSongSearchScore = (song: Song, rawQuery: string) => {
+    const normalizedQuery = normalizeSearchText(rawQuery);
+    if (!normalizedQuery) {
+        return 0;
+    }
+
+    const queryTokens = getUniqueQueryTokens(rawQuery);
+    const searchIndex = buildSongSearchIndex(song);
+
+    const tokenMatches = queryTokens.filter((token) => {
+        if (searchIndex.tokenSet.has(token)) {
+            return true;
+        }
+
+        for (const candidateToken of searchIndex.tokenSet) {
+            if (candidateToken.startsWith(token) || token.startsWith(candidateToken)) {
+                return true;
+            }
+        }
+
+        return false;
+    });
+
+    const allTokensMatch = queryTokens.length > 0 && tokenMatches.length === queryTokens.length;
+
+    let score = 0;
+
+    if (searchIndex.code === normalizedQuery) score += 1000;
+    if (searchIndex.number === normalizedQuery) score += 950;
+    if (searchIndex.title === normalizedQuery || searchIndex.rawTitle === normalizedQuery) score += 900;
+    if (searchIndex.title.startsWith(normalizedQuery) || searchIndex.rawTitle.startsWith(normalizedQuery)) score += 760;
+    if (searchIndex.title.includes(normalizedQuery) || searchIndex.rawTitle.includes(normalizedQuery)) score += 680;
+    if (searchIndex.preview.includes(normalizedQuery)) score += 560;
+    if (searchIndex.lyrics.includes(normalizedQuery)) score += 520;
+    if (searchIndex.code.includes(normalizedQuery)) score += 480;
+    if (searchIndex.referenceNumber.includes(normalizedQuery)) score += 360;
+    if (searchIndex.author.includes(normalizedQuery) || searchIndex.tags.includes(normalizedQuery)) score += 320;
+    if (allTokensMatch) score += 240;
+    score += tokenMatches.length * 45;
+
+    return score;
+};
+
+type HymnalNavigationSelection = {
+        songId: number;
+        collection: string;
+        code: string;
+        number: number | null;
+        title: string;
+        targetTab: 'hymns' | 'canticles' | 'can' | 'all' | 'favorites';
+};
+
 const Hymnal: React.FC = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'hymns' | 'canticles' | 'can' | 'all' | 'favorites'>('hymns');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -102,6 +309,10 @@ const Hymnal: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<Song | null>(null);
   const [fontSize, setFontSize] = useState(20);
+    const [showHymnStory, setShowHymnStory] = useState(false);
+    const [pendingSelection, setPendingSelection] = useState<HymnalNavigationSelection | null>(null);
+
+    const routeSelection = ((location.state as { hymnSelection?: HymnalNavigationSelection } | null)?.hymnSelection) ?? null;
 
   // Toast State
   const [toast, setToast] = useState<{message: string, visible: boolean}>({ message: '', visible: false });
@@ -109,6 +320,47 @@ const Hymnal: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [activeTab]);
+
+    useEffect(() => {
+        if (!routeSelection) {
+                return;
+        }
+
+        setPendingSelection(routeSelection);
+        setSearchQuery(routeSelection.code || routeSelection.title || '');
+
+        if (routeSelection.targetTab !== activeTab) {
+                setActiveTab(routeSelection.targetTab);
+        }
+    }, [routeSelection, activeTab]);
+
+    useEffect(() => {
+        setShowHymnStory(false);
+    }, [selectedItem?.id]);
+
+    useEffect(() => {
+        if (!pendingSelection || loading) {
+                return;
+        }
+
+        const matchedSong = songs.find((song) => {
+                if (song.id === pendingSelection.songId) {
+                        return true;
+                }
+
+                return normalizeCollectionKey(song.collection) === normalizeCollectionKey(pendingSelection.collection)
+                        && normalizeSongCode(song.code) === normalizeSongCode(pendingSelection.code)
+                        && (song.number ?? null) === pendingSelection.number;
+        });
+
+        if (!matchedSong) {
+                return;
+        }
+
+        setSelectedItem(matchedSong);
+        setPendingSelection(null);
+        navigate('/hymnal', { replace: true, state: {} });
+    }, [pendingSelection, songs, loading, navigate]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -126,22 +378,40 @@ const Hymnal: React.FC = () => {
     // 'all' and 'favorites' don't use the 'in' filter on collection
 
     try {
-        let query = supabase.from('songs').select('*');
-        
-        if (activeTab === 'favorites') {
-            query = query.eq('is_favorite', true);
-        } else if (activeTab !== 'all') {
-            query = query.in('collection', collections);
-        }
-        
-        // Sorting
-        const { data, error } = await query.order('number', { ascending: true });
+        const loadedSongs: Song[] = [];
+        let from = 0;
 
-        if (error) throw error;
-        
-        if (data) {
-            setSongs(data);
+        while (true) {
+            let query = supabase
+                .from('songs')
+                .select('*')
+                .order('number', { ascending: true })
+                .order('id', { ascending: true })
+                .range(from, from + SONG_BATCH_SIZE - 1);
+
+            if (activeTab === 'favorites') {
+                query = query.eq('is_favorite', true);
+            } else if (activeTab !== 'all') {
+                query = query.in('collection', collections);
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+
+            if (!data?.length) {
+                break;
+            }
+
+            loadedSongs.push(...data);
+
+            if (data.length < SONG_BATCH_SIZE) {
+                break;
+            }
+
+            from += SONG_BATCH_SIZE;
         }
+
+        setSongs(dedupeSongs(loadedSongs).sort(sortSongs));
     } catch (err: any) {
         console.error("Error fetching songs:", err);
         const msg = err.message || err.error_description || JSON.stringify(err);
@@ -153,17 +423,28 @@ const Hymnal: React.FC = () => {
 
   const getFilteredItems = () => {
     if (!searchQuery) return songs;
-    const q = searchQuery.toLowerCase();
-    
-    return songs.filter(s => 
-      s.title.toLowerCase().includes(q) || 
-      (s.number && s.number.toString().includes(q)) ||
-      (s.lyrics && s.lyrics.toLowerCase().includes(q)) ||
-      (s.code && s.code.toLowerCase().includes(q))
-    );
+
+        return songs
+            .map((song) => ({
+                song,
+                score: getSongSearchScore(song, searchQuery),
+            }))
+            .filter(({ score }) => score > 0)
+            .sort((left, right) => {
+                if (left.score !== right.score) {
+                        return right.score - left.score;
+                }
+
+                return sortSongs(left.song, right.song);
+            })
+            .map(({ song }) => song);
   };
 
   const filteredItems = getFilteredItems();
+    const matchedSelectedStory = findHymnStoryForSong(selectedItem, BUNDLED_HYMN_STORIES);
+        const selectedStoryReferenceLabels = matchedSelectedStory
+                ? getStoryReferenceLabels(matchedSelectedStory, selectedItem?.collection)
+                : [];
 
   const showToast = (msg: string) => {
     setToast({ message: msg, visible: true });
@@ -210,53 +491,6 @@ const Hymnal: React.FC = () => {
     }
   };
 
-  const seedDatabase = async () => {
-      setLoading(true);
-      setErrorMsg(null);
-      
-      const sampleSongs: Song[] = [
-          { 
-              id: 4130, collection: "MHB", code: "MHB1", number: 1, 
-              title: "O for a thousand tongues to sing", 
-              lyrics: "O for a thousand tongues to sing\nMy great Redeemer's praise,\nThe glories of my God and King,\nThe triumphs of His grace!\n\nMy gracious Master and my God,\nAssist me to proclaim,\nTo spread through all the earth abroad\nThe honours of Thy name.",
-              is_favorite: false
-          },
-          { 
-              id: 4200, collection: "MHB", code: "MHB242", number: 242, 
-              title: "And Can It Be", 
-              lyrics: "And can it be that I should gain\nAn interest in the Savior's blood?\nDied He for me, who caused His pain—\nFor me, who Him to death pursued?\nAmazing love! How can it be,\nThat Thou, my God, shouldst die for me?",
-              is_favorite: true 
-          },
-          { 
-              id: 5001, collection: "CANTICLES_EN", code: "CANT1", number: 1, 
-              title: "Te Deum Laudamus", 
-              lyrics: "We praise You, O God; we acknowledge You to be the Lord.\nAll the earth worships You, the Father everlasting.\nTo You all Angels cry aloud; the Heavens and all the Powers therein.",
-              is_favorite: false 
-          },
-          { 
-              id: 6001, collection: "CAN", code: "CAN1", number: 1, 
-              title: "Dɛn na memfa nyi me Nyame ayɛ", 
-              lyrics: "Dɛn na memfa nyi me Nyame ayɛ\nMe Pomfo kɛse no,\nMe Nyame na me Hene, n’enyimnyam,\nNa n’adom nkonim no!",
-              is_favorite: false 
-          }
-      ];
-
-      try {
-          const { error } = await supabase.from('songs').upsert(sampleSongs);
-          if (error) throw error;
-          
-          alert("Sample data loaded into 'songs' table!");
-          fetchData();
-      } catch (err: any) {
-          console.error("Seed error:", err);
-          const msg = err.message || JSON.stringify(err);
-          alert("Error inserting sample data: " + msg);
-          setErrorMsg(msg);
-      } finally {
-          setLoading(false);
-      }
-  };
-
   // --- Component: Tab Button ---
   const TabButton = ({ id, label, icon: Icon, colorClass }: { id: string, label: string, icon: any, colorClass: string }) => (
     <button 
@@ -299,6 +533,15 @@ const Hymnal: React.FC = () => {
                   </button>
                   
                   <div className="flex items-center gap-3">
+                                            {matchedSelectedStory && (
+                                                <button
+                                                    onClick={() => setShowHymnStory((current) => !current)}
+                                                    className={`px-4 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 border shadow-md hover:scale-105 ${showHymnStory ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white border-amber-400/40' : 'bg-white/70 backdrop-blur-md text-slate-700 border-white/30 hover:bg-white'}`}
+                                                >
+                                                    {showHymnStory ? 'Hide Hymn Story' : 'Story Behind This Hymn'}
+                                                </button>
+                                            )}
+
                       <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md p-1.5 rounded-full border border-white/30 shadow-sm hover:bg-white/80 transition-all">
                           <button 
                             onClick={() => setFontSize(Math.max(14, fontSize - 2))} 
@@ -354,6 +597,22 @@ const Hymnal: React.FC = () => {
                                     {selectedItem.author}
                                 </p>
                               )}
+
+                                                            {matchedSelectedStory && (
+                                                                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                                                                    {selectedStoryReferenceLabels.slice(0, 4).map((label) => (
+                                                                        <span
+                                                                            key={label}
+                                                                            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-white/15 text-white border border-white/25 backdrop-blur-sm"
+                                                                        >
+                                                                            {label}
+                                                                        </span>
+                                                                    ))}
+                                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-white/15 text-white border border-white/25 backdrop-blur-sm">
+                                                                        Story available
+                                                                    </span>
+                                                                </div>
+                                                            )}
                           </div>
                       </div>
 
@@ -377,6 +636,47 @@ const Hymnal: React.FC = () => {
                                     ))}
                                 </div>
                             ))}
+
+                            {matchedSelectedStory && showHymnStory && (
+                                <div className="mt-12 rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 shadow-lg overflow-hidden animate-fade-in">
+                                    <div className="px-6 py-4 border-b border-amber-200 bg-white/60 backdrop-blur-sm flex items-center justify-between gap-3">
+                                        <div>
+                                            <p className="text-xs uppercase tracking-[0.24em] text-amber-700/80 font-semibold">Story Behind This Hymn</p>
+                                            <p className="text-sm text-slate-600 mt-1 font-medium">{matchedSelectedStory.writer} • {matchedSelectedStory.firstPublished}</p>
+                                        </div>
+                                        <a
+                                            href={matchedSelectedStory.source}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-xs text-amber-700 hover:text-amber-900 underline underline-offset-2 font-semibold"
+                                        >
+                                            View source
+                                        </a>
+                                    </div>
+
+                                    <div className="px-6 py-6 space-y-5 text-left">
+                                        <div className="flex flex-wrap gap-2">
+                                            {matchedSelectedStory.themes.map((theme) => (
+                                                <span
+                                                    key={theme}
+                                                    className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-white text-amber-800 border border-amber-200"
+                                                >
+                                                    {theme}
+                                                </span>
+                                            ))}
+                                        </div>
+
+                                        <div className="font-serif text-slate-800 leading-8 text-[16px]">
+                                            {matchedSelectedStory.story}
+                                        </div>
+
+                                        <div className="rounded-2xl border border-amber-200 bg-white/80 p-4">
+                                            <p className="text-xs uppercase tracking-[0.2em] text-amber-800/80 font-semibold mb-2">Methodist Connection</p>
+                                            <p className="font-serif text-slate-800 leading-7">{matchedSelectedStory.methodistConnection}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                       </div>
 
@@ -422,13 +722,6 @@ const Hymnal: React.FC = () => {
                           </p>
                       </div>
                   </div>
-                  
-                  <button 
-                    onClick={seedDatabase} 
-                    className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/30 hover:bg-white/10 transition-colors text-xs font-semibold text-blue-100 hover:text-white"
-                  >
-                      <Database className="w-3 h-3" /> Load Sample
-                  </button>
               </div>
           </div>
 
@@ -451,7 +744,7 @@ const Hymnal: React.FC = () => {
                     </div>
                     <input 
                         type="text"
-                        placeholder={activeTab === 'canticles' ? "Search Canticles..." : "Search by Number, Title, or Lyrics..."}
+                        placeholder={activeTab === 'canticles' ? "Search canticles by title, code, or phrase..." : "Search by number, title, code, or any lyric phrase..."}
                         className="block w-full pl-12 pr-4 py-3 bg-slate-50 border-none text-gray-900 placeholder-gray-400 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 focus:shadow-lg transition-all duration-300 text-base shadow-inner"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -506,6 +799,7 @@ const Hymnal: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-12">
                       {filteredItems.map((item) => {
                           const styles = getCollectionStyle(item.collection);
+                          const storyMatch = findHymnStoryForSong(item, BUNDLED_HYMN_STORIES);
                           return (
                               <div 
                                 key={item.id} 
@@ -530,6 +824,11 @@ const Hymnal: React.FC = () => {
                                       <p className="text-xs text-gray-400 font-medium line-clamp-1">
                                           {getPreviewText(item.lyrics)}
                                       </p>
+                                      {storyMatch && (
+                                          <p className="text-[11px] text-amber-700 font-semibold mt-2 inline-flex items-center gap-1 bg-amber-50 border border-amber-100 px-2 py-1 rounded-full">
+                                              <BookOpen className="w-3.5 h-3.5" /> Story available
+                                          </p>
+                                      )}
                                   </div>
 
                                   {/* Star Button */}

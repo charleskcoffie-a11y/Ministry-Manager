@@ -1,0 +1,7 @@
+#!/bin/sh
+npm run check:wesley:themes
+status=$?
+if [ $status -ne 0 ]; then
+  echo "Wesley quote theme check failed. Commit aborted."
+  exit $status
+fi
