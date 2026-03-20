@@ -337,7 +337,19 @@ const StandingOrders = () => {
     setSearchQuery('');
     setShowFullDoc(false);
     setShowDocBookmarksOnly(false);
-    setTimeout(fetchOrders, 0); 
+    setSelectedOrder(null);
+    setSelectedDocItem(null);
+    // Fetch orders directly — can't use fetchOrders callback since its
+    // closure still has docMode=true and returns early.
+    setLoading(true);
+    supabase
+      .from('standing_orders')
+      .select('*')
+      .order('code', { ascending: true })
+      .then(({ data, error }) => {
+        if (!error && data) setOrders(data);
+        setLoading(false);
+      });
   };
 
   const filteredDocContent = docContent.filter(item => {
@@ -402,12 +414,13 @@ const StandingOrders = () => {
 
     const scrollToSelected = () => {
       const target = document.getElementById(selectedDocItem.id);
-      if (!target || !container.contains(target)) return;
-
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (!target) return;
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      container.scrollTop += targetRect.top - containerRect.top - 112;
     };
 
-    const timer = window.setTimeout(scrollToSelected, 30);
+    const timer = window.setTimeout(scrollToSelected, 250);
     return () => window.clearTimeout(timer);
   }, [showFullDoc, docMode, selectedDocItem, docContent]);
 
