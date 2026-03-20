@@ -4,13 +4,12 @@ import * as React from 'react';
 import { supabase } from '../supabaseClient';
 import { StandingOrder } from '../types';
 import { 
-  Search, BookOpen, ChevronRight, Bot, Upload, FileText, X, ArrowLeft, 
+  Search, BookOpen, ChevronRight, ChevronLeft, Bot, FileText, X, ArrowLeft, 
   AlignJustify, Scale, Bookmark, Gavel, ScrollText, CheckCircle2, 
-  Library
+  Library, PanelLeftClose
 } from 'lucide-react';
 import { explainStandingOrder } from '../services/geminiService';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { isDocxDocument, isPdfDocument, parseDocxFile, parsePdfFile } from '../utils/documentParsers';
 
 interface DocContent {
   id: string;
@@ -92,8 +91,8 @@ const StandingOrders = () => {
   const [docContent, setDocContent] = useState<DocContent[]>([]);
   const [docFileName, setDocFileName] = useState<string>('');
   const [parsing, setParsing] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [showFullDoc, setShowFullDoc] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [selectedOrder, setSelectedOrder] = useState<StandingOrder | null>(null);
@@ -119,19 +118,10 @@ const StandingOrders = () => {
   const fullDocViewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (searchQuery) {
-        params.set('q', searchQuery);
-    } else {
-        params.delete('q');
-    }
-    const newSearch = params.toString();
-    const currentSearch = new URLSearchParams(location.search).toString();
-    
-    if (newSearch !== currentSearch) {
-        navigate({ search: newSearch }, { replace: true });
-    }
-  }, [searchQuery, navigate, location.search]);
+    const newSearch = searchQuery ? `q=${encodeURIComponent(searchQuery)}` : '';
+    navigate({ search: newSearch }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
 
   useEffect(() => {
     const fetchSavedDocument = async () => {
@@ -340,73 +330,6 @@ const StandingOrders = () => {
     setAiLoading(false);
   }
 
-  const saveDocumentToSupabase = async (fileName: string, content: DocContent[]) => {
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from('uploaded_documents')
-        .upsert({ 
-          id: 'standing_orders',
-          filename: fileName, 
-          content: content,
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) {
-        console.error("Supabase Save Error:", error);
-        alert("File parsed locally, but failed to save to cloud database. " + error.message);
-      }
-    } catch (err) {
-      console.error("Save Exception:", err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setParsing(true);
-    setDocFileName(file.name);
-    setDocMode(true);
-    setDocContent([]);
-    setSelectedDocItem(null);
-    setSelectedOrder(null);
-    setShowFullDoc(false);
-
-    try {
-      let extractedContent: DocContent[] = [];
-
-      if (isPdfDocument(file)) {
-        extractedContent = await parsePDF(file);
-      } else if (isDocxDocument(file)) {
-        extractedContent = await parseDocx(file);
-      } else {
-        alert('Please upload a PDF or DOCX file.');
-        setParsing(false);
-        return;
-      }
-
-      setDocContent(extractedContent);
-      await saveDocumentToSupabase(file.name, extractedContent);
-
-    } catch (err) {
-      console.error(err);
-      alert('Error parsing file.');
-    } finally {
-      setParsing(false);
-    }
-  };
-
-  const parsePDF = async (file: File): Promise<DocContent[]> => {
-    return parsePdfFile(file);
-  };
-
-  const parseDocx = async (file: File): Promise<DocContent[]> => {
-    return parseDocxFile(file);
-  };
-
   const clearDocument = () => {
     setDocMode(false);
     setDocContent([]);
@@ -598,74 +521,80 @@ const StandingOrders = () => {
               <h1 className="text-3xl font-serif font-bold tracking-tight text-white md:text-5xl">
                 Standing Orders & Constitution
               </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
-                {docMode
-                  ? 'Search your uploaded constitution with bookmarks, personal notes, full-context reading, and AI explanation in one cleaner workspace.'
-                  : 'Browse structured standing orders in a calmer, more readable legal reference view with favorites and quick lookup.'}
-              </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
               {docMode && (
-                <button
-                  onClick={() => setShowFullDoc(true)}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/15"
-                >
-                  <AlignJustify className="w-4 h-4" /> Full Document
-                </button>
+                <>
+                  <button
+                    onClick={() => setShowFullDoc(true)}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/15"
+                  >
+                    <AlignJustify className="w-4 h-4" /> Full Document
+                  </button>
+                  <button
+                    onClick={clearDocument}
+                    className="inline-flex items-center gap-2 rounded-full border border-red-300/30 bg-red-500/20 px-5 py-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/30"
+                  >
+                    <X className="w-4 h-4" /> Exit Uploaded View
+                  </button>
+                </>
               )}
-              <label className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition ${parsing || saving ? 'cursor-wait opacity-70' : 'cursor-pointer hover:bg-amber-50'}`}>
-                <Upload className="w-4 h-4" />
-                {parsing ? 'Importing...' : saving ? 'Syncing...' : docMode ? 'Replace Constitution' : 'Upload Constitution'}
-                <input type="file" accept=".pdf,.docx" className="hidden" onChange={handleFileUpload} disabled={parsing || saving} />
-              </label>
-              {docMode && (
-                <button
-                  onClick={clearDocument}
-                  className="inline-flex items-center gap-2 rounded-full border border-red-300/30 bg-red-500/20 px-5 py-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/30"
-                >
-                  <X className="w-4 h-4" /> Exit Uploaded View
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
-              <p className="text-[10px] font-bold uppercase tracking-[0.26em] text-slate-300">Reading Mode</p>
-              <p className="mt-2 text-lg font-semibold text-white">{docMode ? 'Uploaded Constitution' : 'Structured Standing Orders'}</p>
-              <p className="mt-1 text-sm text-slate-300">{docMode ? 'Excerpt search with full-context reader.' : 'Indexed sections with favorite markers.'}</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
-              <p className="text-[10px] font-bold uppercase tracking-[0.26em] text-slate-300">In View</p>
-              <p className="mt-2 text-3xl font-semibold text-white">{docMode ? visibleDocContent.length : orders.length}</p>
-              <p className="mt-1 text-sm text-slate-300">{docMode ? 'Searchable passages right now' : 'Sections matching the current filter'}</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
-              <p className="text-[10px] font-bold uppercase tracking-[0.26em] text-slate-300">Saved</p>
-              <p className="mt-2 text-3xl font-semibold text-white">{docMode ? docBookmarks.length : favoriteOrderCount}</p>
-              <p className="mt-1 text-sm text-slate-300">{docMode ? `${indexedPageCount || 'No'} pages indexed across bookmarks and search.` : 'Favorite sections ready for quick return.'}</p>
+              <div className="flex items-center gap-2 text-xs text-white/50">
+                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
+                  {docMode ? `${visibleDocContent.length} passages` : `${orders.length} sections`}
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
+                  {docMode ? `${docBookmarks.length} bookmarked` : `${favoriteOrderCount} saved`}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
-          <div className={`w-full shrink-0 md:w-[360px] lg:w-[390px] xl:w-[420px] ${hasSelection ? 'hidden md:flex' : 'flex'} flex-col overflow-hidden rounded-[28px] border border-stone-200/80 bg-white/80 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl`}>
+          <div className={`shrink-0 flex flex-col overflow-hidden rounded-[28px] border border-stone-200/80 bg-white/80 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-all duration-300 ${navCollapsed ? 'w-12' : `w-full md:w-[380px] lg:w-[420px] xl:w-[460px] ${hasSelection ? 'hidden md:flex' : 'flex'}`}`}>
+            {navCollapsed ? (
+              <div className="flex h-full flex-col items-center py-4 gap-3">
+                <button
+                  onClick={() => setNavCollapsed(false)}
+                  className="p-2.5 rounded-full bg-stone-100 hover:bg-amber-50 hover:text-amber-700 text-stone-500 transition"
+                  title="Expand navigation"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-stone-300 [writing-mode:vertical-rl]">
+                    {listHeading}
+                  </span>
+                </div>
+              </div>
+            ) : (
+            <>
             <div className="border-b border-stone-200/80 bg-white/85 p-5 backdrop-blur-xl">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-stone-400">Navigator</p>
                   <h2 className="mt-2 text-2xl font-serif font-bold text-slate-900">{listHeading}</h2>
                 </div>
-                {docMode ? (
-                  <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-700">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Synced Reader
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-stone-600">
-                    <Scale className="w-3.5 h-3.5" /> Indexed Library
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {docMode ? (
+                    <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-700">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Synced
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-stone-600">
+                      <Scale className="w-3.5 h-3.5" /> Library
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setNavCollapsed(true)}
+                    className="p-2 rounded-full hover:bg-stone-100 text-stone-400 transition"
+                    title="Collapse navigation"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="relative mt-4">
@@ -823,6 +752,8 @@ const StandingOrders = () => {
                 </>
               )}
             </div>
+            </>
+            )}
           </div>
 
           <div className={`relative min-h-[420px] flex-1 ${hasSelection ? 'flex' : 'hidden md:flex'} flex-col overflow-hidden rounded-[28px] border border-stone-200/80 bg-white/75 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl`}>
