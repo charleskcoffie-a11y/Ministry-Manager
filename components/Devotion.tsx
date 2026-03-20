@@ -556,7 +556,7 @@ Prayer: ${generatedContent.prayer}
                     <button 
                         onClick={() => handleGenerate(plan)}
                         disabled={loading}
-                        className={`inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-transform active:scale-95 shadow-lg ${hasBgImage ? 'bg-white/90 hover:bg-white text-slate-900 border border-white/80' : 'bg-primary text-white hover:bg-blue-600'}`}
+                        className={`inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-transform active:scale-95 shadow-lg ${hasBgImage ? 'bg-white/90 hover:bg-white text-slate-900 border border-white/80' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                     >
                         {loading ? <Loader2 className="animate-spin w-5 h-5"/> : <BookOpen className="w-5 h-5" />}
                         Read Full Devotion
