@@ -188,7 +188,7 @@ export const explainStandingOrder = async (code: string, content: string): Promi
       Content: "${content}"`,
     });
 
-    return text || "Could not generate explanation.";
+    return text || getAiErrorMessage('Could not generate explanation right now.');
   } catch (error) {
     handleGeminiError("Gemini API Error:", error);
     return getAiErrorMessage('Could not generate explanation right now.');

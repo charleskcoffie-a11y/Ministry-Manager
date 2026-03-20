@@ -6,7 +6,7 @@ import {
   CheckCircle2, Circle, Plus, Trash2, Calendar, 
   FileText, User, HeartHandshake, Mic2, BookOpen, 
   MessageCircle, Edit2, Clock, X, Layout, Filter,
-  ClipboardList, Check
+    ClipboardList, Check, Folder, FolderOpen, ChevronDown, ChevronUp
 } from 'lucide-react';
 import Modal from './Modal';
 import { useModal } from '../hooks/useModal';
@@ -33,6 +33,12 @@ const TaskManager: React.FC = () => {
 
   // Filter State
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'completed'>('active');
+    const [collapsedCategories, setCollapsedCategories] = useState<Record<TaskCategory, boolean>>(() =>
+        CATEGORIES.reduce((acc, category) => {
+            acc[category] = false;
+            return acc;
+        }, {} as Record<TaskCategory, boolean>)
+    );
 
   useEffect(() => {
     fetchTasks();
@@ -133,6 +139,13 @@ const TaskManager: React.FC = () => {
   const closeTaskModal = () => {
       setIsModalOpen(false);
       setEditingTask({});
+  };
+
+  const toggleCategoryCollapse = (category: TaskCategory) => {
+      setCollapsedCategories(prev => ({
+          ...prev,
+          [category]: !prev[category]
+      }));
   };
 
   // --- Grouping & Sorting ---
@@ -296,34 +309,50 @@ const TaskManager: React.FC = () => {
               </div>
           </div>
       ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
               {CATEGORIES.map(category => {
                   const items = groupedTasks[category];
                   const theme = getCategoryTheme(category);
+                  const isCollapsed = collapsedCategories[category];
 
                   return (
-                      <div key={category} className={`rounded-xl p-3 border transition-colors flex flex-col gap-3 min-h-[160px] ${theme.bg} ${theme.border}`}>
+                      <div key={category} className={`rounded-2xl p-3 border transition-all duration-300 flex flex-col gap-3 ${theme.bg} ${theme.border} shadow-sm hover:shadow-md`}>
                           {/* Category Header */}
-                          <div className="flex justify-between items-center px-1 pt-1">
-                             <div className="flex items-center gap-3">
-                                 <div className={`p-2 rounded-xl ${theme.iconBg} ${theme.iconColor}`}>
-                                     {getCategoryIcon(category)}
-                                 </div>
-                                 <div>
-                                     <h3 className={`font-bold text-base leading-none ${theme.header}`}>{category}</h3>
-                                     <span className="text-[11px] font-semibold opacity-60 text-gray-600">{items.length} Tasks</span>
-                                 </div>
-                             </div>
-                             <button 
-                                onClick={() => openNewTaskModal(category)} 
-                                className={`w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/50 transition-colors ${theme.iconColor}`}
-                             >
-                                 <Plus className="w-5 h-5" />
-                             </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => toggleCategoryCollapse(category)}
+                            className="w-full flex justify-between items-center px-2 py-2 rounded-xl bg-white/60 border border-white/70 hover:bg-white/80 transition-colors"
+                          >
+                            <div className="flex items-center gap-3 text-left">
+                                <div className={`p-2 rounded-xl ${theme.iconBg} ${theme.iconColor} flex items-center gap-1`}>
+                                    {isCollapsed ? <Folder className="w-4 h-4" /> : <FolderOpen className="w-4 h-4" />}
+                                    {getCategoryIcon(category)}
+                                </div>
+                                <div>
+                                    <h3 className={`font-bold text-base leading-none ${theme.header}`}>{category}</h3>
+                                    <span className="text-[11px] font-semibold opacity-70 text-gray-600">{items.length} {items.length === 1 ? 'Task' : 'Tasks'}</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openNewTaskModal(category);
+                                  }}
+                                  className={`w-8 h-8 flex items-center justify-center rounded-full hover:bg-white transition-colors ${theme.iconColor}`}
+                                >
+                                    <Plus className="w-5 h-5" />
+                                </button>
+                                <div className="text-gray-500">
+                                  {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                                </div>
+                            </div>
+                          </button>
 
                           {/* Task List */}
-                          <div className="space-y-2.5 flex-1">
+                          {!isCollapsed && (
+                          <div className="space-y-2.5 flex-1 animate-fade-in">
                               {items.length === 0 && (
                                   <div className="h-28 flex flex-col items-center justify-center text-center p-3 border-2 border-dashed border-gray-300/50 rounded-xl">
                                       <div className="opacity-30 mb-2">{getCategoryIcon(category)}</div>
@@ -387,6 +416,7 @@ const TaskManager: React.FC = () => {
                                   </div>
                               ))}
                           </div>
+                          )}
                       </div>
                   );
               })}

@@ -18,6 +18,65 @@ interface DocContent {
   page?: number;
 }
 
+interface DocBookmark {
+  id: string;
+  text: string;
+  page?: number;
+  note: string;
+  soLabel: string | null;
+  createdAt: string;
+}
+
+const DOC_BOOKMARKS_KEY = 'standing_orders_doc_bookmarks_v1';
+const DOC_BOOKMARKS_DOC_ID = 'standing_orders_bookmarks';
+
+const normalizeDocBookmarks = (value: unknown): DocBookmark[] => {
+  if (!Array.isArray(value)) return [];
+
+  const seen = new Set<string>();
+  const normalized: DocBookmark[] = [];
+
+  for (const raw of value as Array<Record<string, unknown>>) {
+    const id = String(raw.id ?? '').trim();
+    const text = String(raw.text ?? '').trim();
+    if (!id || !text || seen.has(id)) continue;
+    seen.add(id);
+
+    normalized.push({
+      id,
+      text,
+      page: typeof raw.page === 'number' ? raw.page : undefined,
+      note: String(raw.note ?? '').trim(),
+      soLabel: typeof raw.soLabel === 'string' && raw.soLabel.trim() ? raw.soLabel.trim() : null,
+      createdAt: typeof raw.createdAt === 'string' && raw.createdAt.trim() ? raw.createdAt : new Date().toISOString(),
+    });
+  }
+
+  return normalized;
+};
+
+const mergeDocBookmarks = (localItems: DocBookmark[], remoteItems: DocBookmark[]) => {
+  const merged = new Map<string, DocBookmark>();
+
+  for (const item of [...remoteItems, ...localItems]) {
+    const existing = merged.get(item.id);
+    if (!existing) {
+      merged.set(item.id, item);
+      continue;
+    }
+
+    const existingTime = Date.parse(existing.createdAt);
+    const nextTime = Date.parse(item.createdAt);
+    const nextIsNewer = Number.isFinite(nextTime) && (!Number.isFinite(existingTime) || nextTime >= existingTime);
+
+    if (nextIsNewer) {
+      merged.set(item.id, item);
+    }
+  }
+
+  return Array.from(merged.values());
+};
+
 const StandingOrders = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -42,6 +101,19 @@ const StandingOrders = () => {
   
   const [aiExplanation, setAiExplanation] = useState<string>('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [docBookmarks, setDocBookmarks] = useState<DocBookmark[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = window.localStorage.getItem(DOC_BOOKMARKS_KEY);
+      if (!stored) return [];
+      return normalizeDocBookmarks(JSON.parse(stored));
+    } catch {
+      return [];
+    }
+  });
+  const [showDocBookmarksOnly, setShowDocBookmarksOnly] = useState(false);
+  const [bookmarkNoteDraft, setBookmarkNoteDraft] = useState('');
+  const [bookmarksReadyForSync, setBookmarksReadyForSync] = useState(false);
 
   // Initialize ref explicitly
   const fullDocViewRef = useRef<HTMLDivElement>(null);
@@ -81,11 +153,27 @@ const StandingOrders = () => {
           setDocContent(data.content);
           setDocMode(true);
         }
+
+        const { data: bookmarkData, error: bookmarkError } = await supabase
+          .from('uploaded_documents')
+          .select('content')
+          .eq('id', DOC_BOOKMARKS_DOC_ID)
+          .single();
+
+        if (bookmarkError && bookmarkError.code !== 'PGRST116') {
+          console.error('Error fetching saved bookmarks:', bookmarkError);
+        }
+
+        if (bookmarkData?.content) {
+          const remoteBookmarks = normalizeDocBookmarks(bookmarkData.content);
+          setDocBookmarks(prev => mergeDocBookmarks(prev, remoteBookmarks));
+        }
       } catch (err) {
         console.error("Unexpected error loading document:", err);
       } finally {
         setParsing(false);
         setLoading(false);
+        setBookmarksReadyForSync(true);
       }
     };
 
@@ -95,6 +183,104 @@ const StandingOrders = () => {
   const extractSoNumber = (input: string) => {
     const match = input.match(/^s[\.\s]*o[\.\s]*(\d+)/i);
     return match ? match[1] : null;
+  };
+
+  const extractSoLabel = (input: string) => {
+    const looseMatch = input.match(/s[\.\s]*o[\.\s]*(\d+)/i);
+    return looseMatch ? `SO ${looseMatch[1]}` : null;
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(DOC_BOOKMARKS_KEY, JSON.stringify(docBookmarks));
+  }, [docBookmarks]);
+
+  useEffect(() => {
+    if (!bookmarksReadyForSync) return;
+
+    const syncBookmarks = async () => {
+      const { error } = await supabase
+        .from('uploaded_documents')
+        .upsert(
+          {
+            id: DOC_BOOKMARKS_DOC_ID,
+            filename: 'standing_orders_bookmarks.json',
+            content: docBookmarks,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'id' }
+        );
+
+      if (error) {
+        console.error('Error syncing constitution bookmarks:', error);
+      }
+    };
+
+    syncBookmarks();
+  }, [docBookmarks, bookmarksReadyForSync]);
+
+  const docBookmarkMap = React.useMemo(() => {
+    const map = new Map<string, DocBookmark>();
+    docBookmarks.forEach(bookmark => map.set(bookmark.id, bookmark));
+    return map;
+  }, [docBookmarks]);
+
+  const selectedDocBookmark = React.useMemo(() => {
+    if (!selectedDocItem) return null;
+    return docBookmarkMap.get(selectedDocItem.id) || null;
+  }, [selectedDocItem, docBookmarkMap]);
+
+  useEffect(() => {
+    if (!selectedDocItem) {
+      setBookmarkNoteDraft('');
+      return;
+    }
+    setBookmarkNoteDraft(selectedDocBookmark?.note || '');
+  }, [selectedDocItem, selectedDocBookmark]);
+
+  const upsertDocBookmark = (item: DocContent, noteText: string) => {
+    const normalizedNote = noteText.trim();
+    setDocBookmarks(prev => {
+      const existing = prev.find(bookmark => bookmark.id === item.id);
+      if (existing) {
+        return prev.map(bookmark =>
+          bookmark.id === item.id
+            ? {
+                ...bookmark,
+                text: item.text,
+                page: item.page,
+                note: normalizedNote,
+                soLabel: extractSoLabel(item.text),
+              }
+            : bookmark
+        );
+      }
+
+      return [
+        {
+          id: item.id,
+          text: item.text,
+          page: item.page,
+          note: normalizedNote,
+          soLabel: extractSoLabel(item.text),
+          createdAt: new Date().toISOString(),
+        },
+        ...prev,
+      ];
+    });
+  };
+
+  const removeDocBookmark = (id: string) => {
+    setDocBookmarks(prev => prev.filter(bookmark => bookmark.id !== id));
+  };
+
+  const toggleDocBookmark = (item: DocContent) => {
+    if (docBookmarkMap.has(item.id)) {
+      removeDocBookmark(item.id);
+      return;
+    }
+
+    upsertDocBookmark(item, item.id === selectedDocItem?.id ? bookmarkNoteDraft : '');
   };
 
   const fetchOrders = useCallback(async () => {
@@ -147,9 +333,10 @@ const StandingOrders = () => {
   };
 
   const handleAskAI = async (text: string, code: string = 'Reference') => {
+    setAiExplanation('');
     setAiLoading(true);
     const result = await explainStandingOrder(code, text);
-    setAiExplanation(result);
+    setAiExplanation(result || 'Could not generate explanation right now.');
     setAiLoading(false);
   }
 
@@ -226,6 +413,7 @@ const StandingOrders = () => {
     setDocFileName('');
     setSearchQuery('');
     setShowFullDoc(false);
+    setShowDocBookmarksOnly(false);
     setTimeout(fetchOrders, 0); 
   };
 
@@ -238,6 +426,37 @@ const StandingOrders = () => {
     }
     return item.text.toLowerCase().includes(searchQuery.toLowerCase());
   });
+
+  const filteredBookmarkedContent = docBookmarks
+    .filter(item => {
+      if (!searchQuery) return true;
+      const codeNumber = extractSoNumber(searchQuery);
+      if (codeNumber) {
+        const regex = new RegExp(`s[\\.\\s]*o[\\.\\s]*${codeNumber}`, 'i');
+        return regex.test(item.text);
+      }
+      return item.text.toLowerCase().includes(searchQuery.toLowerCase()) || (item.note || '').toLowerCase().includes(searchQuery.toLowerCase());
+    })
+    .map(({ id, text, page }) => ({ id, text, page }));
+
+  const visibleDocContent = showDocBookmarksOnly ? filteredBookmarkedContent : filteredDocContent;
+
+  useEffect(() => {
+    if (!showFullDoc || !docMode || !selectedDocItem) return;
+
+    const container = fullDocViewRef.current;
+    if (!container) return;
+
+    const scrollToSelected = () => {
+      const target = document.getElementById(selectedDocItem.id);
+      if (!target || !container.contains(target)) return;
+
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const timer = window.setTimeout(scrollToSelected, 30);
+    return () => window.clearTimeout(timer);
+  }, [showFullDoc, docMode, selectedDocItem, docContent]);
 
   if (showFullDoc && docMode) {
     return (
@@ -253,7 +472,7 @@ const StandingOrders = () => {
              <div>
                <h2 className="font-bold text-stone-800 text-lg flex items-center gap-2 font-serif">
                  <ScrollText className="w-5 h-5 text-amber-600"/>
-                 {docFileName}
+                 Constitution Document
                </h2>
                <p className="text-sm text-stone-500">Full Text Mode</p>
              </div>
@@ -359,9 +578,22 @@ const StandingOrders = () => {
                    </div>
                )}
                {docMode && (
-                 <div className="flex items-center gap-2 text-xs font-medium text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-md border border-emerald-100">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Viewing: <span className="font-bold truncate max-w-[150px]">{docFileName}</span>
+                 <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-xs font-medium text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-md border border-emerald-100">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Viewing: <span className="font-bold">Constitution</span>
+                    </div>
+                    <button
+                      onClick={() => setShowDocBookmarksOnly(!showDocBookmarksOnly)}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors border ${
+                        showDocBookmarksOnly
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300'
+                      }`}
+                    >
+                      <Bookmark className={`w-3 h-3 ${showDocBookmarksOnly ? 'fill-amber-600' : ''}`} />
+                      Bookmarks ({docBookmarks.length})
+                    </button>
                  </div>
                )}
             </div>
@@ -418,10 +650,12 @@ const StandingOrders = () => {
 
                 {docMode && (
                     <div className="divide-y divide-stone-100">
-                        {filteredDocContent.length === 0 ? (
-                            <div className="p-10 text-center text-stone-400 text-sm">No matches in document.</div>
+                    {visibleDocContent.length === 0 ? (
+                      <div className="p-10 text-center text-stone-400 text-sm">
+                        {showDocBookmarksOnly ? 'No bookmarked sections match your search.' : 'No matches in document.'}
+                      </div>
                         ) : (
-                            filteredDocContent.map(item => (
+                      visibleDocContent.map(item => (
                                 <div 
                                     key={item.id} 
                                     onClick={() => { setSelectedDocItem(item); setAiExplanation(''); }}
@@ -432,13 +666,44 @@ const StandingOrders = () => {
                                     }`}
                                 >
                                     {item.page && (
-                                        <span className="text-[10px] font-bold text-stone-400 uppercase mb-1 block">
-                                            Page {item.page}
-                                        </span>
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="text-[10px] font-bold text-stone-400 uppercase block">
+                                              Page {item.page}
+                                          </span>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toggleDocBookmark(item);
+                                            }}
+                                            className={`p-1 rounded-full transition-colors ${docBookmarkMap.has(item.id) ? 'text-amber-500' : 'text-slate-300 hover:text-slate-500 hover:bg-slate-100'}`}
+                                            title={docBookmarkMap.has(item.id) ? 'Remove bookmark' : 'Add bookmark'}
+                                          >
+                                            <Bookmark className={`w-4 h-4 ${docBookmarkMap.has(item.id) ? 'fill-amber-500' : ''}`} />
+                                          </button>
+                                        </div>
+                                    )}
+                                    {!item.page && (
+                                      <div className="flex justify-end mb-1">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleDocBookmark(item);
+                                          }}
+                                          className={`p-1 rounded-full transition-colors ${docBookmarkMap.has(item.id) ? 'text-amber-500' : 'text-slate-300 hover:text-slate-500 hover:bg-slate-100'}`}
+                                          title={docBookmarkMap.has(item.id) ? 'Remove bookmark' : 'Add bookmark'}
+                                        >
+                                          <Bookmark className={`w-4 h-4 ${docBookmarkMap.has(item.id) ? 'fill-amber-500' : ''}`} />
+                                        </button>
+                                      </div>
                                     )}
                                     <p className="text-sm text-stone-700 font-serif line-clamp-3 leading-relaxed">
                                         {item.text}
                                     </p>
+                                    {docBookmarkMap.get(item.id)?.note && (
+                                      <p className="text-[11px] mt-2 text-amber-700 bg-amber-50 border border-amber-100 px-2 py-1 rounded">
+                                        Note: {docBookmarkMap.get(item.id)?.note}
+                                      </p>
+                                    )}
                                 </div>
                             ))
                         )}
@@ -486,9 +751,11 @@ const StandingOrders = () => {
                              </button>
                              <button 
                                 onClick={() => handleAskAI(selectedOrder.content, selectedOrder.code)}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 text-sm font-bold transition"
+                                disabled={aiLoading}
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 text-sm font-bold transition disabled:opacity-60 disabled:cursor-not-allowed"
                              >
-                               <Bot className="w-4 h-4" /> Explain
+                               {aiLoading ? <BookOpen className="w-4 h-4 animate-pulse" /> : <Bot className="w-4 h-4" />}
+                               {aiLoading ? 'Explaining...' : 'Explain'}
                              </button>
                          </div>
                     </div>
@@ -540,11 +807,20 @@ const StandingOrders = () => {
                              >
                                <AlignJustify className="w-4 h-4" /> Read Full Context
                              </button>
+                            <button
+                              onClick={() => toggleDocBookmark(selectedDocItem)}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition ${docBookmarkMap.has(selectedDocItem.id) ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                            >
+                             <Bookmark className={`w-4 h-4 ${docBookmarkMap.has(selectedDocItem.id) ? 'fill-amber-700' : ''}`} />
+                             {docBookmarkMap.has(selectedDocItem.id) ? 'Bookmarked' : 'Bookmark'}
+                            </button>
                              <button 
                                 onClick={() => handleAskAI(selectedDocItem.text, "Document Excerpt")}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 text-sm font-bold transition"
+                                disabled={aiLoading}
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 text-sm font-bold transition disabled:opacity-60 disabled:cursor-not-allowed"
                              >
-                               <Bot className="w-4 h-4" /> Explain
+                               {aiLoading ? <BookOpen className="w-4 h-4 animate-pulse" /> : <Bot className="w-4 h-4" />}
+                               {aiLoading ? 'Explaining...' : 'Explain'}
                              </button>
                         </div>
                      </div>
@@ -553,6 +829,40 @@ const StandingOrders = () => {
                         <p className="font-serif text-xl leading-loose text-slate-800 whitespace-pre-wrap">
                             {selectedDocItem.text}
                         </p>
+                     </div>
+
+                     <div className="mt-5 p-5 bg-white border border-stone-200 rounded-lg">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-bold uppercase tracking-wider text-stone-600">Bookmark Note</h4>
+                          {selectedDocBookmark?.soLabel && (
+                            <span className="text-xs font-bold px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                              {selectedDocBookmark.soLabel}
+                            </span>
+                          )}
+                        </div>
+                        <textarea
+                          value={bookmarkNoteDraft}
+                          onChange={(e) => setBookmarkNoteDraft(e.target.value)}
+                          placeholder="Add personal note for this bookmarked section (e.g., why it matters, prayer focus, follow-up)."
+                          className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-700 leading-relaxed focus:ring-2 focus:ring-amber-300 focus:border-amber-300 outline-none"
+                          rows={3}
+                        />
+                        <div className="mt-3 flex flex-wrap gap-2 justify-end">
+                          <button
+                            onClick={() => upsertDocBookmark(selectedDocItem, bookmarkNoteDraft)}
+                            className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 text-sm font-bold transition"
+                          >
+                            Save Note to Bookmark
+                          </button>
+                          {docBookmarkMap.has(selectedDocItem.id) && (
+                            <button
+                              onClick={() => removeDocBookmark(selectedDocItem.id)}
+                              className="px-4 py-2 bg-white text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm font-bold transition"
+                            >
+                              Remove Bookmark
+                            </button>
+                          )}
+                        </div>
                      </div>
                      
                      <div className="mt-6 text-center">
