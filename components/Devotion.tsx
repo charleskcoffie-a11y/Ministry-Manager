@@ -188,6 +188,31 @@ const Devotion: React.FC = () => {
 
   const getSeasonInfo = (id: string) => DEVOTION_CONFIG.seasons.find(s => s.id === id);
 
+    const buildFallbackDevotional = (params: any): DevotionalResponse => {
+        const date = params?.date || new Date().toISOString().split('T')[0];
+        const scripture = params?.scripture || activePlan?.scripture || 'Psalm 46:1';
+        const seasonId = params?.seasonId || activePlan?.seasonId || 'ORDINARY_TIME';
+        const seasonName = getSeasonInfo(seasonId)?.name || 'Ordinary Time';
+        const calendarTag = params?.calendarTag || activePlan?.calendarTag || seasonName;
+        const theme = params?.theme || params?.topic || activePlan?.theme || 'Daily Encouragement';
+        const verseText = dailyVerse?.text?.trim();
+
+        const verseLine = verseText
+            ? `Today we meditate on ${scripture}: "${verseText}".`
+            : `Today we meditate on ${scripture} and invite God to shape our hearts through His Word.`;
+
+        return {
+            date,
+            title: `${theme}`,
+            scripture,
+            content: `${verseLine}\n\nIn this ${seasonName} season, God calls us to trust Him in practical ways today. Bring your burdens to Christ, choose obedience in the next right step, and let His peace guide your words and decisions. Even when answers are not immediate, God is present, faithful, and active in your life. Walk in hope, serve with humility, and remember that grace is new every morning.`,
+            reflectionQuestion: `What is one step of faith and obedience God is asking of me today through ${scripture}?`,
+            prayer: `Lord Jesus, thank You for Your living Word. Help me to trust You, obey You, and reflect Your love today. Strengthen my heart, direct my path, and fill me with peace. Amen.`,
+            seasonId,
+            calendarTag,
+        };
+    };
+
   const handleGenerate = async (params: any = {}) => {
     setLoading(true);
     
@@ -211,7 +236,13 @@ const Devotion: React.FC = () => {
         setGeneratedContent(result);
         setView('full');
     } else {
-        alert(getAiErrorMessage('Could not generate devotion right now. Please try again.'));
+                const fallback = buildFallbackDevotional(finalParams);
+                setGeneratedContent(fallback);
+                setView('full');
+                const aiMessage = getAiErrorMessage('');
+                if (aiMessage) {
+                    console.warn(`AI unavailable, using local devotional fallback: ${aiMessage}`);
+                }
     }
     setLoading(false);
   };
