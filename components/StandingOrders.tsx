@@ -330,28 +330,6 @@ const StandingOrders = () => {
     setAiLoading(false);
   }
 
-  const clearDocument = () => {
-    setDocMode(false);
-    setDocContent([]);
-    setDocFileName('');
-    setSearchQuery('');
-    setShowFullDoc(false);
-    setShowDocBookmarksOnly(false);
-    setSelectedOrder(null);
-    setSelectedDocItem(null);
-    // Fetch orders directly — can't use fetchOrders callback since its
-    // closure still has docMode=true and returns early.
-    setLoading(true);
-    supabase
-      .from('standing_orders')
-      .select('*')
-      .order('code', { ascending: true })
-      .then(({ data, error }) => {
-        if (!error && data) setOrders(data);
-        setLoading(false);
-      });
-  };
-
   const filteredDocContent = docContent.filter(item => {
     if (!searchQuery) return true;
     const codeNumber = extractSoNumber(searchQuery);
@@ -601,14 +579,6 @@ const StandingOrders = () => {
                     className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] transition ${showDocBookmarksOnly ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50'}`}
                   >
                     <Bookmark className={`w-3.5 h-3.5 ${showDocBookmarksOnly ? 'fill-amber-600' : ''}`} /> Bookmarks ({docBookmarks.length})
-                  </button>
-                )}
-                {docMode && (
-                  <button
-                    onClick={clearDocument}
-                    className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-red-600 transition hover:bg-red-50"
-                  >
-                    <X className="w-3.5 h-3.5" /> Exit Uploaded View
                   </button>
                 )}
               </div>
