@@ -687,15 +687,6 @@ const JohnWesley: React.FC = () => {
 
       {activeTab === 'sermons' && (
         <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
-          <div className="rounded-2xl border border-amber-800/30 bg-black/20 px-4 py-3 text-xs text-amber-200/80 backdrop-blur-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] mb-1">
-              Bundled Wesley Corpus Active
-            </p>
-            <p className="leading-relaxed">
-              The full {EXPECTED_WESLEY_SERMON_COUNT}-sermon John Wesley library is loaded from the bundled Wesley corpus. No database setup is required for this section.
-            </p>
-          </div>
-
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500/50" />
             <input
@@ -826,15 +817,6 @@ const JohnWesley: React.FC = () => {
 
       {activeTab === 'quotes' && (
         <div className="max-w-3xl mx-auto px-4 py-10 space-y-5">
-          <div className="rounded-2xl border border-amber-800/30 bg-black/20 px-4 py-3 text-xs text-amber-200/80 backdrop-blur-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] mb-1">
-              Bundled Wesley Quotes Active
-            </p>
-            <p className="leading-relaxed">
-              The quote library contains {EXPECTED_WESLEY_QUOTE_COUNT} Wesley quotes. A quote of the day is generated automatically based on the current date.
-            </p>
-          </div>
-
           {quoteOfTheDay && (
             <div className="relative rounded-2xl overflow-hidden border border-amber-700/30 shadow-2xl" style={{ background: 'linear-gradient(135deg, #3d1a0a, #5c2a12)' }}>
               <div className="absolute top-4 left-4 opacity-20">
@@ -933,15 +915,6 @@ const JohnWesley: React.FC = () => {
 
       {activeTab === 'diary' && (
         <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
-          <div className="rounded-2xl border border-amber-800/30 bg-black/20 px-4 py-3 text-xs text-amber-200/80 backdrop-blur-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] mb-1">
-              Bundled Wesley Diary Active
-            </p>
-            <p className="leading-relaxed">
-              The diary library contains {diaryEntries.length} Wesley journal entries. The entry list loads first, then full diary text hydrates in the background for reading and full-text search.
-            </p>
-          </div>
-
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500/50" />
