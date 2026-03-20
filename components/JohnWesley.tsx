@@ -751,7 +751,16 @@ const JohnWesley: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 relative">
+              {!sermonsPanelOpen && (
+                <button
+                  onClick={() => setSermonsPanelOpen(true)}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-20 p-2 hover:bg-amber-700/40 rounded-r-lg transition-colors text-amber-400 bg-black/30 backdrop-blur-sm border border-l-0 border-amber-800/30"
+                  title="Expand sermon list"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              )}
               {sermonsError && (
                 <div className="bg-red-900/30 border border-red-700/40 rounded-2xl p-6 text-red-300 text-sm">
                   {sermonsError}
@@ -1002,7 +1011,16 @@ const JohnWesley: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 relative">
+              {!diaryPanelOpen && (
+                <button
+                  onClick={() => setDiaryPanelOpen(true)}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-20 p-2 hover:bg-amber-700/40 rounded-r-lg transition-colors text-amber-400 bg-black/30 backdrop-blur-sm border border-l-0 border-amber-800/30"
+                  title="Expand diary list"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              )}
               {diaryError && (
                 <div className="bg-red-900/30 border border-red-700/40 rounded-2xl p-6 text-red-300 text-sm">
                   {diaryError}
