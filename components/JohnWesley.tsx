@@ -420,7 +420,7 @@ const JohnWesley: React.FC = () => {
   const activeQuote = filteredQuotes[quoteIdx] ?? null;
 
   useEffect(() => {
-    if (activeTab !== 'sermons' || sermonsLoaded || sermonsLoading) return;
+    if (activeTab !== 'sermons' || sermonsLoaded) return;
 
     let cancelled = false;
 
@@ -454,10 +454,10 @@ const JohnWesley: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, sermonsLoaded, sermonsLoading]);
+  }, [activeTab, sermonsLoaded]);
 
   useEffect(() => {
-    if (activeTab !== 'diary' || diaryLoaded || diaryLoading) return;
+    if (activeTab !== 'diary' || diaryLoaded) return;
 
     let cancelled = false;
 
@@ -483,7 +483,7 @@ const JohnWesley: React.FC = () => {
           }
 
           if (!payload) {
-            throw new Error('Could not load bundled Wesley diary JSON.');
+            throw new Error('Could not load bundled Wesley diary entries.');
           }
 
           normalizedEntries = normalizeDiaryIndexEntries(payload);
@@ -513,10 +513,10 @@ const JohnWesley: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, diaryLoaded, diaryLoading]);
+  }, [activeTab, diaryLoaded]);
 
   useEffect(() => {
-    if (activeTab !== 'diary' || !diaryLoaded || diaryTextsLoaded || diaryTextsLoading) return;
+    if (activeTab !== 'diary' || !diaryLoaded || diaryTextsLoaded) return;
 
     let cancelled = false;
 
@@ -547,7 +547,7 @@ const JohnWesley: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, diaryLoaded, diaryTextsLoaded, diaryTextsLoading]);
+  }, [activeTab, diaryLoaded, diaryTextsLoaded]);
 
   const availableDiaryYears = useMemo(() => {
     const years = new Set<number>();
@@ -648,9 +648,6 @@ const JohnWesley: React.FC = () => {
             <p className="text-amber-400/70 text-xs font-semibold tracking-widest uppercase mb-1">Methodist Heritage</p>
             <h1 className="text-3xl md:text-4xl font-serif font-bold text-amber-100 mb-1">John Wesley</h1>
             <p className="text-amber-200/60 text-sm font-serif italic">1703 - 1791 · Founder of Methodism · Servant of God</p>
-            <p className="text-amber-200/50 text-xs mt-2 max-w-2xl leading-relaxed">
-              The sermon library below now reads from a local public-domain corpus, so the original Wesley text remains available even without Gemini.
-            </p>
           </div>
         </div>
         <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, transparent, #b8860b, #ffd700, #b8860b, transparent)' }} />
@@ -692,7 +689,7 @@ const JohnWesley: React.FC = () => {
               Bundled Wesley Corpus Active
             </p>
             <p className="leading-relaxed">
-              The full {EXPECTED_WESLEY_SERMON_COUNT}-sermon John Wesley library is loaded from the bundled JSON corpus. No database setup is required for this section.
+              The full {EXPECTED_WESLEY_SERMON_COUNT}-sermon John Wesley library is loaded from the bundled Wesley corpus. No database setup is required for this section.
             </p>
           </div>
 
@@ -710,7 +707,7 @@ const JohnWesley: React.FC = () => {
           <div className="flex flex-col md:flex-row gap-4">
             <div className="md:w-80 shrink-0">
               <div className="flex items-center justify-between px-1 mb-3">
-                <p className="text-amber-400/60 text-xs font-semibold uppercase tracking-wider">Sermon Library (Local JSON)</p>
+                <p className="text-amber-400/60 text-xs font-semibold uppercase tracking-wider">Sermon Library</p>
                 <span className="text-amber-600/50 text-xs">{filteredSermons.length} found</span>
               </div>
 
@@ -777,7 +774,7 @@ const JohnWesley: React.FC = () => {
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className="text-amber-500/70 text-xs font-semibold uppercase tracking-wider">Sermon {selectedSermon.number}</span>
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-300/10 text-amber-200 border border-amber-300/20">
-                          Original text · bundled JSON corpus
+                          Original text · Wesley corpus
                         </span>
                       </div>
                       <h2 className="text-xl font-serif font-bold text-amber-100 leading-tight mb-2">{selectedSermon.title}</h2>
@@ -785,7 +782,7 @@ const JohnWesley: React.FC = () => {
                         <BookOpen className="w-3.5 h-3.5 text-amber-500/60" />
                         <span>{selectedSermon.scripture}</span>
                       </div>
-                      <p className="text-amber-500/50 text-xs mt-3">Loaded from the bundled CCEL public-domain JSON corpus.</p>
+                      <p className="text-amber-500/50 text-xs mt-3">Loaded from the bundled CCEL public-domain corpus.</p>
                     </div>
                   </div>
 
@@ -822,7 +819,7 @@ const JohnWesley: React.FC = () => {
               Bundled Wesley Quotes Active
             </p>
             <p className="leading-relaxed">
-              The quote library now reads from local JSON with {EXPECTED_WESLEY_QUOTE_COUNT} Wesley quotes. A quote of the day is generated automatically based on the current date.
+              The quote library contains {EXPECTED_WESLEY_QUOTE_COUNT} Wesley quotes. A quote of the day is generated automatically based on the current date.
             </p>
           </div>
 
@@ -929,7 +926,7 @@ const JohnWesley: React.FC = () => {
               Bundled Wesley Diary Active
             </p>
             <p className="leading-relaxed">
-              The diary library reads from local JSON with {diaryEntries.length} Wesley journal entries. The entry list loads first, then full diary text hydrates in the background for reading and full-text search.
+              The diary library contains {diaryEntries.length} Wesley journal entries. The entry list loads first, then full diary text hydrates in the background for reading and full-text search.
             </p>
           </div>
 
@@ -961,7 +958,7 @@ const JohnWesley: React.FC = () => {
           <div className="flex flex-col md:flex-row gap-4">
             <div className="md:w-96 shrink-0">
               <div className="flex items-center justify-between px-1 mb-3">
-                <p className="text-amber-400/60 text-xs font-semibold uppercase tracking-wider">Diary Entries (Local JSON)</p>
+                <p className="text-amber-400/60 text-xs font-semibold uppercase tracking-wider">Diary Entries</p>
                 <span className="text-amber-600/50 text-xs">{diaryLoading ? 'Loading...' : `${filteredDiaryEntries.length} found`}</span>
               </div>
 
@@ -1042,7 +1039,7 @@ const JohnWesley: React.FC = () => {
                           </span>
                         )}
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-300/10 text-amber-200 border border-amber-300/20">
-                          Original text · bundled JSON corpus
+                          Original text · Wesley corpus
                         </span>
                       </div>
                       <h2 className="text-xl font-serif font-bold text-amber-100 leading-tight mb-2">{selectedDiaryEntry.title}</h2>

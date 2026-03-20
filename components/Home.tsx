@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Calendar, CheckCircle2, BookOpen, Lightbulb, ArrowRight, Star, 
@@ -11,6 +11,7 @@ import { supabase } from '../supabaseClient';
 import { Task, DiaryEntry } from '../types';
 import { explainStandingOrder, getAiDailyVerse, getAiFeatureStatus } from '../services/geminiService';
 import { getTodayVerse } from '../services/dailyVerseService';
+import localWesleyQuotes from '../public/wesley/quotes.json';
 
 
 
@@ -28,6 +29,40 @@ interface LiturgicalSeason {
   accent: string; // Tailwind class for contrast
   definition: string;
 }
+
+interface WesleyQuoteRecord {
+    quote: string;
+    source: string;
+    theme: string;
+}
+
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+const getLocalDayNumber = (date: Date = new Date()) =>
+    Math.floor(new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() / DAY_IN_MS);
+const getDailyQuoteIndex = (total: number, date: Date = new Date()) => {
+    if (!total) return 0;
+    const dayNumber = getLocalDayNumber(date);
+    return ((dayNumber % total) + total) % total;
+};
+
+const BUNDLED_WESLEY_QUOTES = (() => {
+    if (!Array.isArray(localWesleyQuotes)) return [];
+
+    const seen = new Set<string>();
+    return (localWesleyQuotes as WesleyQuoteRecord[])
+        .map(item => ({
+            quote: String(item.quote ?? '').trim(),
+            source: String(item.source ?? '').trim(),
+            theme: String(item.theme ?? '').trim() || 'Faith',
+        }))
+        .filter(item => {
+            if (!item.quote || !item.source) return false;
+            const key = `${item.quote}|${item.source}`.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+})();
 
 // --- Image Mapping for Verses (Updated with reliable IDs) ---
 const VERSE_IMAGES: Record<string, string> = {
@@ -220,6 +255,16 @@ const Home: React.FC = () => {
   const [verseLoading, setVerseLoading] = useState(false);
     const [verseNotice, setVerseNotice] = useState('');
   const [sharing, setSharing] = useState(false);
+
+    const quoteOfTheDay = useMemo(() => {
+        if (!BUNDLED_WESLEY_QUOTES.length) return null;
+        return BUNDLED_WESLEY_QUOTES[getDailyQuoteIndex(BUNDLED_WESLEY_QUOTES.length)] ?? null;
+    }, []);
+
+    const quoteOfTheDayDate = useMemo(
+        () => new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+        []
+    );
   
   // State to track if the images failed to load
   const [verseImageError, setVerseImageError] = useState(false);
@@ -867,7 +912,45 @@ const Home: React.FC = () => {
                 )}
              </div>
 
-             {/* 4. Pending Tasks */}
+             {/* 4. John Wesley Quote */}
+             <div>
+                <h2 className="text-2xl md:text-4xl font-black text-gray-900 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-3 md:gap-4">
+                    <div className="p-2 bg-gradient-to-br from-sky-500 to-indigo-500 rounded-xl shadow-lg">
+                        <Quote className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                    </div>
+                    John Wesley Quote
+                </h2>
+                {quoteOfTheDay ? (
+                    <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/40 p-6 md:p-8 relative overflow-hidden group hover:shadow-2xl hover:scale-[1.01] transition-all duration-300">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-sky-100 to-indigo-100 rounded-bl-full -mr-6 -mt-6 z-0 opacity-60"></div>
+                        <div className="relative z-10">
+                            <div className="flex flex-wrap items-center gap-2 mb-3">
+                                <span className="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 text-xs md:text-sm font-bold rounded-lg">
+                                    Quote of the Day
+                                </span>
+                                <span className="text-xs text-gray-500">{quoteOfTheDayDate}</span>
+                            </div>
+                            <p className="text-gray-700 italic font-serif text-sm md:text-lg leading-relaxed border-l-2 border-indigo-200 pl-3 mb-3">
+                                “{quoteOfTheDay.quote}”
+                            </p>
+                            <p className="text-xs md:text-sm text-gray-500 mb-4">— {quoteOfTheDay.source}</p>
+                            <Link
+                                to="/john-wesley"
+                                className="inline-flex items-center text-indigo-600 text-sm font-medium hover:text-indigo-800 group-hover:translate-x-1 transition-transform"
+                            >
+                                Open John Wesley Library <ArrowRight className="w-4 h-4 ml-1" />
+                            </Link>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center text-gray-400">
+                        <Quote className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No Wesley quote available.</p>
+                    </div>
+                )}
+             </div>
+
+             {/* 5. Pending Tasks */}
              <div>
                  <h2 className="text-2xl md:text-4xl font-black text-gray-900 mb-4 md:mb-6 px-1 md:px-2 flex items-center gap-3 md:gap-4">
                    <div className="p-2 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl shadow-lg">
