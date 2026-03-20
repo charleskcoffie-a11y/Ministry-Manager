@@ -577,15 +577,15 @@ const Home: React.FC = () => {
         <div className="absolute top-0 left-0 w-40 h-40 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>
         <div className="absolute bottom-0 right-0 w-40 h-40 bg-white/10 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl"></div>
 
-        <div className="relative z-10 px-4 py-8 md:px-10 md:py-12 flex flex-col items-center text-center md:items-start md:text-left">
+        <div className="relative z-10 px-4 py-5 md:px-10 md:py-7 flex flex-col items-center text-center md:items-start md:text-left">
            {/* Badge */}
-           <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/20 border border-white/30 text-white text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-lg mb-4 md:mb-6 backdrop-blur-md">
+           <div className="inline-flex items-center gap-2 px-3 py-1 md:px-4 md:py-1.5 rounded-full bg-white/20 border border-white/30 text-white text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-lg mb-3 md:mb-4 backdrop-blur-md">
               <Crown className="w-3 h-3 md:w-4 md:h-4" /> 
               Pastoral Workspace
            </div>
 
            {/* Title */}
-           <h1 className="text-3xl md:text-7xl font-serif font-black leading-tight mb-3 md:mb-4 tracking-tight text-white drop-shadow-2xl">
+           <h1 className="text-2xl md:text-5xl font-serif font-black leading-tight mb-2 md:mb-3 tracking-tight text-white drop-shadow-2xl">
               Ministry <br className="md:hidden" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-200 to-amber-200 animate-pulse">
                  Suite
@@ -593,25 +593,25 @@ const Home: React.FC = () => {
            </h1>
 
            {/* Subtitle */}
-           <p className="text-sm md:text-2xl text-white/90 font-light max-w-2xl leading-relaxed md:leading-relaxed mb-6 md:mb-8 drop-shadow-lg">
+           <p className="text-xs md:text-lg text-white/90 font-light max-w-2xl leading-relaxed mb-4 md:mb-5 drop-shadow-lg">
               Empowering Kingdom growth through vision, purpose, and organized leadership.
            </p>
 
            {/* Buttons */}
-           <div className="flex flex-wrap gap-3 md:gap-4 justify-center md:justify-start w-full md:w-auto">
-              <Link to="/reminders" className="group flex-1 md:flex-none relative px-6 py-3 md:px-10 md:py-5 bg-white text-indigo-950 rounded-full font-bold text-sm md:text-lg shadow-2xl hover:shadow-[0_0_40px_rgba(255,255,255,0.5)] transition-all duration-300 hover:-translate-y-1 hover:scale-105 flex items-center justify-center gap-2 md:gap-3 overflow-hidden">
+           <div className="flex flex-wrap gap-2 md:gap-3 justify-center md:justify-start w-full md:w-auto">
+              <Link to="/reminders" className="group flex-1 md:flex-none relative px-5 py-2 md:px-8 md:py-3 bg-white text-indigo-950 rounded-full font-bold text-sm md:text-base shadow-2xl hover:shadow-[0_0_40px_rgba(255,255,255,0.5)] transition-all duration-300 hover:-translate-y-1 hover:scale-105 flex items-center justify-center gap-2 overflow-hidden">
                   <span className="relative z-10">Reminders</span>
-                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5 relative z-10 group-hover:translate-x-2 transition-transform duration-300" />
+                  <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-2 transition-transform duration-300" />
                   <div className="absolute inset-0 bg-gradient-to-r from-indigo-50 to-purple-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </Link>
-              <Link to="/sermons" className="flex-1 md:flex-none px-6 py-3 md:px-10 md:py-5 bg-white/20 border-2 border-white/40 text-white rounded-full font-bold text-sm md:text-lg hover:bg-white/30 transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2 md:gap-3 backdrop-blur-md hover:border-white/60 shadow-lg">
-                  <Scroll className="w-4 h-4 md:w-5 md:h-5" />
+              <Link to="/sermons" className="flex-1 md:flex-none px-5 py-2 md:px-8 md:py-3 bg-white/20 border-2 border-white/40 text-white rounded-full font-bold text-sm md:text-base hover:bg-white/30 transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2 backdrop-blur-md hover:border-white/60 shadow-lg">
+                  <Scroll className="w-4 h-4" />
                   Sermons
               </Link>
            </div>
 
            {/* Verse */}
-           <div className="mt-8 pt-6 border-t border-white/20 w-full md:w-auto hidden md:block">
+           <div className="mt-5 pt-4 border-t border-white/20 w-full md:w-auto hidden md:block">
               <p className="text-sm md:text-base font-serif italic text-white/80 flex items-center justify-center md:justify-start gap-2">
                  <Sparkles className="w-4 h-4 text-amber-300" />
                  "Therefore encourage one another and build each other up." — 1 Thessalonians 5:11
