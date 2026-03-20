@@ -13,12 +13,28 @@ import {
 const CASE_TYPES: CaseType[] = ['Marriage', 'Family', 'Addiction', 'Youth', 'Bereavement', 'Spiritual', 'Other'];
 const STATUSES: CounselingStatus[] = ['Open', 'In Progress', 'Closed'];
 
+const normalizeCounselingCode = (value: unknown): string | null => {
+    if (typeof value === 'string' && /^\d{4,6}$/.test(value)) return value;
+
+    if (value && typeof value === 'object') {
+        const maybeCode = (value as { code?: unknown }).code;
+        if (typeof maybeCode === 'string' && /^\d{4,6}$/.test(maybeCode)) {
+            return maybeCode;
+        }
+    }
+
+    return null;
+};
+
 const CounselingManager: React.FC = () => {
   // Security State
   const [isLocked, setIsLocked] = useState(true);
   const [blurMode, setBlurMode] = useState(true);
   const [inputCode, setInputCode] = useState('');
   const [lockError, setLockError] = useState('');
+    const [masterCode, setMasterCode] = useState(
+        () => localStorage.getItem(APP_CONSTANTS.COUNSELING_MASTER_CODE_STORAGE_KEY) || APP_CONSTANTS.COUNSELING_MASTER_CODE
+    );
 
   // Data State
   const [sessions, setSessions] = useState<CounselingSession[]>([]);
@@ -47,9 +63,36 @@ const CounselingManager: React.FC = () => {
     }
   }, [isLocked]);
 
+    useEffect(() => {
+        const syncMasterCode = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('uploaded_documents')
+                    .select('content')
+                    .eq('id', APP_CONSTANTS.COUNSELING_MASTER_CODE_DOC_ID)
+                    .single();
+
+                if (error && (error as any).code !== 'PGRST116') {
+                    console.error('Failed to load counseling code from database:', error);
+                    return;
+                }
+
+                const syncedCode = normalizeCounselingCode(data?.content);
+                if (!syncedCode) return;
+
+                setMasterCode(syncedCode);
+                localStorage.setItem(APP_CONSTANTS.COUNSELING_MASTER_CODE_STORAGE_KEY, syncedCode);
+            } catch (error) {
+                console.error('Unexpected error loading counseling code:', error);
+            }
+        };
+
+        syncMasterCode();
+    }, []);
+
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputCode === APP_CONSTANTS.COUNSELING_MASTER_CODE) {
+        if (inputCode.trim() === masterCode) {
       setIsLocked(false);
       setLockError('');
       setInputCode('');

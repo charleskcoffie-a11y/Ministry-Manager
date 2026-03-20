@@ -32,6 +32,13 @@ const Settings: React.FC = () => {
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [pinMessage, setPinMessage] = useState({ text: '', type: '' });
+  const [oldCounselingCode, setOldCounselingCode] = useState('');
+  const [newCounselingCode, setNewCounselingCode] = useState('');
+  const [confirmCounselingCode, setConfirmCounselingCode] = useState('');
+  const [counselingCodeMessage, setCounselingCodeMessage] = useState({ text: '', type: '' });
+  const [currentCounselingCode, setCurrentCounselingCode] = useState(
+    () => localStorage.getItem(APP_CONSTANTS.COUNSELING_MASTER_CODE_STORAGE_KEY) || APP_CONSTANTS.COUNSELING_MASTER_CODE
+  );
 
   // Verse Settings
   const [verseSource, setVerseSource] = useState('plan');
@@ -76,10 +83,24 @@ CREATE POLICY "Allow all"
     });
   };
 
+  const normalizeCounselingCode = (value: unknown): string | null => {
+    if (typeof value === 'string' && /^\d{4,6}$/.test(value)) return value;
+
+    if (value && typeof value === 'object') {
+      const maybeCode = (value as { code?: unknown }).code;
+      if (typeof maybeCode === 'string' && /^\d{4,6}$/.test(maybeCode)) {
+        return maybeCode;
+      }
+    }
+
+    return null;
+  };
+
   useEffect(() => {
       setVerseSource(localStorage.getItem('dailyVerseSource') || (getAiFeatureStatus().available ? 'ai' : 'plan'));
       // Check Supabase connection on component mount
       checkConnection();
+      loadCounselingCode();
   }, []);
 
     const aiStatus = getAiFeatureStatus();
@@ -94,6 +115,29 @@ CREATE POLICY "Allow all"
       setConnectionStatus(error ? 'disconnected' : 'connected');
     } catch {
       setConnectionStatus('disconnected');
+    }
+  };
+
+  const loadCounselingCode = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('uploaded_documents')
+        .select('content')
+        .eq('id', APP_CONSTANTS.COUNSELING_MASTER_CODE_DOC_ID)
+        .single();
+
+      if (error && (error as any).code !== 'PGRST116') {
+        console.error('Failed to load counseling code from database:', error);
+        return;
+      }
+
+      const syncedCode = normalizeCounselingCode(data?.content);
+      if (!syncedCode) return;
+
+      localStorage.setItem(APP_CONSTANTS.COUNSELING_MASTER_CODE_STORAGE_KEY, syncedCode);
+      setCurrentCounselingCode(syncedCode);
+    } catch (error) {
+      console.error('Unexpected error loading counseling code:', error);
     }
   };
 
@@ -334,6 +378,54 @@ CREATE POLICY "Allow all"
     setConfirmPin('');
   };
 
+  const handleChangeCounselingCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCounselingCodeMessage({ text: '', type: '' });
+
+    const storedCounselingCode = currentCounselingCode;
+
+    if (oldCounselingCode !== storedCounselingCode) {
+      setCounselingCodeMessage({ text: 'Incorrect current counseling code', type: 'error' });
+      return;
+    }
+
+    if (!/^\d{4,6}$/.test(newCounselingCode)) {
+      setCounselingCodeMessage({ text: 'New code must be 4-6 digits', type: 'error' });
+      return;
+    }
+
+    if (newCounselingCode !== confirmCounselingCode) {
+      setCounselingCodeMessage({ text: 'New codes do not match', type: 'error' });
+      return;
+    }
+
+    localStorage.setItem(APP_CONSTANTS.COUNSELING_MASTER_CODE_STORAGE_KEY, newCounselingCode);
+    setCurrentCounselingCode(newCounselingCode);
+
+    const { error } = await supabase
+      .from('uploaded_documents')
+      .upsert(
+        {
+          id: APP_CONSTANTS.COUNSELING_MASTER_CODE_DOC_ID,
+          filename: 'counseling_master_code.json',
+          content: { code: newCounselingCode },
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      );
+
+    if (error) {
+      console.error('Failed to sync counseling code to database:', error);
+      setCounselingCodeMessage({ text: 'Code updated locally. Database sync failed.', type: 'error' });
+    } else {
+      setCounselingCodeMessage({ text: 'Counseling code updated and synced!', type: 'success' });
+    }
+
+    setOldCounselingCode('');
+    setNewCounselingCode('');
+    setConfirmCounselingCode('');
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-12">
       <div className="flex items-center gap-4 mb-6">
@@ -434,7 +526,7 @@ CREATE POLICY "Allow all"
           Security
         </h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
            <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
               <h3 className="font-bold text-slate-700 mb-2">App Lock Protection</h3>
               <p className="text-sm text-slate-500 mb-4">
@@ -479,6 +571,57 @@ CREATE POLICY "Allow all"
                  {pinMessage.text && (
                    <div className={`text-sm text-center font-medium py-2 rounded ${pinMessage.type === 'success' ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
                      {pinMessage.text}
+                   </div>
+                 )}
+              </form>
+           </div>
+
+           <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
+              <h3 className="font-bold text-slate-700 mb-2 flex items-center gap-2">
+                <KeyRound className="w-4 h-4" /> Counseling Master Code
+              </h3>
+              <p className="text-sm text-slate-500 mb-4">
+                Change the code used to unlock the Counseling page.
+                Default code is <strong>{APP_CONSTANTS.COUNSELING_MASTER_CODE}</strong>.
+              </p>
+
+              <form onSubmit={handleChangeCounselingCode} className="space-y-4">
+                 <div>
+                    <input
+                      type="password"
+                      placeholder="Current code"
+                      className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                      value={oldCounselingCode}
+                      onChange={e => setOldCounselingCode(e.target.value)}
+                      maxLength={6}
+                    />
+                 </div>
+                 <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="password"
+                      placeholder="New code"
+                      className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                      value={newCounselingCode}
+                      onChange={e => setNewCounselingCode(e.target.value)}
+                      maxLength={6}
+                    />
+                    <input
+                      type="password"
+                      placeholder="Confirm"
+                      className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                      value={confirmCounselingCode}
+                      onChange={e => setConfirmCounselingCode(e.target.value)}
+                      maxLength={6}
+                    />
+                 </div>
+
+                 <button type="submit" className="w-full py-2.5 bg-slate-800 text-white rounded-lg hover:bg-black font-medium transition-colors flex items-center justify-center gap-2">
+                    <Save className="w-4 h-4" /> Update Code
+                 </button>
+
+                 {counselingCodeMessage.text && (
+                   <div className={`text-sm text-center font-medium py-2 rounded ${counselingCodeMessage.type === 'success' ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
+                     {counselingCodeMessage.text}
                    </div>
                  )}
               </form>
