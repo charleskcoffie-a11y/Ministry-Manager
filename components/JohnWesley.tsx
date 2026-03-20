@@ -701,12 +701,16 @@ const JohnWesley: React.FC = () => {
           <div className="flex flex-col md:flex-row gap-4">
             <div className={`${sermonsPanelOpen ? 'md:w-80 shrink-0' : 'hidden'} transition-all duration-300`}>
               <div className="flex items-center justify-between px-1 mb-3">
-                <p className="text-amber-400/60 text-xs font-semibold uppercase tracking-wider">Sermon Library</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-amber-600/50 text-xs">{filteredSermons.length} found</span>
+                  <p className="text-amber-300/80 text-xs font-semibold uppercase tracking-wider">Sermon Library</p>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-300/10 text-amber-200 border border-amber-300/20">
+                    {filteredSermons.length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => setSermonsPanelOpen(!sermonsPanelOpen)}
-                    className="p-1.5 hover:bg-amber-700/40 rounded-lg transition-colors text-amber-400"
+                    className="p-1.5 rounded-lg transition-colors text-amber-400 hover:text-amber-200 hover:bg-amber-700/40"
                     title={sermonsPanelOpen ? 'Collapse' : 'Expand'}
                   >
                     <ChevronLeft className="w-4 h-4" />
@@ -714,40 +718,44 @@ const JohnWesley: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#b8860b transparent' }}>
-                {sermonsLoading && (
-                  <div className="flex flex-col items-center justify-center py-12 gap-3">
-                    <Loader2 className="w-7 h-7 animate-spin text-amber-500" />
-                    <p className="text-amber-300/60 text-sm font-serif italic">Loading Wesley sermons...</p>
-                  </div>
-                )}
-
-                {!sermonsLoading && filteredSermons.map(sermon => (
-                  <button
-                    key={sermon.number}
-                    onClick={() => setSelectedSermonNumber(sermon.number)}
-                    className={`w-full text-left px-3 py-3 rounded-xl transition-all border group ${
-                      selectedSermon?.number === sermon.number
-                        ? 'bg-amber-700/80 border-amber-500/60 text-amber-50'
-                        : 'border-transparent text-amber-200/70 hover:bg-amber-900/40 hover:border-amber-700/40 hover:text-amber-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-mono w-6 shrink-0 ${selectedSermon?.number === sermon.number ? 'text-amber-300' : 'text-amber-600/50'}`}>
-                        {String(sermon.number).padStart(2, '0')}
-                      </span>
-                      <span className="text-sm md:text-[15px] font-semibold leading-snug line-clamp-2">{sermon.title}</span>
-                      {selectedSermon?.number === sermon.number && <ChevronRight className="w-3 h-3 ml-auto shrink-0 text-amber-300" />}
+              <div className="rounded-2xl border border-amber-700/30 bg-gradient-to-b from-black/35 to-black/10 backdrop-blur-sm p-2 shadow-[0_14px_30px_rgba(0,0,0,0.28)]">
+                <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#b8860b transparent' }}>
+                  {sermonsLoading && (
+                    <div className="flex flex-col items-center justify-center py-12 gap-3 rounded-xl bg-black/20 border border-amber-900/30">
+                      <Loader2 className="w-7 h-7 animate-spin text-amber-500" />
+                      <p className="text-amber-300/60 text-sm font-serif italic">Loading Wesley sermons...</p>
                     </div>
-                    <p className="text-[13px] text-amber-600/60 mt-1 ml-8 line-clamp-1">{sermon.scripture}</p>
-                  </button>
-                ))}
+                  )}
 
-                {!sermonsLoading && !filteredSermons.length && (
-                  <div className="rounded-2xl border border-amber-800/30 bg-black/20 p-5 text-center">
-                    <p className="text-amber-300/60 text-sm font-serif italic">No sermons match that search.</p>
-                  </div>
-                )}
+                  {!sermonsLoading && filteredSermons.map(sermon => (
+                    <button
+                      key={sermon.number}
+                      onClick={() => setSelectedSermonNumber(sermon.number)}
+                      className={`w-full text-left px-3 py-3 rounded-xl transition-all border group ${
+                        selectedSermon?.number === sermon.number
+                          ? 'bg-gradient-to-r from-amber-700/95 to-amber-600/75 border-amber-400/70 text-amber-50 shadow-[0_8px_20px_rgba(180,134,11,0.35)]'
+                          : 'border-amber-900/30 bg-black/15 text-amber-200/80 hover:bg-amber-900/45 hover:border-amber-700/45 hover:text-amber-100 hover:-translate-y-0.5'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className={`inline-flex items-center justify-center min-w-7 h-7 px-1 rounded-md text-[11px] font-mono ${selectedSermon?.number === sermon.number ? 'bg-amber-200/20 text-amber-100' : 'bg-amber-900/40 text-amber-400/80'}`}>
+                          {String(sermon.number).padStart(2, '0')}
+                        </span>
+                        <span className="text-sm md:text-[15px] font-semibold leading-snug line-clamp-2 pt-0.5">{sermon.title}</span>
+                        {selectedSermon?.number === sermon.number && <ChevronRight className="w-3 h-3 ml-auto mt-1 shrink-0 text-amber-200" />}
+                      </div>
+                      <p className={`text-[12px] mt-1 ml-9 line-clamp-1 ${selectedSermon?.number === sermon.number ? 'text-amber-100/85' : 'text-amber-500/70'}`}>
+                        {sermon.scripture}
+                      </p>
+                    </button>
+                  ))}
+
+                  {!sermonsLoading && !filteredSermons.length && (
+                    <div className="rounded-2xl border border-amber-800/30 bg-black/20 p-5 text-center">
+                      <p className="text-amber-300/60 text-sm font-serif italic">No sermons match that search.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -952,12 +960,16 @@ const JohnWesley: React.FC = () => {
           <div className="flex flex-col md:flex-row gap-4">
             <div className={`${diaryPanelOpen ? 'md:w-96 shrink-0' : 'hidden'} transition-all duration-300`}>
               <div className="flex items-center justify-between px-1 mb-3">
-                <p className="text-amber-400/60 text-xs font-semibold uppercase tracking-wider">Diary Entries</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-amber-600/50 text-xs">{diaryLoading ? 'Loading...' : `${filteredDiaryEntries.length} found`}</span>
+                  <p className="text-amber-300/80 text-xs font-semibold uppercase tracking-wider">Diary Entries</p>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-300/10 text-amber-200 border border-amber-300/20">
+                    {diaryLoading ? '...' : filteredDiaryEntries.length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => setDiaryPanelOpen(!diaryPanelOpen)}
-                    className="p-1.5 hover:bg-amber-700/40 rounded-lg transition-colors text-amber-400"
+                    className="p-1.5 rounded-lg transition-colors text-amber-400 hover:text-amber-200 hover:bg-amber-700/40"
                     title={diaryPanelOpen ? 'Collapse' : 'Expand'}
                   >
                     <ChevronLeft className="w-4 h-4" />
@@ -965,49 +977,51 @@ const JohnWesley: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#b8860b transparent' }}>
-                {diaryLoading && (
-                  <div className="flex flex-col items-center justify-center py-12 gap-3">
-                    <Loader2 className="w-7 h-7 animate-spin text-amber-500" />
-                    <p className="text-amber-300/60 text-sm font-serif italic">Loading Wesley diary entries...</p>
-                  </div>
-                )}
-
-                {!diaryLoading && filteredDiaryEntries.map((entry) => (
-                  <button
-                    key={entry.id}
-                    onClick={() => setSelectedDiaryId(entry.id)}
-                    className={`w-full text-left px-3 py-3 rounded-xl transition-all border group ${
-                      selectedDiaryEntry?.id === entry.id
-                        ? 'bg-amber-700/80 border-amber-500/60 text-amber-50'
-                        : 'border-transparent text-amber-200/70 hover:bg-amber-900/40 hover:border-amber-700/40 hover:text-amber-100'
-                    }`}
-                  >
-                    <div className="flex items-start gap-2">
-                      <span className={`text-xs font-mono shrink-0 mt-0.5 ${selectedDiaryEntry?.id === entry.id ? 'text-amber-300' : 'text-amber-600/50'}`}>
-                        {entry.section}
-                      </span>
-                      <span className="text-xs font-medium leading-snug line-clamp-2">{entry.title}</span>
-                      {selectedDiaryEntry?.id === entry.id && <ChevronRight className="w-3 h-3 ml-auto mt-0.5 shrink-0 text-amber-300" />}
+              <div className="rounded-2xl border border-amber-700/30 bg-gradient-to-b from-black/35 to-black/10 backdrop-blur-sm p-2 shadow-[0_14px_30px_rgba(0,0,0,0.28)]">
+                <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#b8860b transparent' }}>
+                  {diaryLoading && (
+                    <div className="flex flex-col items-center justify-center py-12 gap-3 rounded-xl bg-black/20 border border-amber-900/30">
+                      <Loader2 className="w-7 h-7 animate-spin text-amber-500" />
+                      <p className="text-amber-300/60 text-sm font-serif italic">Loading Wesley diary entries...</p>
                     </div>
-                    {entry.dateLabel && (
-                      <p className={`text-[11px] mt-1 ml-8 ${selectedDiaryEntry?.id === entry.id ? 'text-amber-200/90' : 'text-amber-500/60'}`}>
-                        {entry.dateLabel}
-                      </p>
-                    )}
-                    {!entry.text && entry.excerpt && (
-                      <p className={`text-[11px] mt-1 ml-8 line-clamp-2 ${selectedDiaryEntry?.id === entry.id ? 'text-amber-200/80' : 'text-amber-500/50'}`}>
-                        {entry.excerpt}
-                      </p>
-                    )}
-                  </button>
-                ))}
+                  )}
 
-                {!diaryLoading && !filteredDiaryEntries.length && (
-                  <div className="rounded-2xl border border-amber-800/30 bg-black/20 p-5 text-center">
-                    <p className="text-amber-300/60 text-sm font-serif italic">No diary entries match that search.</p>
-                  </div>
-                )}
+                  {!diaryLoading && filteredDiaryEntries.map((entry) => (
+                    <button
+                      key={entry.id}
+                      onClick={() => setSelectedDiaryId(entry.id)}
+                      className={`w-full text-left px-3 py-3 rounded-xl transition-all border group ${
+                        selectedDiaryEntry?.id === entry.id
+                          ? 'bg-gradient-to-r from-amber-700/95 to-amber-600/75 border-amber-400/70 text-amber-50 shadow-[0_8px_20px_rgba(180,134,11,0.35)]'
+                          : 'border-amber-900/30 bg-black/15 text-amber-200/80 hover:bg-amber-900/45 hover:border-amber-700/45 hover:text-amber-100 hover:-translate-y-0.5'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className={`inline-flex items-center justify-center min-w-7 h-7 px-1 rounded-md text-[11px] font-mono ${selectedDiaryEntry?.id === entry.id ? 'bg-amber-200/20 text-amber-100' : 'bg-amber-900/40 text-amber-400/80'}`}>
+                          {entry.section}
+                        </span>
+                        <span className="text-xs font-medium leading-snug line-clamp-2 pt-0.5">{entry.title}</span>
+                        {selectedDiaryEntry?.id === entry.id && <ChevronRight className="w-3 h-3 ml-auto mt-1 shrink-0 text-amber-200" />}
+                      </div>
+                      {entry.dateLabel && (
+                        <p className={`text-[11px] mt-1 ml-9 ${selectedDiaryEntry?.id === entry.id ? 'text-amber-100/85' : 'text-amber-500/70'}`}>
+                          {entry.dateLabel}
+                        </p>
+                      )}
+                      {!entry.text && entry.excerpt && (
+                        <p className={`text-[11px] mt-1 ml-9 line-clamp-2 ${selectedDiaryEntry?.id === entry.id ? 'text-amber-100/80' : 'text-amber-500/55'}`}>
+                          {entry.excerpt}
+                        </p>
+                      )}
+                    </button>
+                  ))}
+
+                  {!diaryLoading && !filteredDiaryEntries.length && (
+                    <div className="rounded-2xl border border-amber-800/30 bg-black/20 p-5 text-center">
+                      <p className="text-amber-300/60 text-sm font-serif italic">No diary entries match that search.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
