@@ -369,6 +369,9 @@ const JohnWesley: React.FC = () => {
   const [hymnStoryQuery, setHymnStoryQuery] = useState('');
   const [selectedHymnStoryId, setSelectedHymnStoryId] = useState<string | null>(BUNDLED_WESLEY_HYMN_STORIES[0]?.id ?? null);
 
+  const [sermonsPanelOpen, setSermonsPanelOpen] = useState(true);
+  const [diaryPanelOpen, setDiaryPanelOpen] = useState(true);
+
   const filteredSermons = useMemo(() => {
     const query = sermonQuery.trim().toLowerCase();
     if (!query) return sermons;
@@ -705,10 +708,19 @@ const JohnWesley: React.FC = () => {
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">
-            <div className="md:w-80 shrink-0">
+            <div className={`${sermonsPanelOpen ? 'md:w-80 shrink-0' : 'hidden'} transition-all duration-300`}>
               <div className="flex items-center justify-between px-1 mb-3">
                 <p className="text-amber-400/60 text-xs font-semibold uppercase tracking-wider">Sermon Library</p>
-                <span className="text-amber-600/50 text-xs">{filteredSermons.length} found</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-600/50 text-xs">{filteredSermons.length} found</span>
+                  <button
+                    onClick={() => setSermonsPanelOpen(!sermonsPanelOpen)}
+                    className="p-1.5 hover:bg-amber-700/40 rounded-lg transition-colors text-amber-400"
+                    title={sermonsPanelOpen ? 'Collapse' : 'Expand'}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#b8860b transparent' }}>
@@ -956,10 +968,19 @@ const JohnWesley: React.FC = () => {
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">
-            <div className="md:w-96 shrink-0">
+            <div className={`${diaryPanelOpen ? 'md:w-96 shrink-0' : 'hidden'} transition-all duration-300`}>
               <div className="flex items-center justify-between px-1 mb-3">
                 <p className="text-amber-400/60 text-xs font-semibold uppercase tracking-wider">Diary Entries</p>
-                <span className="text-amber-600/50 text-xs">{diaryLoading ? 'Loading...' : `${filteredDiaryEntries.length} found`}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-600/50 text-xs">{diaryLoading ? 'Loading...' : `${filteredDiaryEntries.length} found`}</span>
+                  <button
+                    onClick={() => setDiaryPanelOpen(!diaryPanelOpen)}
+                    className="p-1.5 hover:bg-amber-700/40 rounded-lg transition-colors text-amber-400"
+                    title={diaryPanelOpen ? 'Collapse' : 'Expand'}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#b8860b transparent' }}>
