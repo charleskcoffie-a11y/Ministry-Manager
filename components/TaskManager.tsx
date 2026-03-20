@@ -15,6 +15,45 @@ const CATEGORIES: TaskCategory[] = ['Preaching', 'Visitation', 'Counseling', 'Ad
 const PRIORITIES: TaskPriority[] = ['Low', 'Medium', 'High', 'Critical'];
 const STATUSES: TaskStatus[] = ['Pending', 'In Progress', 'Completed'];
 
+interface TaskYearGroup {
+    yearLabel: string;
+    yearKey: string;
+    sortValue: number;
+    tasks: Task[];
+}
+
+const getTaskYearGroup = (taskDate?: string) => {
+    if (typeof taskDate === 'string') {
+        const yearMatch = taskDate.match(/^(\d{4})/);
+        if (yearMatch) {
+            const year = yearMatch[1];
+            return {
+                yearLabel: year,
+                yearKey: year,
+                sortValue: Number(year),
+            };
+        }
+
+        const parsedDate = new Date(taskDate);
+        if (!Number.isNaN(parsedDate.getTime())) {
+            const year = String(parsedDate.getFullYear());
+            return {
+                yearLabel: year,
+                yearKey: year,
+                sortValue: Number(year),
+            };
+        }
+    }
+
+    return {
+        yearLabel: 'No Date',
+        yearKey: 'undated',
+        sortValue: -1,
+    };
+};
+
+const getYearFolderId = (category: TaskCategory, yearKey: string) => `${category}::${yearKey}`;
+
 const TaskManager: React.FC = () => {
   const { modalState, showConfirm, closeModal } = useModal();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -35,10 +74,11 @@ const TaskManager: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'completed'>('active');
     const [collapsedCategories, setCollapsedCategories] = useState<Record<TaskCategory, boolean>>(() =>
         CATEGORIES.reduce((acc, category) => {
-            acc[category] = false;
+            acc[category] = true;
             return acc;
         }, {} as Record<TaskCategory, boolean>)
     );
+  const [collapsedYears, setCollapsedYears] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchTasks();
@@ -86,10 +126,16 @@ const TaskManager: React.FC = () => {
 
     if (editingTask.id) {
         const { error } = await supabase.from('tasks').update(taskData).eq('id', editingTask.id);
-        if (!error) fetchTasks();
+        if (!error) {
+            revealTaskFolders(taskData.category as TaskCategory, taskData.task_date || undefined);
+            fetchTasks();
+        }
     } else {
         const { error } = await supabase.from('tasks').insert([taskData]);
-        if (!error) fetchTasks();
+        if (!error) {
+            revealTaskFolders(taskData.category as TaskCategory, taskData.task_date || undefined);
+            fetchTasks();
+        }
     }
     closeTaskModal();
   };
@@ -148,6 +194,28 @@ const TaskManager: React.FC = () => {
       }));
   };
 
+  const toggleYearCollapse = (category: TaskCategory, yearKey: string) => {
+      const folderId = getYearFolderId(category, yearKey);
+      setCollapsedYears(prev => ({
+          ...prev,
+          [folderId]: !(prev[folderId] ?? true)
+      }));
+  };
+
+  const revealTaskFolders = (category: TaskCategory, taskDate?: string) => {
+      const { yearKey } = getTaskYearGroup(taskDate);
+      const folderId = getYearFolderId(category, yearKey);
+
+      setCollapsedCategories(prev => ({
+          ...prev,
+          [category]: false
+      }));
+      setCollapsedYears(prev => ({
+          ...prev,
+          [folderId]: false
+      }));
+  };
+
   // --- Grouping & Sorting ---
   const groupedTasks = useMemo(() => {
       // 1. Filter
@@ -158,22 +226,23 @@ const TaskManager: React.FC = () => {
       });
 
       // 2. Group by Category
-      const groups: Record<string, Task[]> = {};
-      CATEGORIES.forEach(c => groups[c] = []); // Initialize all keys
+      const groups = CATEGORIES.reduce((acc, category) => {
+          acc[category] = [];
+          return acc;
+      }, {} as Record<TaskCategory, Task[]>);
       
       filtered.forEach(t => {
-          if (groups[t.category]) {
+          if (groups[t.category as TaskCategory]) {
               groups[t.category].push(t);
           } else {
               // Fallback for unknown categories or legacy data
-              if(!groups['Other']) groups['Other'] = [];
               groups['Other'].push(t);
           }
       });
 
       // 3. Sort inside groups (Already sorted by date from DB, but secondary sort by Priority useful)
-      Object.keys(groups).forEach(key => {
-          groups[key].sort((a, b) => {
+      CATEGORIES.forEach(category => {
+          groups[category].sort((a, b) => {
               // Primary: Date
               const dateA = new Date(a.task_date).getTime();
               const dateB = new Date(b.task_date).getTime();
@@ -185,7 +254,33 @@ const TaskManager: React.FC = () => {
           });
       });
 
-      return groups;
+      return CATEGORIES.reduce((acc, category) => {
+          const yearMap = new Map<string, TaskYearGroup>();
+
+          groups[category].forEach(task => {
+              const { yearLabel, yearKey, sortValue } = getTaskYearGroup(task.task_date);
+              const existingGroup = yearMap.get(yearKey);
+
+              if (existingGroup) {
+                  existingGroup.tasks.push(task);
+                  return;
+              }
+
+              yearMap.set(yearKey, {
+                  yearLabel,
+                  yearKey,
+                  sortValue,
+                  tasks: [task],
+              });
+          });
+
+          acc[category] = Array.from(yearMap.values()).sort((a, b) => {
+              if (a.sortValue !== b.sortValue) return b.sortValue - a.sortValue;
+              return a.yearLabel.localeCompare(b.yearLabel);
+          });
+
+          return acc;
+      }, {} as Record<TaskCategory, TaskYearGroup[]>);
   }, [tasks, filterStatus]);
 
   // --- Helpers for UI ---
@@ -311,7 +406,8 @@ const TaskManager: React.FC = () => {
       ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
               {CATEGORIES.map(category => {
-                  const items = groupedTasks[category];
+                  const yearGroups = groupedTasks[category];
+                  const taskCount = yearGroups.reduce((total, group) => total + group.tasks.length, 0);
                   const theme = getCategoryTheme(category);
                   const isCollapsed = collapsedCategories[category];
 
@@ -330,7 +426,7 @@ const TaskManager: React.FC = () => {
                                 </div>
                                 <div>
                                     <h3 className={`font-bold text-base leading-none ${theme.header}`}>{category}</h3>
-                                    <span className="text-[11px] font-semibold opacity-70 text-gray-600">{items.length} {items.length === 1 ? 'Task' : 'Tasks'}</span>
+                                    <span className="text-[11px] font-semibold opacity-70 text-gray-600">{yearGroups.length} {yearGroups.length === 1 ? 'Year' : 'Years'} • {taskCount} {taskCount === 1 ? 'Task' : 'Tasks'}</span>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -353,7 +449,7 @@ const TaskManager: React.FC = () => {
                           {/* Task List */}
                           {!isCollapsed && (
                           <div className="space-y-2.5 flex-1 animate-fade-in">
-                              {items.length === 0 && (
+                              {taskCount === 0 && (
                                   <div className="h-28 flex flex-col items-center justify-center text-center p-3 border-2 border-dashed border-gray-300/50 rounded-xl">
                                       <div className="opacity-30 mb-2">{getCategoryIcon(category)}</div>
                                       <p className="text-gray-400 text-xs font-medium">No tasks yet.</p>
@@ -361,60 +457,89 @@ const TaskManager: React.FC = () => {
                                   </div>
                               )}
                               
-                              {items.map(task => (
-                                                                    <div 
-                                    key={task.id} 
-                                                                        className={`bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-all group relative border-l-4 ${getPriorityBorderColor(task.priority)} overflow-hidden`}
-                                  >
-                                      {/* Top Row: Date & Priority */}
-                                      <div className="flex justify-between items-start mb-1.5">
-                                          <div className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${getPriorityBadgeColor(task.priority)}`}>
-                                              {task.priority}
-                                          </div>
-                                          {task.task_date && (
-                                              <span className={`text-[11px] font-bold flex items-center gap-1.5 ${new Date(task.task_date) < new Date() && task.status !== 'Completed' ? 'text-rose-500' : 'text-gray-400'}`}>
-                                                  <Calendar className="w-3 h-3" />
-                                                  {new Date(task.task_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                              </span>
-                                          )}
-                                      </div>
+                              {yearGroups.map(yearGroup => {
+                                  const yearFolderId = getYearFolderId(category, yearGroup.yearKey);
+                                  const isYearCollapsed = collapsedYears[yearFolderId] ?? true;
 
-                                      {/* Content */}
-                                      <h3 className={`font-bold text-gray-800 text-sm mb-0.5 leading-snug ${task.status === 'Completed' ? 'line-through opacity-50' : ''}`}>
-                                          {task.title}
-                                      </h3>
-                                      
-                                      {task.description && (
-                                          <p className={`text-[11px] text-gray-500 line-clamp-1 mb-2 ${task.status === 'Completed' ? 'opacity-50' : ''}`}>
-                                              {task.description}
-                                          </p>
-                                      )}
-
-                                      {/* Actions Footer */}
-                                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
-                                          <button 
-                                            onClick={() => handleStatusChange(task, task.status === 'Completed' ? 'Pending' : 'Completed')}
-                                            className={`flex items-center gap-1.5 text-[11px] font-bold px-2 py-1 rounded-md transition-colors ${
-                                                task.status === 'Completed' 
-                                                ? 'bg-green-50 text-green-700' 
-                                                : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-                                            }`}
+                                  return (
+                                      <div key={yearFolderId} className="rounded-xl border border-white/70 bg-white/50 shadow-sm overflow-hidden">
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleYearCollapse(category, yearGroup.yearKey)}
+                                            className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-white/70 transition-colors"
                                           >
-                                              {task.status === 'Completed' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />}
-                                              {task.status === 'Completed' ? 'Done' : 'Mark Done'}
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-2 rounded-lg ${theme.iconBg} ${theme.iconColor}`}>
+                                                    {isYearCollapsed ? <Folder className="w-4 h-4" /> : <FolderOpen className="w-4 h-4" />}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-gray-800">{yearGroup.yearLabel}</p>
+                                                    <p className="text-[11px] font-semibold text-gray-500">{yearGroup.tasks.length} {yearGroup.tasks.length === 1 ? 'Task' : 'Tasks'}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-gray-500">
+                                                {isYearCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                                            </div>
                                           </button>
 
-                                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                              <button onClick={() => openEditModal(task)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                                                  <Edit2 className="w-3.5 h-3.5" />
-                                              </button>
-                                              <button onClick={() => handleDelete(task.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                                                  <Trash2 className="w-3.5 h-3.5" />
-                                              </button>
-                                          </div>
+                                          {!isYearCollapsed && (
+                                              <div className="space-y-2 px-2 pb-2 animate-fade-in">
+                                                  {yearGroup.tasks.map(task => (
+                                                      <div
+                                                        key={task.id}
+                                                        className={`bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-all group relative border-l-4 ${getPriorityBorderColor(task.priority)} overflow-hidden`}
+                                                      >
+                                                          <div className="flex justify-between items-start mb-1.5">
+                                                              <div className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${getPriorityBadgeColor(task.priority)}`}>
+                                                                  {task.priority}
+                                                              </div>
+                                                              {task.task_date && (
+                                                                  <span className={`text-[11px] font-bold flex items-center gap-1.5 ${new Date(task.task_date) < new Date() && task.status !== 'Completed' ? 'text-rose-500' : 'text-gray-400'}`}>
+                                                                      <Calendar className="w-3 h-3" />
+                                                                      {new Date(task.task_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                                  </span>
+                                                              )}
+                                                          </div>
+
+                                                          <h3 className={`font-bold text-gray-800 text-sm mb-0.5 leading-snug ${task.status === 'Completed' ? 'line-through opacity-50' : ''}`}>
+                                                              {task.title}
+                                                          </h3>
+
+                                                          {task.description && (
+                                                              <p className={`text-[11px] text-gray-500 line-clamp-1 mb-2 ${task.status === 'Completed' ? 'opacity-50' : ''}`}>
+                                                                  {task.description}
+                                                              </p>
+                                                          )}
+
+                                                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
+                                                              <button
+                                                                onClick={() => handleStatusChange(task, task.status === 'Completed' ? 'Pending' : 'Completed')}
+                                                                className={`flex items-center gap-1.5 text-[11px] font-bold px-2 py-1 rounded-md transition-colors ${
+                                                                    task.status === 'Completed'
+                                                                    ? 'bg-green-50 text-green-700'
+                                                                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                                                                }`}
+                                                              >
+                                                                  {task.status === 'Completed' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />}
+                                                                  {task.status === 'Completed' ? 'Done' : 'Mark Done'}
+                                                              </button>
+
+                                                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                  <button onClick={() => openEditModal(task)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                                                      <Edit2 className="w-3.5 h-3.5" />
+                                                                  </button>
+                                                                  <button onClick={() => handleDelete(task.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                                                      <Trash2 className="w-3.5 h-3.5" />
+                                                                  </button>
+                                                              </div>
+                                                          </div>
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          )}
                                       </div>
-                                  </div>
-                              ))}
+                                  );
+                              })}
                           </div>
                           )}
                       </div>
