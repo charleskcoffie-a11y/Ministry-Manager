@@ -441,6 +441,36 @@ const StandingOrders = () => {
 
   const visibleDocContent = showDocBookmarksOnly ? filteredBookmarkedContent : filteredDocContent;
 
+  const indexedPageCount = useMemo(() => {
+    const pages = new Set<number>();
+    docContent.forEach(item => {
+      if (typeof item.page === 'number') pages.add(item.page);
+    });
+    return pages.size;
+  }, [docContent]);
+
+  const favoriteOrderCount = useMemo(
+    () => orders.filter(order => order.is_favorite).length,
+    [orders]
+  );
+
+  const hasSelection = Boolean(selectedOrder || selectedDocItem);
+  const listHeading = docMode
+    ? showDocBookmarksOnly
+      ? 'Bookmarked Passages'
+      : 'Constitution Index'
+    : showFavoritesOnly
+      ? 'Saved Sections'
+      : 'Standing Order Library';
+  const listSummaryLabel = docMode
+    ? showDocBookmarksOnly
+      ? `${visibleDocContent.length} bookmarked passages`
+      : `${visibleDocContent.length} passages in view`
+    : showFavoritesOnly
+      ? `${orders.length} saved sections`
+      : `${orders.length} sections in view`;
+  const selectedDocSummaryLabel = selectedDocBookmark?.soLabel || (selectedDocItem?.page ? `Page ${selectedDocItem.page}` : 'Document Excerpt');
+
   useEffect(() => {
     if (!showFullDoc || !docMode || !selectedDocItem) return;
 
@@ -460,449 +490,580 @@ const StandingOrders = () => {
 
   if (showFullDoc && docMode) {
     return (
-      <div className="h-[calc(100vh-100px)] flex flex-col bg-stone-50 rounded-lg shadow-lg border border-stone-200 animate-fade-in relative">
-        <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between bg-white sticky top-0 z-20 rounded-t-lg shadow-sm">
-           <div className="flex items-center gap-4">
-             <button 
-               onClick={() => setShowFullDoc(false)}
-               className="flex items-center gap-2 px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-lg transition-colors font-serif"
-             >
-               <ArrowLeft className="w-5 h-5" /> Back to Search
-             </button>
-             <div>
-               <h2 className="font-bold text-stone-800 text-lg flex items-center gap-2 font-serif">
-                 <ScrollText className="w-5 h-5 text-amber-600"/>
-                 Constitution Document
-               </h2>
-               <p className="text-sm text-stone-500">Full Text Mode</p>
-             </div>
-           </div>
-           
-           {selectedDocItem && (
-              <div className="hidden sm:block text-sm font-medium text-stone-600 bg-stone-100 px-4 py-2 rounded-full border border-stone-200">
-                Jumped to result: {extractSoNumber(searchQuery) ? `SO ${extractSoNumber(searchQuery)}` : 'Selection'}
-              </div>
-           )}
+      <div className="relative h-[calc(100vh-100px)] overflow-hidden rounded-[2rem] border border-stone-200/80 bg-[radial-gradient(circle_at_top_right,_rgba(217,119,6,0.12),_transparent_24%),linear-gradient(135deg,_#f8fafc_0%,_#fffbeb_45%,_#ffffff_100%)] shadow-[0_35px_100px_rgba(15,23,42,0.14)] animate-fade-in">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-10 right-8 h-48 w-48 rounded-full bg-amber-200/30 blur-3xl" />
+          <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-slate-200/40 blur-3xl" />
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 bg-stone-100/50" ref={fullDocViewRef}>
-           <div className="max-w-4xl mx-auto bg-white p-12 shadow-md min-h-full rounded-sm border border-stone-200 relative">
-             <div className="absolute top-0 left-0 w-full h-2 bg-slate-900"></div>
-             {docContent.length === 0 && <p className="text-stone-400 text-xl font-serif text-center italic mt-10">No content loaded.</p>}
-             {docContent.map((item, index) => (
-                <div 
-                  key={item.id} 
-                  id={item.id}
-                  className={`mb-6 transition-all duration-500 ${selectedDocItem?.id === item.id ? 'p-6 -mx-6 rounded bg-amber-50/50 border-l-4 border-amber-500' : ''}`}
+        <div className="relative flex h-full flex-col">
+          <div className="border-b border-stone-200/80 bg-white/80 px-5 py-5 backdrop-blur-xl md:px-8">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-5">
+                <button
+                  onClick={() => setShowFullDoc(false)}
+                  className="inline-flex items-center gap-2 self-start rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-600 shadow-sm transition hover:border-stone-300 hover:bg-stone-50"
                 >
-                   {item.page && index > 0 && docContent[index-1].page !== item.page && (
-                     <div className="flex items-center gap-4 my-8 opacity-50">
-                       <div className="h-px bg-stone-300 flex-1"></div>
-                       <span className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">Page {item.page}</span>
-                       <div className="h-px bg-stone-300 flex-1"></div>
-                     </div>
-                   )}
-                   <p className="text-stone-800 leading-loose text-lg font-serif whitespace-pre-wrap">{item.text}</p>
+                  <ArrowLeft className="w-4 h-4" /> Back to Search
+                </button>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.26em] text-amber-700">
+                    <span className="rounded-full bg-amber-100 px-3 py-1 text-[11px] text-amber-800">Full Constitution</span>
+                    {selectedDocItem?.page && (
+                      <span className="rounded-full border border-stone-200 bg-white px-3 py-1 text-[11px] text-stone-600">Page {selectedDocItem.page}</span>
+                    )}
+                  </div>
+                  <h2 className="mt-3 text-3xl font-serif font-bold text-slate-900 md:text-4xl">Full Context Reader</h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600 md:text-base">
+                    Read the constitution in a calmer paper-style layout. The selected search result is highlighted automatically so you can keep context while reading.
+                  </p>
                 </div>
-             ))}
-           </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 sm:flex">
+                <div className="rounded-2xl border border-stone-200 bg-white/90 px-4 py-3 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-stone-400">Passages</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">{docContent.length}</p>
+                </div>
+                <div className="rounded-2xl border border-stone-200 bg-white/90 px-4 py-3 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-stone-400">Pages</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">{indexedPageCount || 'N/A'}</p>
+                </div>
+                <div className="rounded-2xl border border-stone-200 bg-white/90 px-4 py-3 shadow-sm col-span-2 sm:col-span-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-stone-400">Jump Target</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{selectedDocItem ? selectedDocSummaryLabel : 'Manual reading'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-4 py-5 md:px-8 md:py-8" ref={fullDocViewRef}>
+            <div className="mx-auto max-w-5xl rounded-[2rem] border border-stone-200/80 bg-white/75 p-3 shadow-[0_25px_80px_rgba(15,23,42,0.10)] backdrop-blur">
+              <div className="rounded-[30px] border border-stone-200 bg-[linear-gradient(180deg,_#fffdf8_0%,_#ffffff_100%)] px-6 py-8 md:px-12 md:py-12">
+                <div className="mb-10 border-b border-stone-200 pb-6">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-stone-400">Constitution Reading Copy</p>
+                  <h3 className="mt-3 text-2xl font-serif font-bold text-slate-900 md:text-3xl">Full Text Reference</h3>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
+                    This view is meant for extended reading. Search results remain highlighted so you can scan surrounding clauses without losing your place.
+                  </p>
+                </div>
+
+                {docContent.length === 0 && (
+                  <p className="mt-10 text-center font-serif text-xl italic text-stone-400">No content loaded.</p>
+                )}
+
+                {docContent.map((item, index) => (
+                  <div
+                    key={item.id}
+                    id={item.id}
+                    className={`scroll-mt-28 mb-7 rounded-[24px] px-5 py-5 transition-all duration-500 md:px-7 ${selectedDocItem?.id === item.id ? 'bg-amber-50/80 ring-1 ring-amber-200 shadow-sm' : ''}`}
+                  >
+                    {item.page && index > 0 && docContent[index - 1].page !== item.page && (
+                      <div className="my-8 flex items-center gap-4 opacity-70">
+                        <div className="h-px flex-1 bg-stone-300" />
+                        <span className="rounded-full border border-stone-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-stone-500">Page {item.page}</span>
+                        <div className="h-px flex-1 bg-stone-300" />
+                      </div>
+                    )}
+                    <p className="whitespace-pre-wrap font-serif text-[1.06rem] leading-9 tracking-[0.01em] text-stone-700 md:text-[1.12rem]">{item.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-100px)] flex flex-col bg-stone-50/50">
-       <div className="mb-6 bg-slate-900 rounded-2xl shadow-lg p-8 relative overflow-hidden border-b-4 border-amber-600">
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')] opacity-10"></div>
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-             <div className="flex gap-5 items-start">
-                <div className="bg-white/10 p-3 rounded-xl border border-white/10 backdrop-blur-sm">
-                   <Gavel className="w-8 h-8 text-amber-500" />
+    <div className="relative h-[calc(100vh-100px)] overflow-hidden rounded-[2rem] border border-stone-200/80 bg-[radial-gradient(circle_at_top_right,_rgba(217,119,6,0.10),_transparent_24%),linear-gradient(135deg,_#f8fafc_0%,_#fffbeb_38%,_#ffffff_100%)] p-3 shadow-[0_35px_100px_rgba(15,23,42,0.10)]">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-16 right-8 h-56 w-56 rounded-full bg-amber-200/30 blur-3xl" />
+        <div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-slate-200/30 blur-3xl" />
+      </div>
+
+      <div className="relative flex h-full flex-col gap-4">
+        <div className="overflow-hidden rounded-[28px] border border-slate-900/10 bg-[linear-gradient(135deg,_#0f172a_0%,_#1e293b_58%,_#7c2d12_100%)] p-6 text-white shadow-[0_30px_80px_rgba(15,23,42,0.35)] md:p-8">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-3xl">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur-sm">
+                  <Gavel className="w-7 h-7 text-amber-400" />
                 </div>
-                <div>
-                  <h1 className="text-3xl md:text-4xl font-serif font-bold text-white tracking-wide mb-1">
-                      Standing Orders & Constitution
-                  </h1>
-                  <p className="text-slate-400 font-light text-lg">
-                      Governance • Rules • Legal Framework
-                  </p>
+                <div className="rounded-full border border-white/10 bg-white/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.26em] text-slate-200 backdrop-blur-sm">
+                  Constitution Workspace
                 </div>
-             </div>
-             
-             <div className="flex items-center gap-3">
-               {docMode && (
-                  <button 
-                    onClick={clearDocument}
-                    className="flex items-center gap-2 px-5 py-3 bg-red-500/20 border border-red-500/30 text-red-200 rounded-lg hover:bg-red-500/30 transition-all text-sm font-medium"
-                  >
-                    <X className="w-5 h-5" /> Close Reader
-                  </button>
-               )}
-             </div>
+              </div>
+              <h1 className="text-3xl font-serif font-bold tracking-tight text-white md:text-5xl">
+                Standing Orders & Constitution
+              </h1>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
+                {docMode
+                  ? 'Search your uploaded constitution with bookmarks, personal notes, full-context reading, and AI explanation in one cleaner workspace.'
+                  : 'Browse structured standing orders in a calmer, more readable legal reference view with favorites and quick lookup.'}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {docMode && (
+                <button
+                  onClick={() => setShowFullDoc(true)}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/15"
+                >
+                  <AlignJustify className="w-4 h-4" /> Full Document
+                </button>
+              )}
+              <label className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition ${parsing || saving ? 'cursor-wait opacity-70' : 'cursor-pointer hover:bg-amber-50'}`}>
+                <Upload className="w-4 h-4" />
+                {parsing ? 'Importing...' : saving ? 'Syncing...' : docMode ? 'Replace Constitution' : 'Upload Constitution'}
+                <input type="file" accept=".pdf,.docx" className="hidden" onChange={handleFileUpload} disabled={parsing || saving} />
+              </label>
+              {docMode && (
+                <button
+                  onClick={clearDocument}
+                  className="inline-flex items-center gap-2 rounded-full border border-red-300/30 bg-red-500/20 px-5 py-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/30"
+                >
+                  <X className="w-4 h-4" /> Exit Uploaded View
+                </button>
+              )}
+            </div>
           </div>
-       </div>
 
-      <div className="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">
-        
-        {/* Left Panel: List */}
-        <div className={`w-full md:w-1/3 lg:w-1/4 bg-white rounded-xl shadow-sm border border-stone-200 flex flex-col overflow-hidden ${selectedOrder || selectedDocItem ? 'hidden md:flex' : 'flex'}`}>
-            <div className="p-4 border-b border-stone-100 bg-stone-50/50 space-y-3">
-               <div className="relative">
-                  <Search className="absolute left-3 top-3 h-5 w-5 text-stone-400" />
-                  <input 
-                    type="text"
-                    placeholder="Search section, rule, or code..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-200 rounded-lg shadow-sm focus:ring-2 focus:ring-slate-800 focus:border-slate-800 outline-none text-stone-700 font-medium placeholder-stone-400"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-               </div>
-               
-               {!docMode && (
-                   <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-stone-500 uppercase tracking-widest">
-                          {showFavoritesOnly ? 'Saved Items' : 'All Sections'}
-                      </span>
-                      <button 
-                         onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                         className={`text-xs font-bold px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors border ${
-                             showFavoritesOnly 
-                             ? 'bg-amber-50 text-amber-700 border-amber-200' 
-                             : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300'
-                         }`}
-                      >
-                          <Bookmark className={`w-3 h-3 ${showFavoritesOnly ? 'fill-amber-600' : ''}`} />
-                          Favorites
-                      </button>
-                   </div>
-               )}
-               {docMode && (
-                 <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-xs font-medium text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-md border border-emerald-100">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Viewing: <span className="font-bold">Constitution</span>
-                    </div>
-                    <button
-                      onClick={() => setShowDocBookmarksOnly(!showDocBookmarksOnly)}
-                      className={`text-xs font-bold px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors border ${
-                        showDocBookmarksOnly
-                          ? 'bg-amber-50 text-amber-700 border-amber-200'
-                          : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300'
-                      }`}
-                    >
-                      <Bookmark className={`w-3 h-3 ${showDocBookmarksOnly ? 'fill-amber-600' : ''}`} />
-                      Bookmarks ({docBookmarks.length})
-                    </button>
-                 </div>
-               )}
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
+              <p className="text-[10px] font-bold uppercase tracking-[0.26em] text-slate-300">Reading Mode</p>
+              <p className="mt-2 text-lg font-semibold text-white">{docMode ? 'Uploaded Constitution' : 'Structured Standing Orders'}</p>
+              <p className="mt-1 text-sm text-slate-300">{docMode ? 'Excerpt search with full-context reader.' : 'Indexed sections with favorite markers.'}</p>
             </div>
-
-            <div className="flex-1 overflow-y-auto bg-white">
-                {!docMode && (
-                    <>
-                        {loading ? (
-                            <div className="p-8 text-center text-stone-400 text-sm font-serif italic">Loading statutes...</div>
-                        ) : orders.length === 0 ? (
-                            <div className="p-10 text-center flex flex-col items-center opacity-60">
-                                <Scale className="w-10 h-10 text-stone-300 mb-3" />
-                                <p className="text-stone-500 font-medium">No sections found.</p>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-stone-100">
-                                {orders.map(order => (
-                                    <div 
-                                        key={order.id} 
-                                        onClick={() => { setSelectedOrder(order); setAiExplanation(''); }}
-                                        className={`group px-5 py-4 cursor-pointer hover:bg-stone-50 transition-all border-l-4 ${
-                                            selectedOrder?.id === order.id 
-                                            ? 'bg-amber-50/40 border-amber-500' 
-                                            : 'border-transparent hover:border-stone-200'
-                                        }`}
-                                    >
-                                        <div className="flex justify-between items-start mb-1">
-                                            <span className={`text-xs font-bold uppercase tracking-wider ${
-                                                selectedOrder?.id === order.id ? 'text-amber-700' : 'text-slate-500'
-                                            }`}>
-                                                {order.code}
-                                            </span>
-                                            <button 
-                                                onClick={(e) => toggleFavorite(e, order)}
-                                                className={`p-1 rounded-full transition-colors ${order.is_favorite ? 'text-amber-500' : 'text-slate-300 hover:text-slate-500 hover:bg-slate-100'}`}
-                                            >
-                                                <Bookmark className={`w-4 h-4 ${order.is_favorite ? 'fill-amber-500' : ''}`} />
-                                            </button>
-                                        </div>
-                                        <h3 className={`font-serif font-bold text-base leading-tight mb-1 ${
-                                            selectedOrder?.id === order.id ? 'text-slate-900' : 'text-stone-700'
-                                        }`}>
-                                            {order.title}
-                                        </h3>
-                                        <p className="text-xs text-stone-400 line-clamp-2 font-serif leading-relaxed">
-                                            {order.content}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </>
-                )}
-
-                {docMode && (
-                    <div className="divide-y divide-stone-100">
-                    {visibleDocContent.length === 0 ? (
-                      <div className="p-10 text-center text-stone-400 text-sm">
-                        {showDocBookmarksOnly ? 'No bookmarked sections match your search.' : 'No matches in document.'}
-                      </div>
-                        ) : (
-                      visibleDocContent.map(item => (
-                                <div 
-                                    key={item.id} 
-                                    onClick={() => { setSelectedDocItem(item); setAiExplanation(''); }}
-                                    className={`px-5 py-4 cursor-pointer hover:bg-stone-50 transition-all border-l-4 ${
-                                        selectedDocItem?.id === item.id 
-                                        ? 'bg-amber-50/40 border-amber-500' 
-                                        : 'border-transparent'
-                                    }`}
-                                >
-                                    {item.page && (
-                                        <div className="flex items-center justify-between mb-1">
-                                          <span className="text-[10px] font-bold text-stone-400 uppercase block">
-                                              Page {item.page}
-                                          </span>
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              toggleDocBookmark(item);
-                                            }}
-                                            className={`p-1 rounded-full transition-colors ${docBookmarkMap.has(item.id) ? 'text-amber-500' : 'text-slate-300 hover:text-slate-500 hover:bg-slate-100'}`}
-                                            title={docBookmarkMap.has(item.id) ? 'Remove bookmark' : 'Add bookmark'}
-                                          >
-                                            <Bookmark className={`w-4 h-4 ${docBookmarkMap.has(item.id) ? 'fill-amber-500' : ''}`} />
-                                          </button>
-                                        </div>
-                                    )}
-                                    {!item.page && (
-                                      <div className="flex justify-end mb-1">
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            toggleDocBookmark(item);
-                                          }}
-                                          className={`p-1 rounded-full transition-colors ${docBookmarkMap.has(item.id) ? 'text-amber-500' : 'text-slate-300 hover:text-slate-500 hover:bg-slate-100'}`}
-                                          title={docBookmarkMap.has(item.id) ? 'Remove bookmark' : 'Add bookmark'}
-                                        >
-                                          <Bookmark className={`w-4 h-4 ${docBookmarkMap.has(item.id) ? 'fill-amber-500' : ''}`} />
-                                        </button>
-                                      </div>
-                                    )}
-                                    <p className="text-sm text-stone-700 font-serif line-clamp-3 leading-relaxed">
-                                        {item.text}
-                                    </p>
-                                    {docBookmarkMap.get(item.id)?.note && (
-                                      <p className="text-[11px] mt-2 text-amber-700 bg-amber-50 border border-amber-100 px-2 py-1 rounded">
-                                        Note: {docBookmarkMap.get(item.id)?.note}
-                                      </p>
-                                    )}
-                                </div>
-                            ))
-                        )}
-                    </div>
-                )}
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
+              <p className="text-[10px] font-bold uppercase tracking-[0.26em] text-slate-300">In View</p>
+              <p className="mt-2 text-3xl font-semibold text-white">{docMode ? visibleDocContent.length : orders.length}</p>
+              <p className="mt-1 text-sm text-slate-300">{docMode ? 'Searchable passages right now' : 'Sections matching the current filter'}</p>
             </div>
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
+              <p className="text-[10px] font-bold uppercase tracking-[0.26em] text-slate-300">Saved</p>
+              <p className="mt-2 text-3xl font-semibold text-white">{docMode ? docBookmarks.length : favoriteOrderCount}</p>
+              <p className="mt-1 text-sm text-slate-300">{docMode ? `${indexedPageCount || 'No'} pages indexed across bookmarks and search.` : 'Favorite sections ready for quick return.'}</p>
+            </div>
+          </div>
         </div>
 
-        {/* Right Panel: Viewer */}
-        <div className={`flex-[2] bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden relative flex flex-col ${(selectedOrder || selectedDocItem) ? 'flex' : 'hidden md:flex'}`}>
-            
-             <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03]">
-                 <Scale className="w-96 h-96 text-slate-900" />
-             </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
+          <div className={`w-full shrink-0 md:w-[360px] lg:w-[390px] xl:w-[420px] ${hasSelection ? 'hidden md:flex' : 'flex'} flex-col overflow-hidden rounded-[28px] border border-stone-200/80 bg-white/80 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl`}>
+            <div className="border-b border-stone-200/80 bg-white/85 p-5 backdrop-blur-xl">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-stone-400">Navigator</p>
+                  <h2 className="mt-2 text-2xl font-serif font-bold text-slate-900">{listHeading}</h2>
+                </div>
+                {docMode ? (
+                  <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-700">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Synced Reader
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-stone-600">
+                    <Scale className="w-3.5 h-3.5" /> Indexed Library
+                  </span>
+                )}
+              </div>
 
-             <div className="md:hidden bg-stone-50 p-4 border-b border-stone-200 sticky top-0 z-10">
-                 <button 
-                    onClick={() => { setSelectedOrder(null); setSelectedDocItem(null); }}
-                    className="flex items-center gap-2 text-stone-600 font-medium"
-                 >
-                     <ArrowLeft className="w-5 h-5"/> Back to List
-                 </button>
-             </div>
+              <div className="relative mt-4">
+                <Search className="absolute left-4 top-3.5 h-5 w-5 text-stone-400" />
+                <input
+                  type="text"
+                  placeholder="Search section, rule, passage, or SO number..."
+                  className="w-full rounded-2xl border border-stone-200 bg-white pl-11 pr-4 py-3.5 text-sm font-medium text-stone-700 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 placeholder:text-stone-400"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
 
-             <div className="flex-1 overflow-y-auto p-8 md:p-12 relative z-0">
-               {selectedOrder && !docMode && (
-                 <div className="max-w-3xl mx-auto">
-                    <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
-                         <div>
-                             <span className="block text-sm font-bold text-amber-600 uppercase tracking-widest mb-2">Standing Order</span>
-                             <h2 className="text-5xl font-serif font-bold text-slate-900">{selectedOrder.code}</h2>
-                         </div>
-                         <div className="flex flex-col gap-2 items-end">
-                             {/* Top Action Button */}
-                             <button 
-                                onClick={(e) => toggleFavorite(e, selectedOrder)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-bold transition-all ${
-                                    selectedOrder.is_favorite 
-                                    ? 'bg-amber-50 text-amber-700 border-amber-200' 
-                                    : 'bg-white text-stone-400 border-stone-200 hover:border-stone-300'
-                                }`}
-                             >
-                                 <Bookmark className={`w-4 h-4 ${selectedOrder.is_favorite ? 'fill-amber-600' : ''}`} />
-                                 {selectedOrder.is_favorite ? 'Saved' : 'Save Section'}
-                             </button>
-                             <button 
-                                onClick={() => handleAskAI(selectedOrder.content, selectedOrder.code)}
-                                disabled={aiLoading}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 text-sm font-bold transition disabled:opacity-60 disabled:cursor-not-allowed"
-                             >
-                               {aiLoading ? <BookOpen className="w-4 h-4 animate-pulse" /> : <Bot className="w-4 h-4" />}
-                               {aiLoading ? 'Explaining...' : 'Explain'}
-                             </button>
-                         </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {!docMode && (
+                  <button
+                    onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                    className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] transition ${showFavoritesOnly ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50'}`}
+                  >
+                    <Bookmark className={`w-3.5 h-3.5 ${showFavoritesOnly ? 'fill-amber-600' : ''}`} /> Favorites
+                  </button>
+                )}
+                {docMode && (
+                  <button
+                    onClick={() => setShowDocBookmarksOnly(!showDocBookmarksOnly)}
+                    className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] transition ${showDocBookmarksOnly ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50'}`}
+                  >
+                    <Bookmark className={`w-3.5 h-3.5 ${showDocBookmarksOnly ? 'fill-amber-600' : ''}`} /> Bookmarks ({docBookmarks.length})
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-stone-200 bg-stone-50/80 px-4 py-3 shadow-inner shadow-stone-100/60">
+                <p className="text-[10px] font-bold uppercase tracking-[0.26em] text-stone-400">Current View</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">{listSummaryLabel}</p>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-3 py-3">
+              {!docMode && (
+                <>
+                  {loading ? (
+                    <div className="flex h-full min-h-[240px] flex-col items-center justify-center rounded-[24px] border border-dashed border-stone-200 bg-white/70 text-center">
+                      <Scale className="mb-3 h-10 w-10 text-stone-300 animate-pulse" />
+                      <p className="font-serif text-lg italic text-stone-400">Loading statutes...</p>
+                    </div>
+                  ) : orders.length === 0 ? (
+                    <div className="flex h-full min-h-[240px] flex-col items-center justify-center rounded-[24px] border border-dashed border-stone-200 bg-white/70 px-6 text-center">
+                      <Scale className="mb-4 h-10 w-10 text-stone-300" />
+                      <p className="font-semibold text-stone-600">No sections found.</p>
+                      <p className="mt-2 text-sm leading-6 text-stone-400">Try a broader search or switch off the favorites filter.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {orders.map(order => (
+                        <div
+                          key={order.id}
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setAiExplanation('');
+                          }}
+                          className={`group cursor-pointer rounded-[24px] border px-4 py-4 shadow-sm transition-all ${selectedOrder?.id === order.id ? 'border-amber-200 bg-amber-50/80 shadow-[0_16px_45px_rgba(217,119,6,0.12)]' : 'border-white bg-white/90 hover:-translate-y-0.5 hover:border-stone-200 hover:shadow-[0_14px_36px_rgba(15,23,42,0.08)]'}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`rounded-2xl px-3 py-2 text-center ${selectedOrder?.id === order.id ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
+                              <span className="block text-[10px] font-bold uppercase tracking-[0.22em]">SO</span>
+                              <span className="block text-sm font-bold">{order.code}</span>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start justify-between gap-3">
+                                <h3 className="font-serif text-lg font-bold leading-snug text-slate-900">{order.title}</h3>
+                                <button
+                                  onClick={(e) => toggleFavorite(e, order)}
+                                  className={`rounded-full p-2 transition-colors ${order.is_favorite ? 'text-amber-500' : 'text-stone-300 hover:bg-stone-100 hover:text-stone-500'}`}
+                                >
+                                  <Bookmark className={`w-4 h-4 ${order.is_favorite ? 'fill-amber-500' : ''}`} />
+                                </button>
+                              </div>
+                              <p className="mt-2 line-clamp-3 text-sm leading-6 text-stone-500">{order.content}</p>
+                              <div className="mt-3 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-400">
+                                <span>{order.is_favorite ? 'Saved section' : 'Tap to read'}</span>
+                                <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {docMode && (
+                <>
+                  {visibleDocContent.length === 0 ? (
+                    <div className="flex h-full min-h-[240px] flex-col items-center justify-center rounded-[24px] border border-dashed border-stone-200 bg-white/70 px-6 text-center">
+                      <FileText className="mb-4 h-10 w-10 text-stone-300" />
+                      <p className="font-semibold text-stone-600">{showDocBookmarksOnly ? 'No bookmarked passages found.' : 'No document matches found.'}</p>
+                      <p className="mt-2 text-sm leading-6 text-stone-400">Refine your search or switch back to the full constitution view.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {visibleDocContent.map(item => {
+                        const bookmark = docBookmarkMap.get(item.id);
+
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={() => {
+                              setSelectedDocItem(item);
+                              setAiExplanation('');
+                            }}
+                            className={`group cursor-pointer rounded-[24px] border px-4 py-4 shadow-sm transition-all ${selectedDocItem?.id === item.id ? 'border-amber-200 bg-amber-50/80 shadow-[0_16px_45px_rgba(217,119,6,0.12)]' : 'border-white bg-white/90 hover:-translate-y-0.5 hover:border-stone-200 hover:shadow-[0_14px_36px_rgba(15,23,42,0.08)]'}`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`rounded-2xl px-3 py-2 text-center ${selectedDocItem?.id === item.id ? 'bg-amber-100 text-amber-800' : 'bg-emerald-50 text-emerald-700'}`}>
+                                <span className="block text-[10px] font-bold uppercase tracking-[0.22em]">{item.page ? 'Page' : 'Text'}</span>
+                                <span className="block text-sm font-bold">{item.page ?? 'Excerpt'}</span>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-stone-400">{extractSoLabel(item.text) || 'Constitution passage'}</p>
+                                    <p className="mt-2 line-clamp-3 font-serif text-base leading-7 text-slate-800">{item.text}</p>
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleDocBookmark(item);
+                                    }}
+                                    className={`rounded-full p-2 transition-colors ${bookmark ? 'text-amber-500' : 'text-stone-300 hover:bg-stone-100 hover:text-stone-500'}`}
+                                    title={bookmark ? 'Remove bookmark' : 'Add bookmark'}
+                                  >
+                                    <Bookmark className={`w-4 h-4 ${bookmark ? 'fill-amber-500' : ''}`} />
+                                  </button>
+                                </div>
+
+                                <div className="mt-3 flex items-center justify-between gap-3">
+                                  {bookmark?.note ? (
+                                    <p className="line-clamp-2 rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2 text-[11px] leading-5 text-amber-700">
+                                      Note: {bookmark.note}
+                                    </p>
+                                  ) : (
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-400">Open excerpt</p>
+                                  )}
+                                  <ChevronRight className="w-4 h-4 shrink-0 text-stone-400 transition-transform group-hover:translate-x-0.5" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className={`relative min-h-[420px] flex-1 ${hasSelection ? 'flex' : 'hidden md:flex'} flex-col overflow-hidden rounded-[28px] border border-stone-200/80 bg-white/75 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl`}>
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.03]">
+              <Scale className="w-96 h-96 text-slate-900" />
+            </div>
+
+            <div className="border-b border-stone-200/80 bg-white/80 px-4 py-4 backdrop-blur-xl md:hidden">
+              <button
+                onClick={() => {
+                  setSelectedOrder(null);
+                  setSelectedDocItem(null);
+                }}
+                className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-600 shadow-sm"
+              >
+                <ArrowLeft className="w-4 h-4" /> Back to List
+              </button>
+            </div>
+
+            <div className="relative z-0 flex-1 overflow-y-auto px-5 py-6 md:px-8 md:py-8">
+              {selectedOrder && !docMode && (
+                <div className="mx-auto max-w-4xl space-y-6">
+                  <div className="rounded-[30px] border border-stone-200 bg-[linear-gradient(135deg,_rgba(255,251,235,0.95),_rgba(255,255,255,0.98))] p-6 shadow-[0_22px_60px_rgba(15,23,42,0.08)] md:p-8">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="max-w-2xl">
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-amber-700">
+                          <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-800">Standing Order</span>
+                          {selectedOrder.is_favorite && <span className="rounded-full border border-amber-200 bg-white px-3 py-1 text-amber-700">Saved</span>}
+                        </div>
+                        <h2 className="mt-4 font-serif text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">{selectedOrder.code}</h2>
+                        <p className="mt-4 text-lg leading-8 text-stone-600">{selectedOrder.title}</p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-3 lg:justify-end">
+                        <button
+                          onClick={(e) => toggleFavorite(e, selectedOrder)}
+                          className={`inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition ${selectedOrder.is_favorite ? 'border-amber-200 bg-amber-100 text-amber-800 hover:bg-amber-200' : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50'}`}
+                        >
+                          <Bookmark className={`w-4 h-4 ${selectedOrder.is_favorite ? 'fill-amber-700' : ''}`} />
+                          {selectedOrder.is_favorite ? 'Saved Section' : 'Save Section'}
+                        </button>
+                        <button
+                          onClick={() => handleAskAI(selectedOrder.content, selectedOrder.code)}
+                          disabled={aiLoading}
+                          className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {aiLoading ? <BookOpen className="w-4 h-4 animate-pulse" /> : <Bot className="w-4 h-4" />}
+                          {aiLoading ? 'Explaining...' : 'Explain Clearly'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <article className="rounded-[34px] border border-stone-200 bg-white px-6 py-8 shadow-[0_24px_70px_rgba(15,23,42,0.08)] md:px-10 md:py-12">
+                    <div className="mb-8 border-b border-stone-200 pb-6">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-stone-400">Official Text</p>
+                      <h3 className="mt-3 font-serif text-2xl font-bold text-slate-900 md:text-3xl">{selectedOrder.title}</h3>
                     </div>
 
-                    <h3 className="text-2xl font-serif font-bold text-slate-800 mb-6">{selectedOrder.title}</h3>
-                    
-                    <div className="prose prose-lg max-w-none prose-p:font-serif prose-p:text-stone-800 prose-p:leading-loose">
-                        <p>{selectedOrder.content}</p>
-                    </div>
+                    <p className="whitespace-pre-wrap font-serif text-[1.08rem] leading-9 tracking-[0.01em] text-stone-700">{selectedOrder.content}</p>
 
                     {selectedOrder.tags && (
-                        <div className="mt-12 pt-6 border-t border-stone-200 flex gap-2">
-                            {selectedOrder.tags.map(tag => (
-                                <span key={tag} className="px-3 py-1 bg-stone-100 text-stone-500 rounded text-xs font-bold uppercase">
-                                    {tag}
-                                </span>
-                            ))}
-                        </div>
+                      <div className="mt-10 flex flex-wrap gap-2 border-t border-stone-200 pt-6">
+                        {selectedOrder.tags.map(tag => (
+                          <span key={tag} className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-stone-600">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
                     )}
+                  </article>
+                </div>
+              )}
 
-                    {/* Bottom Prominent Action Button */}
-                    <div className="mt-8 pt-8 border-t border-stone-200 flex justify-center">
-                        <button 
-                            onClick={(e) => toggleFavorite(e, selectedOrder)}
-                            className={`flex items-center gap-3 px-8 py-3 rounded-full font-bold text-lg transition-all shadow-sm transform hover:-translate-y-0.5 ${
-                                selectedOrder.is_favorite 
-                                ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-200' 
-                                : 'bg-slate-800 text-white hover:bg-slate-700'
-                            }`}
-                        >
-                            <Bookmark className={`w-5 h-5 ${selectedOrder.is_favorite ? 'fill-amber-800' : ''}`} />
-                            {selectedOrder.is_favorite ? 'Remove from Favorites' : 'Add to Favorites'}
-                        </button>
-                    </div>
-                 </div>
-               )}
-
-               {selectedDocItem && docMode && (
-                  <div className="max-w-3xl mx-auto">
-                     <div className="flex justify-between items-center mb-8 pb-4 border-b border-stone-200">
-                        <div className="flex items-center gap-3 text-stone-500">
-                             <FileText className="w-6 h-6"/>
-                             <span className="font-serif italic">Excerpt from uploaded document</span>
+              {selectedDocItem && docMode && (
+                <div className="mx-auto max-w-4xl space-y-6">
+                  <div className="rounded-[30px] border border-stone-200 bg-[linear-gradient(135deg,_rgba(236,253,245,0.9),_rgba(255,255,255,0.98))] p-6 shadow-[0_22px_60px_rgba(15,23,42,0.08)] md:p-8">
+                    <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                      <div className="max-w-2xl">
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-700">
+                          <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">Constitution Excerpt</span>
+                          {selectedDocItem.page && <span className="rounded-full border border-stone-200 bg-white px-3 py-1 text-stone-600">Page {selectedDocItem.page}</span>}
+                          {selectedDocBookmark?.soLabel && <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">{selectedDocBookmark.soLabel}</span>}
                         </div>
-                        <div className="flex gap-2">
-                             <button 
-                                onClick={() => setShowFullDoc(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 text-sm font-bold transition shadow-sm"
-                             >
-                               <AlignJustify className="w-4 h-4" /> Read Full Context
-                             </button>
-                            <button
-                              onClick={() => toggleDocBookmark(selectedDocItem)}
-                              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition ${docBookmarkMap.has(selectedDocItem.id) ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                            >
-                             <Bookmark className={`w-4 h-4 ${docBookmarkMap.has(selectedDocItem.id) ? 'fill-amber-700' : ''}`} />
-                             {docBookmarkMap.has(selectedDocItem.id) ? 'Bookmarked' : 'Bookmark'}
-                            </button>
-                             <button 
-                                onClick={() => handleAskAI(selectedDocItem.text, "Document Excerpt")}
-                                disabled={aiLoading}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 text-sm font-bold transition disabled:opacity-60 disabled:cursor-not-allowed"
-                             >
-                               {aiLoading ? <BookOpen className="w-4 h-4 animate-pulse" /> : <Bot className="w-4 h-4" />}
-                               {aiLoading ? 'Explaining...' : 'Explain'}
-                             </button>
-                        </div>
-                     </div>
-                     
-                     <div className="bg-amber-50/30 p-8 rounded border-l-4 border-amber-300">
-                        <p className="font-serif text-xl leading-loose text-slate-800 whitespace-pre-wrap">
-                            {selectedDocItem.text}
+                        <h2 className="mt-4 font-serif text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">{selectedDocSummaryLabel}</h2>
+                        <p className="mt-3 text-sm leading-7 text-stone-600 md:text-base">
+                          Read this excerpt in a calmer format, save a note to your bookmark, or jump straight into the full constitution context.
                         </p>
-                     </div>
+                      </div>
 
-                     <div className="mt-5 p-5 bg-white border border-stone-200 rounded-lg">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-bold uppercase tracking-wider text-stone-600">Bookmark Note</h4>
-                          {selectedDocBookmark?.soLabel && (
-                            <span className="text-xs font-bold px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200">
-                              {selectedDocBookmark.soLabel}
-                            </span>
-                          )}
-                        </div>
-                        <textarea
-                          value={bookmarkNoteDraft}
-                          onChange={(e) => setBookmarkNoteDraft(e.target.value)}
-                          placeholder="Add personal note for this bookmarked section (e.g., why it matters, prayer focus, follow-up)."
-                          className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-700 leading-relaxed focus:ring-2 focus:ring-amber-300 focus:border-amber-300 outline-none"
-                          rows={3}
-                        />
-                        <div className="mt-3 flex flex-wrap gap-2 justify-end">
-                          <button
-                            onClick={() => upsertDocBookmark(selectedDocItem, bookmarkNoteDraft)}
-                            className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 text-sm font-bold transition"
-                          >
-                            Save Note to Bookmark
-                          </button>
-                          {docBookmarkMap.has(selectedDocItem.id) && (
-                            <button
-                              onClick={() => removeDocBookmark(selectedDocItem.id)}
-                              className="px-4 py-2 bg-white text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm font-bold transition"
-                            >
-                              Remove Bookmark
-                            </button>
-                          )}
-                        </div>
-                     </div>
-                     
-                     <div className="mt-6 text-center">
-                         <p className="text-stone-400 italic font-serif text-sm">
-                            Click "Read Full Context" to view the surrounding pages.
-                         </p>
-                     </div>
+                      <div className="flex flex-wrap gap-3 xl:justify-end">
+                        <button
+                          onClick={() => setShowFullDoc(true)}
+                          className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-semibold text-stone-700 transition hover:border-stone-300 hover:bg-stone-50"
+                        >
+                          <AlignJustify className="w-4 h-4" /> Read Full Context
+                        </button>
+                        <button
+                          onClick={() => toggleDocBookmark(selectedDocItem)}
+                          className={`inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition ${docBookmarkMap.has(selectedDocItem.id) ? 'border-amber-200 bg-amber-100 text-amber-800 hover:bg-amber-200' : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300 hover:bg-stone-50'}`}
+                        >
+                          <Bookmark className={`w-4 h-4 ${docBookmarkMap.has(selectedDocItem.id) ? 'fill-amber-700' : ''}`} />
+                          {docBookmarkMap.has(selectedDocItem.id) ? 'Bookmarked' : 'Bookmark'}
+                        </button>
+                        <button
+                          onClick={() => handleAskAI(selectedDocItem.text, 'Document Excerpt')}
+                          disabled={aiLoading}
+                          className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {aiLoading ? <BookOpen className="w-4 h-4 animate-pulse" /> : <Bot className="w-4 h-4" />}
+                          {aiLoading ? 'Explaining...' : 'Explain Clearly'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-               )}
 
-               {!selectedOrder && !selectedDocItem && (
-                 <div className="h-full flex flex-col items-center justify-center text-stone-300">
-                    <Library className="w-32 h-32 mb-6 opacity-20" />
-                    <h3 className="text-2xl font-serif font-bold text-stone-400 mb-2">Select a Section</h3>
-                    <p className="font-serif italic">Choose an item from the table of contents to begin reading.</p>
-                 </div>
-               )}
+                  <article className="rounded-[34px] border border-amber-200/70 bg-[linear-gradient(180deg,_rgba(255,251,235,0.8),_rgba(255,255,255,1))] p-2 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+                    <div className="rounded-[28px] bg-white px-6 py-8 md:px-10 md:py-12">
+                      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 pb-5">
+                        <div className="flex items-center gap-2 text-stone-500">
+                          <ScrollText className="w-5 h-5 text-amber-600" />
+                          <span className="text-sm font-semibold">Selected excerpt</span>
+                        </div>
+                        {selectedDocItem.page && (
+                          <span className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-stone-600">Page {selectedDocItem.page}</span>
+                        )}
+                      </div>
 
-               {(selectedOrder || selectedDocItem) && (
-                 <div className="mt-12 max-w-3xl mx-auto">
-                   {aiLoading && (
-                       <div className="p-6 bg-slate-50 rounded border border-slate-100 flex items-center gap-3 animate-pulse">
-                         <Bot className="w-5 h-5 text-slate-400"/>
-                         <span className="text-slate-500 font-medium">Analyzing legal text...</span>
-                       </div>
-                   )}
-                   {aiExplanation && !aiLoading && (
-                     <div className="p-8 bg-slate-50 rounded-lg border border-slate-200 shadow-inner">
-                       <h4 className="font-bold flex items-center gap-2 mb-4 text-slate-700 uppercase tracking-widest text-xs">
-                           <Bot className="w-4 h-4 text-amber-600"/> 
-                           AI Simplification
-                       </h4>
-                       <p className="text-slate-700 leading-relaxed font-medium">
-                           {aiExplanation}
-                       </p>
-                     </div>
-                   )}
-                 </div>
-               )}
-             </div>
+                      <p className="whitespace-pre-wrap font-serif text-[1.14rem] leading-9 tracking-[0.01em] text-stone-700 md:text-[1.18rem]">{selectedDocItem.text}</p>
+                    </div>
+                  </article>
+
+                  <div className="grid gap-4 xl:grid-cols-[1.25fr_0.95fr]">
+                    <div className="rounded-[28px] border border-stone-200 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-stone-400">Bookmark Note</p>
+                          <h4 className="mt-2 text-lg font-semibold text-slate-900">Personal reflection or follow-up</h4>
+                        </div>
+                        {selectedDocBookmark?.soLabel && (
+                          <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-amber-700">{selectedDocBookmark.soLabel}</span>
+                        )}
+                      </div>
+
+                      <textarea
+                        value={bookmarkNoteDraft}
+                        onChange={(e) => setBookmarkNoteDraft(e.target.value)}
+                        placeholder="Add a note for why this section matters, how it applies, or what needs follow-up."
+                        className="mt-4 w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm leading-7 text-stone-700 outline-none transition focus:border-amber-300 focus:bg-white focus:ring-2 focus:ring-amber-100"
+                        rows={5}
+                      />
+
+                      <div className="mt-4 flex flex-wrap justify-end gap-3">
+                        <button
+                          onClick={() => upsertDocBookmark(selectedDocItem, bookmarkNoteDraft)}
+                          className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                        >
+                          <Bookmark className="w-4 h-4" /> Save Note to Bookmark
+                        </button>
+                        {docBookmarkMap.has(selectedDocItem.id) && (
+                          <button
+                            onClick={() => removeDocBookmark(selectedDocItem.id)}
+                            className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-5 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                          >
+                            <X className="w-4 h-4" /> Remove Bookmark
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[28px] border border-stone-200 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-stone-400">Reading Tools</p>
+                      <div className="mt-4 space-y-4 text-sm leading-7 text-stone-600">
+                        <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
+                          <p className="font-semibold text-slate-900">Context jump</p>
+                          <p className="mt-1">Use Full Context to read surrounding pages without losing this selected clause.</p>
+                        </div>
+                        <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
+                          <p className="font-semibold text-slate-900">Bookmark sync</p>
+                          <p className="mt-1">Bookmarks and notes remain available across devices through Supabase sync.</p>
+                        </div>
+                        <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
+                          <p className="font-semibold text-slate-900">Selected reference</p>
+                          <p className="mt-1">{selectedDocBookmark?.soLabel || (selectedDocItem.page ? `Page ${selectedDocItem.page}` : 'General excerpt')}.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!selectedOrder && !selectedDocItem && (
+                <div className="flex h-full items-center justify-center px-4 py-8">
+                  <div className="w-full max-w-3xl rounded-[36px] border border-stone-200 bg-white/90 px-8 py-10 text-center shadow-[0_25px_80px_rgba(15,23,42,0.08)]">
+                    <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[28px] bg-slate-900 text-white shadow-lg">
+                      <Library className="w-10 h-10" />
+                    </div>
+                    <h3 className="font-serif text-3xl font-bold text-slate-900">{docMode ? 'Select a passage to start reading' : 'Select a section to open the reader'}</h3>
+                    <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-stone-500 md:text-base">
+                      {docMode
+                        ? 'Choose any constitution passage from the left to read it in a paper-style layout, save a bookmark, add notes, or open the full document around it.'
+                        : 'Choose a standing order from the library to read the full text, save it for later, or ask AI for a simpler explanation.'}
+                    </p>
+                    <div className="mt-8 grid gap-3 text-left sm:grid-cols-3">
+                      <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-stone-400">Search</p>
+                        <p className="mt-2 text-sm leading-6 text-stone-600">Use the navigator to search by section title, content, or SO number.</p>
+                      </div>
+                      <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-stone-400">Save</p>
+                        <p className="mt-2 text-sm leading-6 text-stone-600">Bookmark sections that need quick return during meetings or pastoral planning.</p>
+                      </div>
+                      <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-stone-400">Explain</p>
+                        <p className="mt-2 text-sm leading-6 text-stone-600">Use AI explanation for plainer interpretation when language is dense or formal.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(selectedOrder || selectedDocItem) && (
+                <div className="mx-auto mt-8 max-w-4xl">
+                  {aiLoading && (
+                    <div className="flex items-center gap-3 rounded-[26px] border border-slate-200 bg-white px-6 py-5 shadow-sm animate-pulse">
+                      <Bot className="w-5 h-5 text-slate-400" />
+                      <span className="font-medium text-slate-500">Analyzing legal text and simplifying the meaning...</span>
+                    </div>
+                  )}
+                  {aiExplanation && !aiLoading && (
+                    <div className="rounded-[30px] border border-slate-200 bg-[linear-gradient(135deg,_rgba(248,250,252,1),_rgba(255,251,235,0.55))] p-6 shadow-[0_22px_60px_rgba(15,23,42,0.08)] md:p-8">
+                      <h4 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.28em] text-slate-500">
+                        <Bot className="w-4 h-4 text-amber-600" /> AI Simplification
+                      </h4>
+                      <p className="mt-4 text-sm leading-8 text-slate-700 md:text-base">{aiExplanation}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
