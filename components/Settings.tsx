@@ -44,6 +44,11 @@ const Settings: React.FC = () => {
   const [verseSource, setVerseSource] = useState('plan');
   const [sqlCopied, setSqlCopied] = useState(false);
 
+  // Settings Access Lock
+  const [settingsUnlocked, setSettingsUnlocked] = useState(false);
+  const [settingsAccessPin, setSettingsAccessPin] = useState('');
+  const [settingsAccessError, setSettingsAccessError] = useState('');
+
   const DIARY_SQL = `CREATE TABLE IF NOT EXISTS public.diary_entries (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   entry_date      DATE NOT NULL,
@@ -96,12 +101,38 @@ CREATE POLICY "Allow all"
     return null;
   };
 
+  const getCurrentLoginPin = () => localStorage.getItem('ministryAppPIN') || APP_CONSTANTS.DEFAULT_PIN;
+
+  const handleUnlockSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    const currentLoginPin = getCurrentLoginPin();
+
+    if (settingsAccessPin.trim() === currentLoginPin) {
+      setSettingsUnlocked(true);
+      setSettingsAccessError('');
+      setSettingsAccessPin('');
+      return;
+    }
+
+    setSettingsAccessError('Incorrect login password');
+    setSettingsAccessPin('');
+  };
+
+  const lockSettingsPage = () => {
+    setSettingsUnlocked(false);
+    setSettingsAccessPin('');
+    setSettingsAccessError('');
+  };
+
   useEffect(() => {
       setVerseSource(localStorage.getItem('dailyVerseSource') || (getAiFeatureStatus().available ? 'ai' : 'plan'));
-      // Check Supabase connection on component mount
+  }, []);
+
+  useEffect(() => {
+      if (!settingsUnlocked) return;
       checkConnection();
       loadCounselingCode();
-  }, []);
+  }, [settingsUnlocked]);
 
     const aiStatus = getAiFeatureStatus();
 
@@ -354,25 +385,25 @@ CREATE POLICY "Allow all"
     e.preventDefault();
     setPinMessage({ text: '', type: '' });
 
-    const storedPin = localStorage.getItem('ministryAppPIN') || APP_CONSTANTS.DEFAULT_PIN;
+    const storedPin = getCurrentLoginPin();
 
     if (oldPin !== storedPin) {
-      setPinMessage({ text: 'Incorrect old PIN', type: 'error' });
+      setPinMessage({ text: 'Incorrect current login password', type: 'error' });
       return;
     }
 
     if (newPin.length < 4 || newPin.length > 6) {
-      setPinMessage({ text: 'New PIN must be 4-6 digits', type: 'error' });
+      setPinMessage({ text: 'New login password must be 4-6 digits', type: 'error' });
       return;
     }
 
     if (newPin !== confirmPin) {
-      setPinMessage({ text: 'New PINs do not match', type: 'error' });
+      setPinMessage({ text: 'New login passwords do not match', type: 'error' });
       return;
     }
 
     localStorage.setItem('ministryAppPIN', newPin);
-    setPinMessage({ text: 'PIN updated successfully!', type: 'success' });
+    setPinMessage({ text: 'Login password updated successfully!', type: 'success' });
     setOldPin('');
     setNewPin('');
     setConfirmPin('');
@@ -426,16 +457,81 @@ CREATE POLICY "Allow all"
     setConfirmCounselingCode('');
   };
 
+  if (!settingsUnlocked) {
+    return (
+      <div className="max-w-xl mx-auto py-10 animate-fade-in">
+        <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+          <div className="bg-slate-900 text-white px-8 py-6">
+            <div className="flex items-center gap-3">
+              <Lock className="w-6 h-6 text-amber-300" />
+              <div>
+                <h2 className="text-2xl font-bold">Settings Protected</h2>
+                <p className="text-slate-300 text-sm">Enter your login password to access system settings.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-8">
+            <form onSubmit={handleUnlockSettings} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Login Password</label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    placeholder="Enter app login password"
+                    className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                    value={settingsAccessPin}
+                    onChange={(e) => setSettingsAccessPin(e.target.value)}
+                    maxLength={6}
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {settingsAccessError && (
+                <div className="text-sm font-medium text-red-700 bg-red-50 border border-red-100 px-4 py-2 rounded-lg">
+                  {settingsAccessError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-slate-800 text-white rounded-lg hover:bg-black font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <Lock className="w-4 h-4" /> Unlock Settings
+              </button>
+            </form>
+
+            <p className="text-xs text-slate-500 mt-4 text-center">
+              Use the same login password used on the app lock screen.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-12">
-      <div className="flex items-center gap-4 mb-6">
-        <div className="p-4 bg-white rounded-lg shadow-sm">
-            <SettingsIcon className="w-8 h-8 text-gray-700" />
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          <div className="p-4 bg-white rounded-lg shadow-sm">
+              <SettingsIcon className="w-8 h-8 text-gray-700" />
+          </div>
+          <div>
+              <h1 className="text-4xl font-bold text-gray-800">System Settings</h1>
+              <p className="text-lg text-gray-500">Manage application configuration and security</p>
+          </div>
         </div>
-        <div>
-            <h1 className="text-4xl font-bold text-gray-800">System Settings</h1>
-            <p className="text-lg text-gray-500">Manage application configuration and security</p>
-        </div>
+
+        <button
+          onClick={lockSettingsPage}
+          className="px-4 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-100 font-medium shadow-sm transition-colors flex items-center gap-2"
+        >
+          <Lock className="w-4 h-4" /> Lock Settings
+        </button>
       </div>
 
       {/* Connection Status Banner */}
@@ -528,17 +624,17 @@ CREATE POLICY "Allow all"
         
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
            <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
-              <h3 className="font-bold text-slate-700 mb-2">App Lock Protection</h3>
+              <h3 className="font-bold text-slate-700 mb-2">Login Password (App Lock)</h3>
               <p className="text-sm text-slate-500 mb-4">
-                Change the PIN used to unlock the application at startup.
-                Default PIN is <strong>{APP_CONSTANTS.DEFAULT_PIN}</strong>.
+                Change the login password used to unlock the app at startup.
+                Default login password is <strong>{APP_CONSTANTS.DEFAULT_PIN}</strong>.
               </p>
               
               <form onSubmit={handleChangePin} className="space-y-4">
                  <div>
                     <input 
                       type="password" 
-                      placeholder="Current PIN" 
+                      placeholder="Current login password" 
                       className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
                       value={oldPin}
                       onChange={e => setOldPin(e.target.value)}
@@ -548,7 +644,7 @@ CREATE POLICY "Allow all"
                  <div className="grid grid-cols-2 gap-3">
                     <input 
                       type="password" 
-                      placeholder="New PIN" 
+                      placeholder="New password" 
                       className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
                       value={newPin}
                       onChange={e => setNewPin(e.target.value)}
@@ -556,7 +652,7 @@ CREATE POLICY "Allow all"
                     />
                     <input 
                       type="password" 
-                      placeholder="Confirm" 
+                      placeholder="Confirm password" 
                       className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
                       value={confirmPin}
                       onChange={e => setConfirmPin(e.target.value)}
@@ -565,7 +661,7 @@ CREATE POLICY "Allow all"
                  </div>
                  
                  <button type="submit" className="w-full py-2.5 bg-slate-800 text-white rounded-lg hover:bg-black font-medium transition-colors flex items-center justify-center gap-2">
-                    <Save className="w-4 h-4" /> Update PIN
+                    <Save className="w-4 h-4" /> Update Login Password
                  </button>
 
                  {pinMessage.text && (
