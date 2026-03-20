@@ -36,6 +36,10 @@ const Settings: React.FC = () => {
   const [newCounselingCode, setNewCounselingCode] = useState('');
   const [confirmCounselingCode, setConfirmCounselingCode] = useState('');
   const [counselingCodeMessage, setCounselingCodeMessage] = useState({ text: '', type: '' });
+  const [oldSettingsLockPin, setOldSettingsLockPin] = useState('');
+  const [newSettingsLockPin, setNewSettingsLockPin] = useState('');
+  const [confirmSettingsLockPin, setConfirmSettingsLockPin] = useState('');
+  const [settingsLockPinMessage, setSettingsLockPinMessage] = useState({ text: '', type: '' });
   const [currentCounselingCode, setCurrentCounselingCode] = useState(
     () => localStorage.getItem(APP_CONSTANTS.COUNSELING_MASTER_CODE_STORAGE_KEY) || APP_CONSTANTS.COUNSELING_MASTER_CODE
   );
@@ -102,19 +106,20 @@ CREATE POLICY "Allow all"
   };
 
   const getCurrentLoginPin = () => localStorage.getItem('ministryAppPIN') || APP_CONSTANTS.DEFAULT_PIN;
+  const getCurrentSettingsLockPin = () => localStorage.getItem(APP_CONSTANTS.SETTINGS_LOCK_PIN_STORAGE_KEY) || getCurrentLoginPin();
 
   const handleUnlockSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    const currentLoginPin = getCurrentLoginPin();
+    const currentSettingsLockPin = getCurrentSettingsLockPin();
 
-    if (settingsAccessPin.trim() === currentLoginPin) {
+    if (settingsAccessPin.trim() === currentSettingsLockPin) {
       setSettingsUnlocked(true);
       setSettingsAccessError('');
       setSettingsAccessPin('');
       return;
     }
 
-    setSettingsAccessError('Incorrect login password');
+    setSettingsAccessError('Incorrect settings lock password');
     setSettingsAccessPin('');
   };
 
@@ -457,6 +462,42 @@ CREATE POLICY "Allow all"
     setConfirmCounselingCode('');
   };
 
+  const handleChangeSettingsLockPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettingsLockPinMessage({ text: '', type: '' });
+
+    const storedSettingsLockPin = getCurrentSettingsLockPin();
+
+    if (oldSettingsLockPin !== storedSettingsLockPin) {
+      setSettingsLockPinMessage({ text: 'Incorrect current settings lock password', type: 'error' });
+      return;
+    }
+
+    if (newSettingsLockPin.length < 4 || newSettingsLockPin.length > 6) {
+      setSettingsLockPinMessage({ text: 'New settings lock password must be 4-6 digits', type: 'error' });
+      return;
+    }
+
+    if (newSettingsLockPin !== confirmSettingsLockPin) {
+      setSettingsLockPinMessage({ text: 'New settings lock passwords do not match', type: 'error' });
+      return;
+    }
+
+    localStorage.setItem(APP_CONSTANTS.SETTINGS_LOCK_PIN_STORAGE_KEY, newSettingsLockPin);
+    setSettingsLockPinMessage({ text: 'Settings lock password updated successfully!', type: 'success' });
+    setOldSettingsLockPin('');
+    setNewSettingsLockPin('');
+    setConfirmSettingsLockPin('');
+  };
+
+  const handleResetSettingsLockPinToLogin = () => {
+    localStorage.removeItem(APP_CONSTANTS.SETTINGS_LOCK_PIN_STORAGE_KEY);
+    setSettingsLockPinMessage({ text: 'Settings lock password reset to login password.', type: 'success' });
+    setOldSettingsLockPin('');
+    setNewSettingsLockPin('');
+    setConfirmSettingsLockPin('');
+  };
+
   if (!settingsUnlocked) {
     return (
       <div className="max-w-xl mx-auto py-10 animate-fade-in">
@@ -474,13 +515,13 @@ CREATE POLICY "Allow all"
           <div className="p-8">
             <form onSubmit={handleUnlockSettings} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Login Password</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Settings Lock Password</label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
                   <input
                     type="password"
                     inputMode="numeric"
-                    placeholder="Enter app login password"
+                    placeholder="Enter settings lock password"
                     className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
                     value={settingsAccessPin}
                     onChange={(e) => setSettingsAccessPin(e.target.value)}
@@ -505,7 +546,7 @@ CREATE POLICY "Allow all"
             </form>
 
             <p className="text-xs text-slate-500 mt-4 text-center">
-              Use the same login password used on the app lock screen.
+              If not customized, this defaults to your app login password.
             </p>
           </div>
         </div>
@@ -622,7 +663,7 @@ CREATE POLICY "Allow all"
           Security
         </h2>
         
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
            <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
               <h3 className="font-bold text-slate-700 mb-2">Login Password (App Lock)</h3>
               <p className="text-sm text-slate-500 mb-4">
@@ -671,6 +712,64 @@ CREATE POLICY "Allow all"
                  )}
               </form>
            </div>
+
+              <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
+                <h3 className="font-bold text-slate-700 mb-2 flex items-center gap-2">
+                 <Lock className="w-4 h-4" /> Settings Lock Password
+                </h3>
+                <p className="text-sm text-slate-500 mb-4">
+                 Set a separate password for unlocking this Settings page.
+                </p>
+
+                <form onSubmit={handleChangeSettingsLockPin} className="space-y-4">
+                  <div>
+                    <input
+                     type="password"
+                     placeholder="Current settings password"
+                     className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                     value={oldSettingsLockPin}
+                     onChange={e => setOldSettingsLockPin(e.target.value)}
+                     maxLength={6}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                     type="password"
+                     placeholder="New password"
+                     className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                     value={newSettingsLockPin}
+                     onChange={e => setNewSettingsLockPin(e.target.value)}
+                     maxLength={6}
+                    />
+                    <input
+                     type="password"
+                     placeholder="Confirm"
+                     className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                     value={confirmSettingsLockPin}
+                     onChange={e => setConfirmSettingsLockPin(e.target.value)}
+                     maxLength={6}
+                    />
+                  </div>
+
+                  <button type="submit" className="w-full py-2.5 bg-slate-800 text-white rounded-lg hover:bg-black font-medium transition-colors flex items-center justify-center gap-2">
+                    <Save className="w-4 h-4" /> Update Settings Password
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleResetSettingsLockPinToLogin}
+                    className="w-full py-2.5 bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-100 font-medium transition-colors"
+                  >
+                    Use Login Password Instead
+                  </button>
+
+                  {settingsLockPinMessage.text && (
+                   <div className={`text-sm text-center font-medium py-2 rounded ${settingsLockPinMessage.type === 'success' ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
+                    {settingsLockPinMessage.text}
+                   </div>
+                  )}
+                </form>
+              </div>
 
            <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
               <h3 className="font-bold text-slate-700 mb-2 flex items-center gap-2">

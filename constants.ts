@@ -8,6 +8,7 @@ export const APP_CONSTANTS = {
   
   // Default App Lock PIN
   DEFAULT_PIN: '2580',
+  SETTINGS_LOCK_PIN_STORAGE_KEY: 'ministrySettingsLockPIN',
   
   // App-wide settings
   APP_NAME: 'Ministry Manager',
