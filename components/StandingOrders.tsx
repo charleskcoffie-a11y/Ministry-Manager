@@ -384,11 +384,6 @@ const StandingOrders = () => {
     return pages.size;
   }, [docContent]);
 
-  const favoriteOrderCount = useMemo(
-    () => orders.filter(order => order.is_favorite).length,
-    [orders]
-  );
-
   const hasSelection = Boolean(selectedOrder || selectedDocItem);
   const listHeading = docMode
     ? showDocBookmarksOnly
@@ -405,6 +400,7 @@ const StandingOrders = () => {
       ? `${orders.length} saved sections`
       : `${orders.length} sections in view`;
   const selectedDocSummaryLabel = selectedDocBookmark?.soLabel || (selectedDocItem?.page ? `Page ${selectedDocItem.page}` : 'Document Excerpt');
+  const isSelectedDocBookmarked = selectedDocItem ? docBookmarkMap.has(selectedDocItem.id) : false;
 
   useEffect(() => {
     if (!showFullDoc || !docMode || !selectedDocItem) return;
@@ -521,47 +517,16 @@ const StandingOrders = () => {
 
       <div className="relative flex h-full flex-col gap-4">
         <div className="overflow-hidden rounded-[28px] border border-slate-900/10 bg-[linear-gradient(135deg,_#0f172a_0%,_#1e293b_58%,_#7c2d12_100%)] p-6 text-white shadow-[0_30px_80px_rgba(15,23,42,0.35)] md:p-8">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur-sm">
-                  <Gavel className="w-7 h-7 text-amber-400" />
-                </div>
-                <div className="rounded-full border border-white/10 bg-white/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.26em] text-slate-200 backdrop-blur-sm">
-                  Constitution Workspace
-                </div>
-              </div>
-              <h1 className="text-3xl font-serif font-bold tracking-tight text-white md:text-5xl">
-                Standing Orders & Constitution
-              </h1>
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-2.5 backdrop-blur-sm">
+              <Gavel className="w-6 h-6 text-amber-400" />
             </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              {docMode && (
-                <>
-                  <button
-                    onClick={() => setShowFullDoc(true)}
-                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/15"
-                  >
-                    <AlignJustify className="w-4 h-4" /> Full Document
-                  </button>
-                  <button
-                    onClick={clearDocument}
-                    className="inline-flex items-center gap-2 rounded-full border border-red-300/30 bg-red-500/20 px-5 py-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/30"
-                  >
-                    <X className="w-4 h-4" /> Exit Uploaded View
-                  </button>
-                </>
-              )}
-              <div className="flex items-center gap-2 text-xs text-white/50">
-                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
-                  {docMode ? `${visibleDocContent.length} passages` : `${orders.length} sections`}
-                </span>
-                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
-                  {docMode ? `${docBookmarks.length} bookmarked` : `${favoriteOrderCount} saved`}
-                </span>
-              </div>
+            <div className="hidden rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-200 backdrop-blur-sm md:inline-flex">
+              Constitution Workspace
             </div>
+            <h1 className="truncate text-2xl font-serif font-bold tracking-tight text-white md:text-4xl">
+              Standing Orders & Constitution
+            </h1>
           </div>
         </div>
 
@@ -636,6 +601,14 @@ const StandingOrders = () => {
                     className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] transition ${showDocBookmarksOnly ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50'}`}
                   >
                     <Bookmark className={`w-3.5 h-3.5 ${showDocBookmarksOnly ? 'fill-amber-600' : ''}`} /> Bookmarks ({docBookmarks.length})
+                  </button>
+                )}
+                {docMode && (
+                  <button
+                    onClick={clearDocument}
+                    className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-red-600 transition hover:bg-red-50"
+                  >
+                    <X className="w-3.5 h-3.5" /> Exit Uploaded View
                   </button>
                 )}
               </div>
@@ -866,10 +839,10 @@ const StandingOrders = () => {
                         </button>
                         <button
                           onClick={() => toggleDocBookmark(selectedDocItem)}
-                          className={`inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition ${docBookmarkMap.has(selectedDocItem.id) ? 'border-amber-200 bg-amber-100 text-amber-800 hover:bg-amber-200' : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300 hover:bg-stone-50'}`}
+                          className={`inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition ${isSelectedDocBookmarked ? 'border-amber-200 bg-amber-100 text-amber-800 hover:bg-amber-200' : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300 hover:bg-stone-50'}`}
                         >
-                          <Bookmark className={`w-4 h-4 ${docBookmarkMap.has(selectedDocItem.id) ? 'fill-amber-700' : ''}`} />
-                          {docBookmarkMap.has(selectedDocItem.id) ? 'Bookmarked' : 'Bookmark'}
+                          <Bookmark className={`w-4 h-4 ${isSelectedDocBookmarked ? 'fill-amber-700' : ''}`} />
+                          {isSelectedDocBookmarked ? 'Bookmarked' : 'Bookmark'}
                         </button>
                         <button
                           onClick={() => handleAskAI(selectedDocItem.text, 'Document Excerpt')}
@@ -899,7 +872,8 @@ const StandingOrders = () => {
                     </div>
                   </article>
 
-                  <div className="grid gap-4 xl:grid-cols-[1.25fr_0.95fr]">
+                  <div className={`grid gap-4 ${isSelectedDocBookmarked ? 'xl:grid-cols-[1.25fr_0.95fr]' : ''}`}>
+                    {isSelectedDocBookmarked && (
                     <div className="rounded-[28px] border border-stone-200 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
                       <div className="flex items-center justify-between gap-3">
                         <div>
@@ -924,29 +898,30 @@ const StandingOrders = () => {
                           onClick={() => upsertDocBookmark(selectedDocItem, bookmarkNoteDraft)}
                           className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
                         >
-                          <Bookmark className="w-4 h-4" /> Save Note to Bookmark
+                          <Bookmark className="w-4 h-4" /> Save Bookmark Note
                         </button>
-                        {docBookmarkMap.has(selectedDocItem.id) && (
-                          <button
-                            onClick={() => removeDocBookmark(selectedDocItem.id)}
-                            className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-5 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4" /> Remove Bookmark
-                          </button>
-                        )}
+                        <button
+                          onClick={() => removeDocBookmark(selectedDocItem.id)}
+                          className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-5 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                        >
+                          <X className="w-4 h-4" /> Remove Bookmark
+                        </button>
                       </div>
                     </div>
+                    )}
 
                     <div className="rounded-[28px] border border-stone-200 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
                       <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-stone-400">Reading Tools</p>
                       <div className="mt-4 space-y-4 text-sm leading-7 text-stone-600">
+                        {!isSelectedDocBookmarked && (
+                          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                            <p className="font-semibold text-amber-800">Bookmark to add notes</p>
+                            <p className="mt-1 text-amber-700">The follow-up note panel appears after this excerpt is bookmarked.</p>
+                          </div>
+                        )}
                         <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
                           <p className="font-semibold text-slate-900">Context jump</p>
                           <p className="mt-1">Use Full Context to read surrounding pages without losing this selected clause.</p>
-                        </div>
-                        <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
-                          <p className="font-semibold text-slate-900">Bookmark sync</p>
-                          <p className="mt-1">Bookmarks and notes remain available across devices through Supabase sync.</p>
                         </div>
                         <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
                           <p className="font-semibold text-slate-900">Selected reference</p>
