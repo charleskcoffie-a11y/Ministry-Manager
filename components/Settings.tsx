@@ -589,11 +589,19 @@ CREATE POLICY "Allow all"
 
                                                 const { error } = await (supabase as any)
                                                     .from('uploaded_documents')
-                                                    .upsert({ filename: file.name, content }, { onConflict: 'filename' });
+                                                    .upsert(
+                                                      {
+                                                        id: 'standing_orders',
+                                                        filename: file.name,
+                                                        content,
+                                                        updated_at: new Date().toISOString(),
+                                                      },
+                                                      { onConflict: 'id' }
+                                                    );
                                                 if (error) {
                                                     showAlert('Failed to save document: ' + error.message, 'error', 'Upload Failed');
                                                 } else {
-                                                    showAlert('Document uploaded and saved. Open Standing Orders to read it.', 'success');
+                                                    showAlert('Constitution uploaded and replaced. Open Standing Orders to read it.', 'success');
                                                 }
                                             } catch (err: any) {
                                                 console.error(err);
