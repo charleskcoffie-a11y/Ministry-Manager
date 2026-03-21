@@ -1,9 +1,14 @@
 import { Type } from "@google/genai";
 import type { ServiceHymnAiGuidance, ServiceHymnSlot } from '../types';
+import { DEFAULT_SUPABASE_ANON_KEY, DEFAULT_SUPABASE_URL } from '../config/supabaseDefaults.js';
 
 const configuredSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const configuredSupabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const useSupabaseEdgeFunction = Boolean(configuredSupabaseUrl && configuredSupabaseAnonKey);
+const hasConfiguredSupabaseEdge = Boolean(configuredSupabaseUrl && configuredSupabaseAnonKey);
+const isLocalBrowserHost = typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/u.test(window.location.hostname);
+const resolvedSupabaseUrl = hasConfiguredSupabaseEdge ? configuredSupabaseUrl : DEFAULT_SUPABASE_URL;
+const resolvedSupabaseAnonKey = hasConfiguredSupabaseEdge ? configuredSupabaseAnonKey : DEFAULT_SUPABASE_ANON_KEY;
+const useSupabaseEdgeFunction = Boolean(resolvedSupabaseUrl && resolvedSupabaseAnonKey) && (!isLocalBrowserHost || hasConfiguredSupabaseEdge);
 
 const AI_PROXY_MISSING_MESSAGE = useSupabaseEdgeFunction
   ? 'AI features are unavailable because the Supabase Edge Function gemini-proxy is not deployed or reachable. Deploy it to your Supabase project and rebuild the app.'
@@ -57,7 +62,7 @@ const extractGeminiErrorMessage = (error: unknown) => {
 const isBlockedGeminiError = (message: string) =>
   /reported as leaked|permission_denied|api key.+(?:invalid|rejected|disabled|revoked)|status":"PERMISSION_DENIED"|code":403/iu.test(message);
 
-const getSupabaseEdgeUrl = () => `${configuredSupabaseUrl.replace(/\/+$/u, '')}/functions/v1/gemini-proxy`;
+const getSupabaseEdgeUrl = () => `${resolvedSupabaseUrl.replace(/\/+$/u, '')}/functions/v1/gemini-proxy`;
 
 const getAiProxyUrl = () => {
   const baseUrl = import.meta.env.BASE_URL || '/';
@@ -101,15 +106,17 @@ const handleGeminiError = (label: string, error: unknown, statusCode = 0) => {
 };
 
 const invokeGeminiText = async ({ model, contents, config }: GeminiProxyRequest) => {
+  const targetUrl = useSupabaseEdgeFunction ? getSupabaseEdgeUrl() : getAiProxyUrl();
+
   try {
-    const response = await fetch(useSupabaseEdgeFunction ? getSupabaseEdgeUrl() : getAiProxyUrl(), {
+    const response = await fetch(targetUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(useSupabaseEdgeFunction
           ? {
-              apikey: configuredSupabaseAnonKey,
-              Authorization: `Bearer ${configuredSupabaseAnonKey}`,
+              apikey: resolvedSupabaseAnonKey,
+              Authorization: `Bearer ${resolvedSupabaseAnonKey}`,
             }
           : {}),
       },
