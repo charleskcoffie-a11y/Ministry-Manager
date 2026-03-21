@@ -17,6 +17,7 @@ const Devotion = lazy(() => import('./components/Devotion'));
 const ChristianCalendar = lazy(() => import('./components/ChristianCalendar'));
 const SermonBuilder = lazy(() => import('./components/SermonBuilder'));
 const Hymnal = lazy(() => import('./components/Hymnal'));
+const SongCanvas = lazy(() => import('./components/SongCanvas'));
 const SermonNotes = lazy(() => import('./components/SermonNotes'));
 const MeetingMinutes = lazy(() => import('./components/MeetingMinutes'));
 const MinisterDiary = lazy(() => import('./components/MinisterDiary'));
@@ -60,6 +61,8 @@ const App: React.FC = () => {
           <Route path="/devotion" element={<Layout><Devotion /></Layout>} />
 
           <Route path="/hymnal" element={<Layout><Hymnal /></Layout>} />
+
+          <Route path="/song-canvas" element={<Layout><SongCanvas /></Layout>} />
 
           <Route path="/christian-calendar" element={<Layout><ChristianCalendar /></Layout>} />
 

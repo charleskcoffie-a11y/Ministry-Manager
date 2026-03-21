@@ -32,6 +32,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       title: 'Pastoral Ministry',
       items: [
         { to: '/hymnal', label: 'Canticles & Hymns', icon: Music, showOnBottom: true, mobileLabel: 'Hymns' },
+        { to: '/song-canvas', label: 'Akan & English Songs', icon: Book, showOnBottom: false },
         { to: '/sermons', label: 'Sermon Builder', icon: Scroll, showOnBottom: false },
         { to: '/sermon-notes', label: 'Sermon Notes', icon: PenTool, showOnBottom: false },
         { to: '/devotion', label: 'Devotion', icon: Flame, showOnBottom: false },

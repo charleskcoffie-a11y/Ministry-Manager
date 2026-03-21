@@ -722,6 +722,14 @@ const Hymnal: React.FC = () => {
                           </p>
                       </div>
                   </div>
+
+                                    <button
+                                        onClick={() => navigate('/song-canvas')}
+                                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/10 text-white border border-white/25 hover:bg-white/20 transition-all duration-200 font-semibold text-sm"
+                                    >
+                                        Song Side by Side
+                                        <ChevronRight className="w-4 h-4" />
+                                    </button>
               </div>
           </div>
 

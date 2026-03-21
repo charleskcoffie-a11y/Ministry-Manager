@@ -27,3 +27,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated side-by-side hymn extraction output
+reports/hymns-side-by-side*.json
