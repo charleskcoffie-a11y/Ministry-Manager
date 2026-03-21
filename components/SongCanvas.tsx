@@ -1,6 +1,7 @@
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { DEFAULT_SUPABASE_URL } from '../config/supabaseDefaults.js';
 import { Song } from '../types';
 import {
   AlertCircle,
@@ -50,6 +51,9 @@ const SONG_BATCH_SIZE = 1000;
 const SONG_CANVAS_FAVORITES_KEY = 'ministryManager.songCanvasFavorites';
 const SONG_CANVAS_SELECT_COLUMNS = 'id,collection,code,number,title,raw_title,lyrics,lyrics_left,lyrics_right,lyrics_akan,lyrics_english,language_left,language_right,source_group';
 const SONG_CANVAS_FALLBACK_SELECT_COLUMNS = 'id,collection,code,number,title,raw_title,lyrics';
+const configuredSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const resolvedSupabaseUrl = configuredSupabaseUrl || DEFAULT_SUPABASE_URL;
+const shouldPreferFallbackSongColumns = /wtvnyyfxjefuprcntjta\.supabase\.co/iu.test(resolvedSupabaseUrl);
 
 const stripInvisibleCharacters = (value: string) => value
   .replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/gu, '')
@@ -256,6 +260,25 @@ const isMissingSongCanvasColumns = (message: string | undefined | null) => {
     (normalized.includes('could not find the') && normalized.includes('column'))
     || (normalized.includes('column') && normalized.includes('does not exist'))
   ) && normalized.includes('songs');
+};
+
+const shouldRetrySongCanvasWithFallbackColumns = (error: any) => {
+  const message = String(error?.message ?? '').toLowerCase();
+  const details = String(error?.details ?? '').toLowerCase();
+  const hint = String(error?.hint ?? '').toLowerCase();
+  const code = String(error?.code ?? '').toUpperCase();
+  const status = Number(error?.status ?? 0);
+
+  if (isMissingSongCanvasColumns(message)) {
+    return true;
+  }
+
+  if (code === '42703' || code === 'PGRST204') {
+    return true;
+  }
+
+  const combined = `${message} ${details} ${hint}`;
+  return status === 400 && /column|lyrics_left|lyrics_right|lyrics_akan|lyrics_english|language_left|language_right|source_group/iu.test(combined);
 };
 
 const resolveSongTexts = (song: SideBySideSong): ResolvedSongTexts => {
@@ -558,13 +581,20 @@ const SongCanvas: React.FC = () => {
           return loadedSongs;
         };
 
+        const primarySelectColumns = shouldPreferFallbackSongColumns
+          ? SONG_CANVAS_FALLBACK_SELECT_COLUMNS
+          : SONG_CANVAS_SELECT_COLUMNS;
+        const secondarySelectColumns = primarySelectColumns === SONG_CANVAS_SELECT_COLUMNS
+          ? SONG_CANVAS_FALLBACK_SELECT_COLUMNS
+          : SONG_CANVAS_SELECT_COLUMNS;
+
         let loadedSongs: SideBySideSong[] = [];
 
         try {
-          loadedSongs = await loadSongsByColumns(SONG_CANVAS_SELECT_COLUMNS);
+          loadedSongs = await loadSongsByColumns(primarySelectColumns);
         } catch (songsError: any) {
-          if (isMissingSongCanvasColumns(songsError?.message)) {
-            loadedSongs = await loadSongsByColumns(SONG_CANVAS_FALLBACK_SELECT_COLUMNS);
+          if (shouldRetrySongCanvasWithFallbackColumns(songsError)) {
+            loadedSongs = await loadSongsByColumns(secondarySelectColumns);
           } else {
             throw songsError;
           }
