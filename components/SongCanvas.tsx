@@ -49,6 +49,7 @@ const SIDE_BY_SIDE_COLLECTIONS = ['SIDE_BY_SIDE_HYMNS', 'SIDE_BY_SIDE_CANTICLES'
 const SONG_BATCH_SIZE = 1000;
 const SONG_CANVAS_FAVORITES_KEY = 'ministryManager.songCanvasFavorites';
 const SONG_CANVAS_SELECT_COLUMNS = 'id,collection,code,number,title,raw_title,lyrics,lyrics_left,lyrics_right,lyrics_akan,lyrics_english,language_left,language_right,source_group';
+const SONG_CANVAS_FALLBACK_SELECT_COLUMNS = 'id,collection,code,number,title,raw_title,lyrics';
 
 const stripInvisibleCharacters = (value: string) => value
   .replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/gu, '')
@@ -247,6 +248,14 @@ const isMissingCanvasFavoritesTable = (message: string | undefined | null) => {
     || normalized.includes('schema cache')
     || normalized.includes('could not find the table')
   );
+};
+
+const isMissingSongCanvasColumns = (message: string | undefined | null) => {
+  const normalized = String(message ?? '').toLowerCase();
+  return (
+    (normalized.includes('could not find the') && normalized.includes('column'))
+    || (normalized.includes('column') && normalized.includes('does not exist'))
+  ) && normalized.includes('songs');
 };
 
 const resolveSongTexts = (song: SideBySideSong): ResolvedSongTexts => {
@@ -516,33 +525,49 @@ const SongCanvas: React.FC = () => {
           setFavoriteSongIds(remoteFavoriteIds);
         }
 
-        const loadedSongs: SideBySideSong[] = [];
-        let from = 0;
+        const loadSongsByColumns = async (selectColumns: string) => {
+          const loadedSongs: SideBySideSong[] = [];
+          let from = 0;
 
-        while (true) {
-          const { data, error } = await supabase
-            .from('songs')
-            .select(SONG_CANVAS_SELECT_COLUMNS)
-            .in('collection', SIDE_BY_SIDE_COLLECTIONS)
-            .order('number', { ascending: true })
-            .order('id', { ascending: true })
-            .range(from, from + SONG_BATCH_SIZE - 1);
+          while (true) {
+            const { data, error } = await supabase
+              .from('songs')
+              .select(selectColumns)
+              .in('collection', SIDE_BY_SIDE_COLLECTIONS)
+              .order('number', { ascending: true })
+              .order('id', { ascending: true })
+              .range(from, from + SONG_BATCH_SIZE - 1);
 
-          if (error) {
-            throw error;
+            if (error) {
+              throw error;
+            }
+
+            if (!data?.length) {
+              break;
+            }
+
+            loadedSongs.push(...(data as SideBySideSong[]));
+
+            if (data.length < SONG_BATCH_SIZE) {
+              break;
+            }
+
+            from += SONG_BATCH_SIZE;
           }
 
-          if (!data?.length) {
-            break;
+          return loadedSongs;
+        };
+
+        let loadedSongs: SideBySideSong[] = [];
+
+        try {
+          loadedSongs = await loadSongsByColumns(SONG_CANVAS_SELECT_COLUMNS);
+        } catch (songsError: any) {
+          if (isMissingSongCanvasColumns(songsError?.message)) {
+            loadedSongs = await loadSongsByColumns(SONG_CANVAS_FALLBACK_SELECT_COLUMNS);
+          } else {
+            throw songsError;
           }
-
-          loadedSongs.push(...(data as SideBySideSong[]));
-
-          if (data.length < SONG_BATCH_SIZE) {
-            break;
-          }
-
-          from += SONG_BATCH_SIZE;
         }
 
         const sortedSongs = loadedSongs.sort(sortSongs);
