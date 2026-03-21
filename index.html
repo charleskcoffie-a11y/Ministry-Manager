@@ -3,7 +3,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="data:," />
+    <!-- Dark mode flash prevention: apply class before first paint -->
+    <script>
+      (function () {
+        var stored = localStorage.getItem('ministryManager.darkMode');
+        if (stored === 'true') document.documentElement.classList.add('dark');
+      })();
+    </script>
+    <link rel="icon" type="image/png" href="/Ministry-Manager/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Ministry Manager</title>
     
@@ -40,10 +47,10 @@
       scrollbar-width: none;
   }
 </style>
-  <script type="module" crossorigin src="/Ministry-Manager/assets/index-c9ejz3-w.js"></script>
-  <link rel="stylesheet" crossorigin href="/Ministry-Manager/assets/index-DJ5mXcEU.css">
+  <script type="module" crossorigin src="/Ministry-Manager/assets/index-BgtUy0zB.js"></script>
+  <link rel="stylesheet" crossorigin href="/Ministry-Manager/assets/index-DJ6i83QE.css">
 <link rel="manifest" href="/Ministry-Manager/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/Ministry-Manager/registerSW.js"></script></head>
-  <body class="bg-gray-50 text-slate-900 antialiased">
+  <body class="bg-gray-50 dark:bg-slate-900 text-slate-900 antialiased">
     <div id="root"></div>
     <!-- Vite injects the correct JS bundle during build -->
     <!-- CSS is now imported via index.tsx for Vite compatibility -->
