@@ -28,7 +28,12 @@ export default defineConfig(({ mode }) => {
             scope: ".",
             display: "standalone",
             theme_color: "#1e1b4b",
-            background_color: "#0f172a"
+            background_color: "#0f172a",
+            icons: [
+              { src: "pwa-192x192.png", sizes: "192x192", type: "image/png" },
+              { src: "pwa-512x512.png", sizes: "512x512", type: "image/png" },
+              { src: "apple-touch-icon.png", sizes: "180x180", type: "image/png", purpose: "apple touch icon" }
+            ]
           }
         }),
       ],

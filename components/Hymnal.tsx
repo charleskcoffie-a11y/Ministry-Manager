@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Song } from '../types';
-import { Search, Music, BookOpen, ChevronRight, ArrowLeft, Loader2, ZoomIn, ZoomOut, Globe, List, X, AlertCircle, PlayCircle, Star, Heart } from 'lucide-react';
+import { Search, Music, BookOpen, ChevronRight, ArrowLeft, Loader2, ZoomIn, ZoomOut, Globe, X, AlertCircle, PlayCircle, Star, Heart } from 'lucide-react';
 import localWesleyHymnStories from '../public/wesley/hymn_stories.json';
 import localWesleyCanticleStories from '../public/wesley/canticle_stories.json';
 import { findHymnStoryForSong, getStoryReferenceLabels, normalizeHymnStories } from '../utils/hymnStories';
@@ -13,6 +13,7 @@ const parseStanzas = (raw: string | undefined | null): string[][] => {
     if (!raw) return [];
     
     const lines = raw.split('\n');
+    const hasVerseHeaders = lines.some((line) => /^[-0-9\s]*(Verse|Stanza|Hymn)\s*\d*/i.test(line.trim()));
     const stanzas: string[][] = [];
     let currentStanza: string[] = [];
 
@@ -23,15 +24,31 @@ const parseStanzas = (raw: string | undefined | null): string[][] => {
         if (text.toLowerCase().startsWith('tahoma')) return;
         if (/^[;:,.]+$/.test(text)) return;
 
-        // Detect Stanza Breakers (Empty lines or Headers)
+        // Detect stanza headers and preserve them as the first line of the stanza
         const isHeader = 
             /^\d+\.?$/.test(text) ||
             /^[-0-9\s]*(Verse|Stanza|Hymn)\s*\d*/i.test(text);
 
         const isEmpty = !text;
 
-        if (isHeader || isEmpty) {
+        if (isHeader) {
             if (currentStanza.length > 0) {
+                stanzas.push(currentStanza);
+                currentStanza = [];
+            }
+
+            if (/^[-0-9\s]*(Verse|Stanza|Hymn)\s*\d*/i.test(text)) {
+                const cleanedHeader = text.replace(/^[-0-9\s]*/, '').trim();
+                if (cleanedHeader) {
+                    currentStanza.push(cleanedHeader);
+                }
+            }
+            return;
+        }
+
+        // When verse headers exist, empty lines are spacing only and should not split stanzas.
+        if (isEmpty) {
+            if (!hasVerseHeaders && currentStanza.length > 0) {
                 stanzas.push(currentStanza);
                 currentStanza = [];
             }
@@ -57,7 +74,14 @@ const parseStanzas = (raw: string | undefined | null): string[][] => {
 // --- Helper: Preview Text Extractor ---
 const getPreviewText = (raw: string | undefined | null): string => {
     const stanzas = parseStanzas(raw);
-    if (stanzas.length > 0 && stanzas[0].length > 0) return stanzas[0][0];
+    if (stanzas.length > 0 && stanzas[0].length > 0) {
+        const firstLine = stanzas[0][0];
+        if (/^(Verse|Stanza|Hymn)\s*\d*/i.test(firstLine)) {
+            return stanzas[0][1] || firstLine;
+        }
+
+        return firstLine;
+    }
     return '';
 };
 
@@ -102,6 +126,7 @@ const BUNDLED_HYMN_STORIES = normalizeHymnStories([
 ]);
 
 const SONG_BATCH_SIZE = 1000;
+const HYMNAL_SELECT_COLUMNS = 'id,collection,code,number,title,raw_title,lyrics,author,copyright,tags,reference_number,is_favorite';
 
 const COLLECTION_ORDER: Record<string, number> = {
     MHB: 1,
@@ -245,14 +270,14 @@ const buildSongSearchIndex = (song: Song) => {
     };
 };
 
-const getSongSearchScore = (song: Song, rawQuery: string) => {
+const getSongSearchScore = (song: Song, rawQuery: string, prebuiltIndex?: ReturnType<typeof buildSongSearchIndex>) => {
     const normalizedQuery = normalizeSearchText(rawQuery);
     if (!normalizedQuery) {
         return 0;
     }
 
     const queryTokens = getUniqueQueryTokens(rawQuery);
-    const searchIndex = buildSongSearchIndex(song);
+    const searchIndex = prebuiltIndex ?? buildSongSearchIndex(song);
 
     const tokenMatches = queryTokens.filter((token) => {
         if (searchIndex.tokenSet.has(token)) {
@@ -316,6 +341,7 @@ const Hymnal: React.FC = () => {
 
   // Toast State
   const [toast, setToast] = useState<{message: string, visible: boolean}>({ message: '', visible: false });
+        const deferredSearchQuery = useDeferredValue(searchQuery);
 
   useEffect(() => {
     fetchData();
@@ -384,7 +410,7 @@ const Hymnal: React.FC = () => {
         while (true) {
             let query = supabase
                 .from('songs')
-                .select('*')
+                .select(HYMNAL_SELECT_COLUMNS)
                 .order('number', { ascending: true })
                 .order('id', { ascending: true })
                 .range(from, from + SONG_BATCH_SIZE - 1);
@@ -421,30 +447,48 @@ const Hymnal: React.FC = () => {
     }
   };
 
-  const getFilteredItems = () => {
-    if (!searchQuery) return songs;
+    const songSearchIndexes = useMemo(
+        () => songs.map((song) => ({ song, index: buildSongSearchIndex(song) })),
+        [songs]
+    );
 
-        return songs
-            .map((song) => ({
+    const filteredItems = useMemo(() => {
+        if (!deferredSearchQuery) {
+            return songs;
+        }
+
+        return songSearchIndexes
+            .map(({ song, index }) => ({
                 song,
-                score: getSongSearchScore(song, searchQuery),
+                score: getSongSearchScore(song, deferredSearchQuery, index),
             }))
             .filter(({ score }) => score > 0)
             .sort((left, right) => {
                 if (left.score !== right.score) {
-                        return right.score - left.score;
+                    return right.score - left.score;
                 }
 
                 return sortSongs(left.song, right.song);
             })
             .map(({ song }) => song);
-  };
+    }, [songs, songSearchIndexes, deferredSearchQuery]);
 
-  const filteredItems = getFilteredItems();
-    const matchedSelectedStory = findHymnStoryForSong(selectedItem, BUNDLED_HYMN_STORIES);
-        const selectedStoryReferenceLabels = matchedSelectedStory
-                ? getStoryReferenceLabels(matchedSelectedStory, selectedItem?.collection)
-                : [];
+    const storyBySongId = useMemo(() => {
+        const map = new Map<number, ReturnType<typeof findHymnStoryForSong>>();
+        songs.forEach((song) => {
+            const story = findHymnStoryForSong(song, BUNDLED_HYMN_STORIES);
+            if (story) {
+                map.set(song.id, story);
+            }
+        });
+        return map;
+    }, [songs]);
+
+    const matchedSelectedStory = selectedItem ? storyBySongId.get(selectedItem.id) ?? null : null;
+    const selectedStoryReferenceLabels = useMemo(
+        () => (matchedSelectedStory ? getStoryReferenceLabels(matchedSelectedStory, selectedItem?.collection) : []),
+        [matchedSelectedStory, selectedItem?.collection]
+    );
 
   const showToast = (msg: string) => {
     setToast({ message: msg, visible: true });
@@ -455,15 +499,18 @@ const Hymnal: React.FC = () => {
     e.stopPropagation(); // Prevent opening song details
     
     const newStatus = !song.is_favorite;
+    const songIdentityKey = buildSongIdentityKey(song);
+
+    const matchesSongIdentity = (candidate: Song) => buildSongIdentityKey(candidate) === songIdentityKey;
 
     // 1. Optimistic Update (Local State)
     const updatedSongs = songs.map(s => 
-        s.id === song.id ? { ...s, is_favorite: newStatus } : s
+        matchesSongIdentity(s) ? { ...s, is_favorite: newStatus } : s
     );
     
     // If we are in "Favorites" tab and unstarring, remove it from view
     if (activeTab === 'favorites' && !newStatus) {
-        setSongs(songs.filter(s => s.id !== song.id));
+        setSongs(updatedSongs.filter((item) => item.is_favorite));
     } else {
         setSongs(updatedSongs);
     }
@@ -477,10 +524,17 @@ const Hymnal: React.FC = () => {
 
     // 3. Database Update
     try {
-        const { error } = await supabase
+        let query = supabase
             .from('songs')
             .update({ is_favorite: newStatus })
-            .eq('id', song.id);
+            .eq('collection', song.collection)
+            .eq('code', song.code);
+
+        if (Number.isInteger(song.number)) {
+            query = query.eq('number', song.number as number);
+        }
+
+        const { error } = await query;
             
         if (error) throw error;
     } catch (err) {
@@ -499,7 +553,7 @@ const Hymnal: React.FC = () => {
             relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap
             ${activeTab === id 
                 ? `${colorClass} text-white shadow-md transform scale-100` 
-                : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-100 hover:scale-[1.02]'
+                : 'bg-white dark:bg-slate-700 text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 border border-gray-100 dark:border-slate-600 hover:scale-[1.02]'
             }
         `}
     >
@@ -509,13 +563,24 @@ const Hymnal: React.FC = () => {
     </button>
   );
 
+    const NavButton = ({ label, icon: Icon, onClick }: { label: string, icon: any, onClick: () => void }) => (
+        <button
+                onClick={onClick}
+                className="relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600 border border-gray-100 dark:border-slate-600 hover:scale-[1.02]"
+        >
+                <Icon className="w-4 h-4 text-gray-400" />
+                <span className="hidden sm:inline">{label}</span>
+                <span className="sm:hidden">Side by Side</span>
+        </button>
+    );
+
   // --- Render Reading View (Overlay) ---
   if (selectedItem) {
       const stanzas = parseStanzas(selectedItem.lyrics);
       const styles = getCollectionStyle(selectedItem.collection);
 
       return (
-          <div className="fixed inset-0 z-50 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col overflow-hidden">
+          <div className="fixed inset-0 z-50 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 flex flex-col overflow-hidden">
               {/* Animated Background Blobs */}
               <div className="fixed inset-0 overflow-hidden pointer-events-none">
                   <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
@@ -524,10 +589,10 @@ const Hymnal: React.FC = () => {
               </div>
 
               {/* Reading Header */}
-              <div className="relative bg-white/70 backdrop-blur-xl border-b border-white/20 px-4 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+                            <div className="relative bg-white/70 dark:bg-slate-800/80 backdrop-blur-xl border-b border-white/20 dark:border-slate-700/50 px-3 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between sticky top-0 z-20 shadow-sm">
                   <button 
                     onClick={() => setSelectedItem(null)} 
-                    className="flex items-center gap-2 text-white bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 px-5 py-2.5 rounded-full transition-all duration-300 font-semibold text-sm shadow-lg hover:shadow-xl hover:scale-105"
+                                        className="flex items-center gap-1.5 text-white bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-full transition-all duration-300 font-semibold text-xs sm:text-sm shadow-lg hover:shadow-xl hover:scale-105"
                   >
                       <ArrowLeft className="w-4 h-4" /> Back
                   </button>
@@ -536,31 +601,31 @@ const Hymnal: React.FC = () => {
                                             {matchedSelectedStory && (
                                                 <button
                                                     onClick={() => setShowHymnStory((current) => !current)}
-                                                    className={`px-4 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 border shadow-md hover:scale-105 ${showHymnStory ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white border-amber-400/40' : 'bg-white/70 backdrop-blur-md text-slate-700 border-white/30 hover:bg-white'}`}
+                                                    className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 border shadow-md hover:scale-105 ${showHymnStory ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white border-amber-400/40' : 'bg-white/70 backdrop-blur-md text-slate-700 border-white/30 hover:bg-white'}`}
                                                 >
                                                     {showHymnStory ? 'Hide Hymn Story' : 'Story Behind This Hymn'}
                                                 </button>
                                             )}
 
-                      <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md p-1.5 rounded-full border border-white/30 shadow-sm hover:bg-white/80 transition-all">
+                                            <div className="flex items-center gap-2 bg-white/60 dark:bg-slate-700/60 backdrop-blur-md p-1.5 rounded-full border border-white/30 dark:border-slate-600/30 shadow-sm hover:bg-white/80 dark:hover:bg-slate-700/80 transition-all">
                           <button 
                             onClick={() => setFontSize(Math.max(14, fontSize - 2))} 
-                            className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-all duration-200 hover:scale-110"
+                                                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-full text-slate-600 dark:text-slate-300 transition-all duration-200 hover:scale-110"
                           >
                             <ZoomOut className="w-4 h-4"/>
                           </button>
-                          <span className="text-xs font-bold w-8 text-center text-slate-700 bg-slate-50 rounded px-1 py-0.5">{fontSize}</span>
+                                                    <span className="text-xs font-bold w-8 text-center text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-700 rounded px-1 py-0.5">{fontSize}</span>
                           <button 
                             onClick={() => setFontSize(Math.min(48, fontSize + 2))} 
-                            className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-all duration-200 hover:scale-110"
+                                                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-full text-slate-600 dark:text-slate-300 transition-all duration-200 hover:scale-110"
                           >
                             <ZoomIn className="w-4 h-4"/>
                           </button>
                       </div>
 
-                      <button 
+                                                    <button 
                         onClick={(e) => toggleFavorite(e, selectedItem)}
-                        className={`p-2.5 rounded-full transition-all duration-300 border shadow-md hover:scale-110 ${selectedItem.is_favorite 
+                                                        className={`p-2 sm:p-2.5 rounded-full transition-all duration-300 border shadow-md hover:scale-110 ${selectedItem.is_favorite 
                             ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-white border-amber-300 shadow-amber-200/50' 
                             : 'bg-white/60 backdrop-blur-md text-slate-400 border-white/30 hover:text-amber-500 hover:from-amber-50 hover:to-amber-50'}`}
                       >
@@ -571,44 +636,44 @@ const Hymnal: React.FC = () => {
 
               {/* Reading Content */}
               <div className="flex-1 overflow-y-auto relative z-10">
-                  <div className="max-w-3xl mx-auto min-h-full bg-white/80 backdrop-blur-xl shadow-2xl my-6 md:my-10 rounded-3xl overflow-hidden border border-white/40">
+                  <div className="max-w-3xl mx-auto min-h-full bg-gradient-to-b from-white/95 via-slate-50/90 to-white/95 dark:from-slate-800/95 dark:via-slate-800/90 dark:to-slate-800/95 backdrop-blur-xl shadow-2xl my-2 sm:my-4 md:my-6 rounded-2xl md:rounded-3xl overflow-hidden border border-white/40 dark:border-slate-700/40">
                       {/* Song Title Header - Modern Gradient */}
-                      <div className={`bg-gradient-to-br ${styles.gradient} text-white relative px-8 pt-12 pb-8 text-center`}>
+                      <div className={`bg-gradient-to-br ${styles.gradient} text-white relative px-5 pt-7 pb-5 md:px-7 md:pt-7 md:pb-5 text-center`}>
                           {/* Decorative elements */}
                           <div className="absolute top-0 left-0 w-40 h-40 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>
                           <div className="absolute bottom-0 right-0 w-40 h-40 bg-white/10 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl"></div>
 
                           <div className="relative z-10">
-                              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4 shadow-lg border border-white/30 bg-white/20 backdrop-blur-sm`}>
+                                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 md:px-3.5 md:py-1.5 rounded-full mb-3 md:mb-3 shadow-lg border border-white/30 bg-white/20 backdrop-blur-sm`}>
                                  <span className="text-xs font-bold tracking-wider uppercase opacity-90">
                                     {selectedItem.code || selectedItem.collection}
                                  </span>
-                                 <span className="text-lg font-black">
+                                            <span className="text-base md:text-base font-black">
                                     #{selectedItem.number}
                                  </span>
                               </div>
                               
-                              <h1 className="text-4xl md:text-5xl font-serif font-black text-white leading-tight mb-3 drop-shadow-lg">
+                                        <h1 className="text-3xl md:text-[2rem] font-serif font-black text-white leading-tight mb-2 md:mb-2 drop-shadow-lg">
                                   {selectedItem.title}
                               </h1>
                               
                               {selectedItem.author && (
-                                <p className="text-white/90 italic text-sm font-medium drop-shadow">
+                                          <p className="text-white/90 italic text-xs md:text-[13px] font-medium drop-shadow">
                                     {selectedItem.author}
                                 </p>
                               )}
 
                                                             {matchedSelectedStory && (
-                                                                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                                                                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                                                                     {selectedStoryReferenceLabels.slice(0, 4).map((label) => (
                                                                         <span
                                                                             key={label}
-                                                                            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-white/15 text-white border border-white/25 backdrop-blur-sm"
+                                                                            className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white border border-white/25 backdrop-blur-sm"
                                                                         >
                                                                             {label}
                                                                         </span>
                                                                     ))}
-                                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-white/15 text-white border border-white/25 backdrop-blur-sm">
+                                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white border border-white/25 backdrop-blur-sm">
                                                                         Story available
                                                                     </span>
                                                                 </div>
@@ -617,32 +682,39 @@ const Hymnal: React.FC = () => {
                       </div>
 
                       {/* Lyrics Body - Stanza Mapped */}
-                      <div className="px-8 pb-16 pt-10 md:px-16 md:pb-20">
-                        <div className="max-w-2xl mx-auto">
+                      <div className="relative px-5 pb-10 pt-6 md:px-12 md:pb-14 md:pt-8">
+                        <div className="pointer-events-none absolute inset-0">
+                            <div className="absolute top-8 left-6 h-28 w-28 rounded-full bg-indigo-100/40 blur-2xl"></div>
+                            <div className="absolute bottom-10 right-8 h-24 w-24 rounded-full bg-emerald-100/40 blur-2xl"></div>
+                        </div>
+                        <div className="relative max-w-2xl mx-auto bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border border-white/70 dark:border-slate-600/70 rounded-2xl px-4 py-5 md:px-8 md:py-7 shadow-sm">
                             {stanzas.map((lines, i) => (
-                                <div key={i} className="mb-10 last:mb-0 text-center animate-fade-in" style={{ animationDelay: `${i * 100}ms` }}>
-                                    {lines.map((line, j) => (
-                                        <div 
-                                            key={j} 
-                                            className="font-serif text-slate-800 leading-relaxed"
-                                            style={{ 
-                                                fontSize: `${fontSize}px`, 
-                                                lineHeight: '1.6', 
-                                                marginBottom: '0.5em' 
-                                            }}
-                                        >
-                                            {line}
-                                        </div>
-                                    ))}
+                                <div key={i} className="mb-6 md:mb-8 last:mb-0 text-center animate-fade-in" style={{ animationDelay: `${i * 100}ms` }}>
+                                    {lines.map((line, j) => {
+                                        const isStanzaLabel = /^(Verse|Stanza|Hymn)\s*\d*/i.test(line);
+                                        return (
+                                            <div 
+                                                key={j} 
+                                                className={isStanzaLabel ? 'font-sans text-indigo-700 dark:text-indigo-300 font-bold tracking-wide uppercase mb-2' : 'font-serif text-slate-800 dark:text-slate-100 leading-relaxed'}
+                                                style={{ 
+                                                    fontSize: isStanzaLabel ? `${Math.max(14, fontSize * 0.55)}px` : `${fontSize}px`, 
+                                                    lineHeight: isStanzaLabel ? '1.4' : '1.6', 
+                                                    marginBottom: isStanzaLabel ? '0.5em' : '0.35em' 
+                                                }}
+                                            >
+                                                {line}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             ))}
 
                             {matchedSelectedStory && showHymnStory && (
-                                <div className="mt-12 rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 shadow-lg overflow-hidden animate-fade-in">
-                                    <div className="px-6 py-4 border-b border-amber-200 bg-white/60 backdrop-blur-sm flex items-center justify-between gap-3">
+                                <div className="mt-12 rounded-3xl border border-amber-200 dark:border-amber-800/40 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800 shadow-lg overflow-hidden animate-fade-in">
+                                    <div className="px-6 py-4 border-b border-amber-200 dark:border-amber-800/40 bg-white/60 dark:bg-slate-700/60 backdrop-blur-sm flex items-center justify-between gap-3">
                                         <div>
-                                            <p className="text-xs uppercase tracking-[0.24em] text-amber-700/80 font-semibold">Story Behind This Hymn</p>
-                                            <p className="text-sm text-slate-600 mt-1 font-medium">{matchedSelectedStory.writer} • {matchedSelectedStory.firstPublished}</p>
+                                            <p className="text-xs uppercase tracking-[0.24em] text-amber-700/80 dark:text-amber-400/80 font-semibold">Story Behind This Hymn</p>
+                                            <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 font-medium">{matchedSelectedStory.writer} • {matchedSelectedStory.firstPublished}</p>
                                         </div>
                                         <a
                                             href={matchedSelectedStory.source}
@@ -666,13 +738,13 @@ const Hymnal: React.FC = () => {
                                             ))}
                                         </div>
 
-                                        <div className="font-serif text-slate-800 leading-8 text-[16px]">
+                                        <div className="font-serif text-slate-800 dark:text-slate-100 leading-8 text-[16px]">
                                             {matchedSelectedStory.story}
                                         </div>
 
-                                        <div className="rounded-2xl border border-amber-200 bg-white/80 p-4">
-                                            <p className="text-xs uppercase tracking-[0.2em] text-amber-800/80 font-semibold mb-2">Methodist Connection</p>
-                                            <p className="font-serif text-slate-800 leading-7">{matchedSelectedStory.methodistConnection}</p>
+                                            <div className="rounded-2xl border border-amber-200 dark:border-amber-800/40 bg-white/80 dark:bg-slate-700/50 p-4">
+                                                <p className="text-xs uppercase tracking-[0.2em] text-amber-800/80 dark:text-amber-400/80 font-semibold mb-2">Methodist Connection</p>
+                                                <p className="font-serif text-slate-800 dark:text-slate-100 leading-7">{matchedSelectedStory.methodistConnection}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -682,7 +754,7 @@ const Hymnal: React.FC = () => {
 
                       {/* Footer Metadata */}
                       {(selectedItem.tags || selectedItem.copyright) && (
-                          <div className="bg-gradient-to-r from-slate-50 to-blue-50 p-6 text-center text-xs text-slate-500 border-t border-slate-100">
+                          <div className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-800 p-6 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700">
                               {selectedItem.copyright && <p className="mb-1 font-medium">© {selectedItem.copyright}</p>}
                           </div>
                       )}
@@ -702,7 +774,7 @@ const Hymnal: React.FC = () => {
 
   // --- Render Main List View ---
   return (
-    <div className="h-full flex flex-col bg-slate-50/50">
+        <div className="h-full flex flex-col bg-slate-50/50 dark:bg-slate-900">
       
       {/* 1. Header Section */}
       <div className="sticky top-0 z-30 shadow-sm">
@@ -722,27 +794,19 @@ const Hymnal: React.FC = () => {
                           </p>
                       </div>
                   </div>
-
-                                    <button
-                                        onClick={() => navigate('/song-canvas')}
-                                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/10 text-white border border-white/25 hover:bg-white/20 transition-all duration-200 font-semibold text-sm"
-                                    >
-                                        Song Side by Side
-                                        <ChevronRight className="w-4 h-4" />
-                                    </button>
               </div>
           </div>
 
           {/* Controls Bar (Tabs & Search) */}
-          <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-4">
+          <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 md:px-6 py-4">
               <div className="max-w-5xl mx-auto space-y-4">
                   {/* Tabs */}
-                  <div className="flex gap-2 p-1 bg-gray-50 rounded-full border border-gray-100 overflow-x-auto scrollbar-hide">
+                  <div className="flex gap-2 p-1 bg-gray-50 dark:bg-slate-700 rounded-full border border-gray-100 dark:border-slate-600 overflow-x-auto scrollbar-hide">
                       <TabButton id="favorites" label="Favorites" icon={Star} colorClass="bg-gradient-to-r from-amber-500 to-yellow-600" />
                       <TabButton id="hymns" label="MHB" icon={BookOpen} colorClass="bg-gradient-to-r from-blue-600 to-indigo-600" />
                       <TabButton id="canticles" label="Canticles" icon={PlayCircle} colorClass="bg-gradient-to-r from-purple-600 to-fuchsia-600" />
                       <TabButton id="can" label="CAN / Local" icon={Globe} colorClass="bg-gradient-to-r from-teal-500 to-emerald-600" />
-                      <TabButton id="all" label="All Songs" icon={List} colorClass="bg-gradient-to-r from-gray-700 to-slate-800" />
+                      <NavButton label="Song Side by Side" icon={ChevronRight} onClick={() => navigate('/song-canvas')} />
                   </div>
 
                   {/* Search */}
@@ -753,7 +817,7 @@ const Hymnal: React.FC = () => {
                     <input 
                         type="text"
                         placeholder={activeTab === 'canticles' ? "Search canticles by title, code, or phrase..." : "Search by number, title, code, or any lyric phrase..."}
-                        className="block w-full pl-12 pr-4 py-3 bg-slate-50 border-none text-gray-900 placeholder-gray-400 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 focus:shadow-lg transition-all duration-300 text-base shadow-inner"
+                        className="block w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-700 border-none text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 rounded-xl focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-blue-100 dark:focus:ring-indigo-900 focus:shadow-lg transition-all duration-300 text-base shadow-inner"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -789,17 +853,17 @@ const Hymnal: React.FC = () => {
               {loading ? (
                   <div className="flex flex-col items-center justify-center h-64">
                       <Loader2 className="w-10 h-10 animate-spin text-blue-500 mb-4"/>
-                      <p className="text-slate-400 font-medium">Loading hymnal...</p>
+                      <p className="text-slate-400 dark:text-slate-500 font-medium">Loading hymnal...</p>
                   </div>
               ) : filteredItems.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-64 text-center px-4">
-                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                      <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mb-4">
                           {activeTab === 'favorites' ? <Star className="w-8 h-8 text-slate-300" /> : <Music className="w-8 h-8 text-slate-300" />}
                       </div>
-                      <h3 className="text-lg font-bold text-slate-700 mb-1">
+                      <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-1">
                           {activeTab === 'favorites' ? 'No favorites yet' : 'No songs found'}
                       </h3>
-                      <p className="text-slate-500 text-sm">
+                      <p className="text-slate-500 dark:text-slate-400 text-sm">
                           {activeTab === 'favorites' ? 'Star songs to see them here.' : 'Try searching for something else.'}
                       </p>
                   </div>
@@ -807,12 +871,12 @@ const Hymnal: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-12">
                       {filteredItems.map((item) => {
                           const styles = getCollectionStyle(item.collection);
-                          const storyMatch = findHymnStoryForSong(item, BUNDLED_HYMN_STORIES);
+                          const storyMatch = storyBySongId.get(item.id);
                           return (
                               <div 
                                 key={item.id} 
                                 onClick={() => setSelectedItem(item)}
-                                className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-100 hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex items-start gap-4 relative"
+                                className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 hover:shadow-xl hover:border-blue-100 dark:hover:border-indigo-700 hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex items-start gap-4 relative"
                               >
                                   {/* Left: Gradient Badge */}
                                   <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${styles.gradient} text-white shadow-md flex flex-col items-center justify-center flex-shrink-0`}>
@@ -826,10 +890,10 @@ const Hymnal: React.FC = () => {
 
                                   {/* Center: Info */}
                                   <div className="flex-1 min-w-0 py-0.5 pr-8">
-                                      <h3 className={`text-base font-semibold text-gray-800 group-hover:${styles.text} transition-colors truncate mb-1`}>
+                                      <h3 className={`text-base font-semibold text-gray-800 dark:text-slate-100 group-hover:${styles.text} transition-colors truncate mb-1`}>
                                           {item.title}
                                       </h3>
-                                      <p className="text-xs text-gray-400 font-medium line-clamp-1">
+                                      <p className="text-xs text-gray-400 dark:text-slate-500 font-medium line-clamp-1">
                                           {getPreviewText(item.lyrics)}
                                       </p>
                                       {storyMatch && (

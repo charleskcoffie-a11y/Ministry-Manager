@@ -47,6 +47,13 @@ If you only run `npm run dev` or `npm run preview`, the app still loads, but Gem
 
 The `vite.config.ts` `base` value is already set to `/Ministry-Manager/` so the preview and GitHub Pages deployment load assets correctly from the subdirectory.
 
+## Song Canvas Favorites Schema Script
+
+- Run `npm run songs:canvas:favorites:schema` to ensure `song_canvas_favorites` exists.
+- In Supabase projects without a `public.exec_sql` RPC, the script now probes `song_canvas_favorites` directly.
+- If the table is already accessible, the script logs a skip message and exits successfully.
+- If the RPC is unavailable and the table is missing/inaccessible, the script still fails with a clear error.
+
 ## Supabase AI Hosting
 
 Use Supabase if you want the GitHub Pages version of the app to keep AI working without exposing your Gemini key in the browser.
