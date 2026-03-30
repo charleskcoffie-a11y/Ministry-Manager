@@ -88,8 +88,14 @@ const StandingOrders = () => {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   const [docMode, setDocMode] = useState(false);
+  const [docVersion, setDocVersion] = useState<'main' | 'draft'>('main');
   const [docContent, setDocContent] = useState<DocContent[]>([]);
   const [docFileName, setDocFileName] = useState<string>('');
+  const [mainDocContent, setMainDocContent] = useState<DocContent[]>([]);
+  const [mainDocFileName, setMainDocFileName] = useState<string>('');
+  const [draftDocContent, setDraftDocContent] = useState<DocContent[]>([]);
+  const [draftDocFileName, setDraftDocFileName] = useState<string>('');
+
   const [parsing, setParsing] = useState(false);
   const [showFullDoc, setShowFullDoc] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
@@ -123,6 +129,33 @@ const StandingOrders = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
+  const reloadDraftContent = useCallback(async () => {
+    try {
+      const { data: draftMeta, error: draftMetaError } = await supabase
+        .from('uploaded_documents')
+        .select('*', { count: 'exact', head: false })
+        .eq('id', 'standing_orders_draft')
+        .single();
+
+      if (draftMetaError && draftMetaError.code !== 'PGRST116') {
+        console.error('Error fetching draft constitution:', draftMetaError);
+        return;
+      }
+
+      if (draftMeta?.content && Array.isArray(draftMeta.content) && draftMeta.content.length > 0) {
+        const normalizedDraft = (draftMeta.content as DocContent[]).map(item => ({
+          ...item,
+          id: item.id.startsWith('draft-') ? item.id : `draft-${item.id}`,
+        }));
+        setDraftDocFileName(draftMeta.filename || 'Draft Constitution');
+        setDraftDocContent(normalizedDraft);
+        console.log('Draft content loaded:', normalizedDraft.length, 'items');
+      }
+    } catch (err) {
+      console.error('Error reloading draft:', err);
+    }
+  }, []);
+
   useEffect(() => {
     const fetchSavedDocument = async () => {
       try {
@@ -139,10 +172,15 @@ const StandingOrders = () => {
 
         if (data && data.content) {
           console.log("Restored document:", data.filename);
+          setMainDocFileName(data.filename);
+          setMainDocContent(data.content);
           setDocFileName(data.filename);
           setDocContent(data.content);
           setDocMode(true);
         }
+
+        // Load persisted draft constitution (parsed content)
+        await reloadDraftContent();
 
         const { data: bookmarkData, error: bookmarkError } = await supabase
           .from('uploaded_documents')
@@ -168,16 +206,78 @@ const StandingOrders = () => {
     };
 
     fetchSavedDocument();
-  }, []);
+  }, [reloadDraftContent]);
+
+  // Reload draft content when switching to draft view in case it was updated in Settings
+  useEffect(() => {
+    if (docVersion === 'draft' && draftDocContent.length === 0) {
+      reloadDraftContent();
+    }
+  }, [docVersion, draftDocContent.length, reloadDraftContent]);
 
   const extractSoNumber = (input: string) => {
-    const match = input.match(/^s[\.\s]*o[\.\s]*(\d+)/i);
+    // Match "SO 60", "S.O 60", "s.o. 60", "60" at start, etc.
+    const match = input.trim().match(/^(?:s\.?\s*o\.?\s*)?(\d+)$/i);
     return match ? match[1] : null;
   };
 
   const extractSoLabel = (input: string) => {
-    const looseMatch = input.match(/s[\.\s]*o[\.\s]*(\d+)/i);
+    // Find SO reference anywhere in text (S.O, S. O, SO, s.o, etc.)
+    const looseMatch = input.match(/s\.?\s*o\.?\s*(\d+)/i);
     return looseMatch ? `SO ${looseMatch[1]}` : null;
+  };
+
+  const getSoSearchPatterns = (soNumber: string) => [
+    `\\bS\\.O\\.?\\s*${soNumber}\\b`,
+    `\\bS\\s*O\\s*${soNumber}\\b`,
+    `\\bSO\\s*${soNumber}\\b`,
+    `(?:^|\\s|\\()${soNumber}\\.(?=\\s|$)`,
+    `(?:^|\\s)${soNumber}(?=\\s*[–-])`,
+  ];
+
+  const findSoMatchIndex = (text: string, soNumber: string): number => {
+    for (const pattern of getSoSearchPatterns(soNumber)) {
+      const regex = new RegExp(pattern, 'i');
+      const match = regex.exec(text);
+      if (!match || match.index === undefined) continue;
+
+      const numberOffset = match[0].indexOf(soNumber);
+      return match.index + Math.max(numberOffset, 0);
+    }
+
+    return -1;
+  };
+
+  const getDocResultLabel = (text: string) => {
+    const soNumber = extractSoNumber(searchQuery);
+    if (soNumber && findSoMatchIndex(text, soNumber) >= 0) {
+      return `SO ${soNumber}`;
+    }
+
+    return extractSoLabel(text);
+  };
+
+  const getDocExcerptText = (text: string) => {
+    if (!searchQuery.trim()) return text;
+
+    const soNumber = extractSoNumber(searchQuery);
+    const matchIndex = soNumber
+      ? findSoMatchIndex(text, soNumber)
+      : text.toLowerCase().indexOf(searchQuery.toLowerCase());
+
+    if (matchIndex < 0) return text;
+
+    const snippetRadius = 220;
+    const start = Math.max(0, matchIndex - snippetRadius);
+    const end = Math.min(text.length, matchIndex + snippetRadius);
+    const prefix = start > 0 ? '... ' : '';
+    const suffix = end < text.length ? ' ...' : '';
+
+    return `${prefix}${text.slice(start, end).trim()}${suffix}`;
+  };
+
+  const soMatchesInText = (text: string, soNumber: string): boolean => {
+    return findSoMatchIndex(text, soNumber) >= 0;
   };
 
   useEffect(() => {
@@ -332,22 +432,29 @@ const StandingOrders = () => {
 
   const filteredDocContent = docContent.filter(item => {
     if (!searchQuery) return true;
-    const codeNumber = extractSoNumber(searchQuery);
-    if (codeNumber) {
-      const regex = new RegExp(`s[\\.\\s]*o[\\.\\s]*${codeNumber}`, 'i');
-      return regex.test(item.text);
+    
+    // Try to extract SO number from search input
+    const soNumber = extractSoNumber(searchQuery);
+    if (soNumber) {
+      // Search by SO number with all format variations
+      return soMatchesInText(item.text, soNumber);
     }
+    
+    // Fall back to keyword search (case insensitive)
     return item.text.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   const filteredBookmarkedContent = docBookmarks
     .filter(item => {
       if (!searchQuery) return true;
-      const codeNumber = extractSoNumber(searchQuery);
-      if (codeNumber) {
-        const regex = new RegExp(`s[\\.\\s]*o[\\.\\s]*${codeNumber}`, 'i');
-        return regex.test(item.text);
+      
+      const soNumber = extractSoNumber(searchQuery);
+      if (soNumber) {
+        // Search by SO number in text or note
+        return soMatchesInText(item.text, soNumber) || soMatchesInText(item.note || '', soNumber);
       }
+      
+      // Fall back to keyword search in text or note
       return item.text.toLowerCase().includes(searchQuery.toLowerCase()) || (item.note || '').toLowerCase().includes(searchQuery.toLowerCase());
     })
     .map(({ id, text, page }) => ({ id, text, page }));
@@ -377,7 +484,10 @@ const StandingOrders = () => {
     : showFavoritesOnly
       ? `${orders.length} saved sections`
       : `${orders.length} sections in view`;
-  const selectedDocSummaryLabel = selectedDocBookmark?.soLabel || (selectedDocItem?.page ? `Page ${selectedDocItem.page}` : 'Document Excerpt');
+  const selectedDocSummaryLabel = selectedDocItem
+    ? selectedDocBookmark?.soLabel || getDocResultLabel(selectedDocItem.text) || (selectedDocItem.page ? `Page ${selectedDocItem.page}` : 'Document Excerpt')
+    : 'Document Excerpt';
+  const selectedDocExcerptText = selectedDocItem ? getDocExcerptText(selectedDocItem.text) : '';
   const isSelectedDocBookmarked = selectedDocItem ? docBookmarkMap.has(selectedDocItem.id) : false;
 
   useEffect(() => {
@@ -534,9 +644,40 @@ const StandingOrders = () => {
                   <h2 className="mt-2 text-2xl font-serif font-bold text-slate-900">{listHeading}</h2>
                 </div>
                 <div className="flex items-center gap-2">
+                  {docMode && (
+                    <div className="flex overflow-hidden rounded-full border border-stone-200 bg-stone-100 p-0.5">
+                      <button
+                        onClick={() => {
+                          setDocVersion('main');
+                          setDocContent(mainDocContent);
+                          setDocFileName(mainDocFileName);
+                          setSelectedDocItem(null);
+                        }}
+                        className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] transition ${
+                          docVersion === 'main' ? 'bg-white text-slate-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                        }`}
+                      >
+                        Main
+                      </button>
+                      <button
+                        onClick={() => {
+                          setDocVersion('draft');
+                          setDocContent(draftDocContent);
+                          setDocFileName(draftDocFileName || 'Draft Constitution');
+                          setSelectedDocItem(null);
+                        }}
+                        title={draftDocContent.length > 0 ? draftDocFileName : 'Upload draft in Settings'}
+                        className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] transition ${
+                          docVersion === 'draft' ? 'bg-amber-500 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                        }`}
+                      >
+                        Draft {draftDocContent.length === 0 && <FileText className="w-3 h-3 opacity-60" />}
+                      </button>
+                    </div>
+                  )}
                   {docMode ? (
                     <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-700">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Synced
+                      <CheckCircle2 className="w-3.5 h-3.5" /> {docVersion === 'draft' ? (draftDocContent.length > 0 ? 'Draft Saved' : 'No Draft Saved') : 'Synced'}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-stone-600">
@@ -648,8 +789,18 @@ const StandingOrders = () => {
                   {visibleDocContent.length === 0 ? (
                     <div className="flex h-full min-h-[240px] flex-col items-center justify-center rounded-[24px] border border-dashed border-stone-200 bg-white/70 px-6 text-center">
                       <FileText className="mb-4 h-10 w-10 text-stone-300" />
-                      <p className="font-semibold text-stone-600">{showDocBookmarksOnly ? 'No bookmarked passages found.' : 'No document matches found.'}</p>
-                      <p className="mt-2 text-sm leading-6 text-stone-400">Refine your search or switch back to the full constitution view.</p>
+                      <p className="font-semibold text-stone-600">
+                        {showDocBookmarksOnly
+                          ? 'No bookmarked passages found.'
+                          : docVersion === 'draft'
+                            ? 'No draft constitution saved yet.'
+                            : 'No document matches found.'}
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-stone-400">
+                        {docVersion === 'draft'
+                          ? 'Upload Draft Constitution in Settings, then return to this page.'
+                          : 'Refine your search or switch back to the full constitution view.'}
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -673,8 +824,8 @@ const StandingOrders = () => {
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-start justify-between gap-3">
                                   <div>
-                                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-stone-400">{extractSoLabel(item.text) || 'Constitution passage'}</p>
-                                    <p className="mt-2 line-clamp-3 font-serif text-base leading-7 text-slate-800">{item.text}</p>
+                                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-stone-400">{getDocResultLabel(item.text) || 'Constitution passage'}</p>
+                                    <p className="mt-2 line-clamp-3 font-serif text-base leading-7 text-slate-800">{getDocExcerptText(item.text)}</p>
                                   </div>
                                   <button
                                     onClick={(e) => {
@@ -696,7 +847,21 @@ const StandingOrders = () => {
                                   ) : (
                                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-400">Open excerpt</p>
                                   )}
-                                  <ChevronRight className="w-4 h-4 shrink-0 text-stone-400 transition-transform group-hover:translate-x-0.5" />
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedDocItem(item);
+                                        setAiExplanation('');
+                                        setShowFullDoc(true);
+                                      }}
+                                      className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-stone-600 transition hover:border-stone-300 hover:bg-stone-50"
+                                      title="Read this result in full-page context"
+                                    >
+                                      <AlignJustify className="w-3.5 h-3.5" /> Full Page
+                                    </button>
+                                    <ChevronRight className="w-4 h-4 shrink-0 text-stone-400 transition-transform group-hover:translate-x-0.5" />
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -802,10 +967,19 @@ const StandingOrders = () => {
 
                       <div className="flex flex-wrap gap-3 xl:justify-end">
                         <button
+                          onClick={() => {
+                            setSelectedDocItem(null);
+                            setAiExplanation('');
+                          }}
+                          className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-semibold text-stone-700 transition hover:border-stone-300 hover:bg-stone-50"
+                        >
+                          <ArrowLeft className="w-4 h-4" /> Back to Results
+                        </button>
+                        <button
                           onClick={() => setShowFullDoc(true)}
                           className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-semibold text-stone-700 transition hover:border-stone-300 hover:bg-stone-50"
                         >
-                          <AlignJustify className="w-4 h-4" /> Read Full Context
+                          <AlignJustify className="w-4 h-4" /> Read Full Page
                         </button>
                         <button
                           onClick={() => toggleDocBookmark(selectedDocItem)}
@@ -838,7 +1012,7 @@ const StandingOrders = () => {
                         )}
                       </div>
 
-                      <p className="whitespace-pre-wrap font-serif text-[1.14rem] leading-9 tracking-[0.01em] text-stone-700 md:text-[1.18rem]">{selectedDocItem.text}</p>
+                      <p className="whitespace-pre-wrap font-serif text-[1.14rem] leading-9 tracking-[0.01em] text-stone-700 md:text-[1.18rem]">{selectedDocExcerptText}</p>
                     </div>
                   </article>
 

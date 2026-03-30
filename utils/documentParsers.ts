@@ -17,7 +17,7 @@ let pdfWorkerUrlPromise: Promise<string> | null = null;
 
 const getPdfModule = async () => {
   if (!pdfModulePromise) {
-    pdfModulePromise = import('pdfjs-dist/legacy/build/pdf').then((module) => (module as any).default ?? module);
+    pdfModulePromise = import('pdfjs-dist/legacy/build/pdf.js').then((module) => (module as any).default ?? module);
   }
 
   const pdfjsLib = await pdfModulePromise;

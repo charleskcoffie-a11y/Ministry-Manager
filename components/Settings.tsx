@@ -12,6 +12,12 @@ import { useModal } from '../hooks/useModal';
 import { getAiFeatureStatus } from '../services/geminiService';
 import { isDocxDocument, isPdfDocument, parseDocxFile, parsePdfFile } from '../utils/documentParsers';
 
+type ConstitutionStatus = {
+  exists: boolean;
+  filename: string;
+  updatedAt: string | null;
+};
+
 const Settings: React.FC = () => {
   const { modalState, showAlert, showConfirm, closeModal } = useModal();
   
@@ -26,6 +32,17 @@ const Settings: React.FC = () => {
   const [importStatusText, setImportStatusText] = useState(''); 
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
   const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null);
+  const [constitutionStatusLoading, setConstitutionStatusLoading] = useState(false);
+  const [mainConstitutionStatus, setMainConstitutionStatus] = useState<ConstitutionStatus>({
+    exists: false,
+    filename: '',
+    updatedAt: null,
+  });
+  const [draftConstitutionStatus, setDraftConstitutionStatus] = useState<ConstitutionStatus>({
+    exists: false,
+    filename: '',
+    updatedAt: null,
+  });
 
   // Security / PIN State
   const [oldPin, setOldPin] = useState('');
@@ -137,6 +154,7 @@ CREATE POLICY "Allow all"
       if (!settingsUnlocked) return;
       checkConnection();
       loadCounselingCode();
+      void loadConstitutionStatuses();
   }, [settingsUnlocked]);
 
     const aiStatus = getAiFeatureStatus();
@@ -175,6 +193,73 @@ CREATE POLICY "Allow all"
     } catch (error) {
       console.error('Unexpected error loading counseling code:', error);
     }
+  };
+
+  const loadConstitutionStatuses = async () => {
+    setConstitutionStatusLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('uploaded_documents')
+        .select('id,filename,updated_at,content')
+        .in('id', ['standing_orders', 'standing_orders_draft']);
+
+      if (error) {
+        console.error('Failed to load constitution statuses:', error);
+        return;
+      }
+
+      const findStatus = (id: 'standing_orders' | 'standing_orders_draft'): ConstitutionStatus => {
+        const row = data?.find((item: any) => item.id === id);
+        const hasContent = Array.isArray(row?.content) && row.content.length > 0;
+        return {
+          exists: Boolean(row) && hasContent,
+          filename: row?.filename || '',
+          updatedAt: row?.updated_at || null,
+        };
+      };
+
+      setMainConstitutionStatus(findStatus('standing_orders'));
+      setDraftConstitutionStatus(findStatus('standing_orders_draft'));
+    } catch (err) {
+      console.error('Unexpected error loading constitution statuses:', err);
+    } finally {
+      setConstitutionStatusLoading(false);
+    }
+  };
+
+  const uploadConstitutionDocument = async (
+    file: File,
+    targetId: 'standing_orders' | 'standing_orders_draft'
+  ) => {
+    let content: any[] = [];
+    if (isPdfDocument(file)) {
+      content = await parsePdfFile(file);
+    } else if (isDocxDocument(file)) {
+      content = await parseDocxFile(file);
+    } else {
+      throw new Error('Please upload a PDF or DOCX file.');
+    }
+
+    if (!Array.isArray(content) || content.length === 0) {
+      throw new Error(
+        'No extractable text was found in this file. Try a text-based PDF/DOCX (not scanned image-only PDF).'
+      );
+    }
+
+    const { error } = await (supabase as any)
+      .from('uploaded_documents')
+      .upsert(
+        {
+          id: targetId,
+          filename: file.name,
+          content,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      );
+
+    if (error) throw error;
+    await loadConstitutionStatuses();
   };
 
   const handleVerseSourceChange = (val: string) => {
@@ -900,61 +985,96 @@ CREATE POLICY "Allow all"
         </h2>
 
         <div className="space-y-6">
-                        {/* Constitution / Standing Orders Upload */}
+                        {/* Constitution Uploads */}
                         <div className="bg-amber-50 border border-amber-100 rounded-lg p-6">
-                                <h3 className="text-lg font-bold text-amber-900 mb-2">Upload Constitution / Standing Orders</h3>
-                                <p className="text-amber-800 mb-4 text-sm">
-                                    Upload a PDF or DOCX. The document will be parsed and saved to your database. You can then read and search it in Standing Orders.
-                                </p>
-                                <div className="flex items-start gap-4">
-                                    <label className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 shadow-sm font-medium transition-colors">
-                                        <Upload className="w-5 h-5 text-gray-600"/>
-                                        <span>Select PDF/DOCX...</span>
-                                        <input type="file" accept=".pdf,.docx" className="hidden" onChange={async (e) => {
-                                            const file = e.target.files?.[0];
-                                            if (!file) return;
-                                            try {
-                                                // Basic parsing similar to StandingOrders
-                                                let content: any[] = [];
-                                              if (isPdfDocument(file)) {
-                                                content = await parsePdfFile(file);
-                                              } else if (isDocxDocument(file)) {
-                                                content = await parseDocxFile(file);
-                                                } else {
-                                                    showAlert('Please upload a PDF or DOCX file.', 'error', 'Invalid File Type');
-                                                    return;
-                                                }
+                            <div className="flex items-center justify-between gap-3 mb-2">
+                              <h3 className="text-lg font-bold text-amber-900">Constitution Documents</h3>
+                              {constitutionStatusLoading ? (
+                                <span className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-semibold text-stone-500">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking status
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                                <CheckCircle2 className="w-3.5 h-3.5" /> Settings-managed uploads
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-amber-800 mb-4 text-sm">
+                              Upload and manage both Main and Draft constitutions here. Draft is shared with everyone and appears in Standing Orders when saved.
+                            </p>
 
-                                                const { error } = await (supabase as any)
-                                                    .from('uploaded_documents')
-                                                    .upsert(
-                                                      {
-                                                        id: 'standing_orders',
-                                                        filename: file.name,
-                                                        content,
-                                                        updated_at: new Date().toISOString(),
-                                                      },
-                                                      { onConflict: 'id' }
-                                                    );
-                                                if (error) {
-                                                    showAlert('Failed to save document: ' + error.message, 'error', 'Upload Failed');
-                                                } else {
-                                                    showAlert('Constitution uploaded and replaced. Open Standing Orders to read it.', 'success');
-                                                }
-                                            } catch (err: any) {
-                                                console.error(err);
-                                                showAlert('Error uploading document.', 'error', 'Upload Error');
-                                            }
-                                        }} />
-                                    </label>
-                                    <button 
-                                        onClick={() => { (window as any).location.hash = '#/standing-orders'; }}
-                                        className="px-4 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-medium transition-colors"
-                                    >
-                                        Open Standing Orders
-                                    </button>
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div className="rounded-lg border border-amber-200 bg-white p-4">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-sm font-bold text-stone-800">Main Constitution</p>
+                                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${mainConstitutionStatus.exists ? 'border border-emerald-200 bg-emerald-50 text-emerald-700' : 'border border-stone-200 bg-stone-50 text-stone-500'}`}>
+                                    {mainConstitutionStatus.exists ? 'Saved' : 'Not saved'}
+                                  </span>
                                 </div>
+                                <p className="mt-1 text-xs text-stone-500">
+                                  {mainConstitutionStatus.exists
+                                  ? `${mainConstitutionStatus.filename} • ${new Date(mainConstitutionStatus.updatedAt || '').toLocaleString()}`
+                                  : 'No uploaded main constitution yet.'}
+                                </p>
+                                <label className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 shadow-sm text-sm font-medium transition-colors">
+                                  <Upload className="w-4 h-4 text-gray-600"/>
+                                  <span>{mainConstitutionStatus.exists ? 'Replace Main' : 'Upload Main'}</span>
+                                  <input type="file" accept=".pdf,.docx" className="hidden" onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    try {
+                                      await uploadConstitutionDocument(file, 'standing_orders');
+                                      showAlert('Main constitution uploaded and saved.', 'success');
+                                    } catch (err: any) {
+                                      console.error(err);
+                                      showAlert(err?.message || 'Error uploading document.', 'error', 'Upload Error');
+                                    } finally {
+                                      e.target.value = '';
+                                    }
+                                  }} />
+                                </label>
+                              </div>
+
+                              <div className="rounded-lg border border-amber-200 bg-white p-4">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-sm font-bold text-stone-800">Draft Constitution</p>
+                                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${draftConstitutionStatus.exists ? 'border border-emerald-200 bg-emerald-50 text-emerald-700' : 'border border-stone-200 bg-stone-50 text-stone-500'}`}>
+                                    {draftConstitutionStatus.exists ? 'Saved in database' : 'Not saved'}
+                                  </span>
+                                </div>
+                                <p className="mt-1 text-xs text-stone-500">
+                                  {draftConstitutionStatus.exists
+                                  ? `${draftConstitutionStatus.filename} • ${new Date(draftConstitutionStatus.updatedAt || '').toLocaleString()}`
+                                  : 'No uploaded draft constitution yet.'}
+                                </p>
+                                <label className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 shadow-sm text-sm font-medium transition-colors">
+                                  <Upload className="w-4 h-4 text-gray-600"/>
+                                  <span>{draftConstitutionStatus.exists ? 'Replace Draft' : 'Upload Draft'}</span>
+                                  <input type="file" accept=".pdf,.docx" className="hidden" onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    try {
+                                      await uploadConstitutionDocument(file, 'standing_orders_draft');
+                                      showAlert('Draft constitution uploaded and saved.', 'success');
+                                    } catch (err: any) {
+                                      console.error(err);
+                                      showAlert(err?.message || 'Error uploading draft.', 'error', 'Upload Error');
+                                    } finally {
+                                      e.target.value = '';
+                                    }
+                                  }} />
+                                </label>
+                              </div>
+                            </div>
+
+                            <button 
+                              onClick={() => { (window as any).location.hash = '#/standing-orders'; }}
+                              className="mt-4 px-4 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-medium transition-colors"
+                            >
+                              Open Standing Orders
+                            </button>
                         </div>
+
             <div className="bg-orange-50 border border-orange-100 rounded-lg p-6">
                 <h3 className="text-lg font-bold text-orange-900 mb-2">Import Songs Database</h3>
                 <p className="text-orange-800 mb-6 text-base">
