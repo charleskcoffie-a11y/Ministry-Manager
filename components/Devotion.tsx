@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Heart, Sparkles, Loader2, Save, Calendar, Filter, ChevronRight, BookOpen, Sun, Moon, Leaf, Snowflake, Lightbulb, ArrowLeft, Share2, FileDown } from 'lucide-react';
-import { generateDevotional, DevotionalResponse, getAiErrorMessage } from '../services/geminiService';
+import { generateDevotional, DevotionalResponse } from '../services/geminiService';
 import { supabase } from '../supabaseClient';
 import { DailyVersePlan } from '../utils/dailyVersePlan';
 import { getVerseByReference } from '../services/dailyVerseService';
@@ -188,31 +188,6 @@ const Devotion: React.FC = () => {
 
   const getSeasonInfo = (id: string) => DEVOTION_CONFIG.seasons.find(s => s.id === id);
 
-    const buildFallbackDevotional = (params: any): DevotionalResponse => {
-        const date = params?.date || new Date().toISOString().split('T')[0];
-        const scripture = params?.scripture || activePlan?.scripture || 'Psalm 46:1';
-        const seasonId = params?.seasonId || activePlan?.seasonId || 'ORDINARY_TIME';
-        const seasonName = getSeasonInfo(seasonId)?.name || 'Ordinary Time';
-        const calendarTag = params?.calendarTag || activePlan?.calendarTag || seasonName;
-        const theme = params?.theme || params?.topic || activePlan?.theme || 'Daily Encouragement';
-        const verseText = dailyVerse?.text?.trim();
-
-        const verseLine = verseText
-            ? `Today we meditate on ${scripture}: "${verseText}".`
-            : `Today we meditate on ${scripture} and invite God to shape our hearts through His Word.`;
-
-        return {
-            date,
-            title: `${theme}`,
-            scripture,
-            content: `${verseLine}\n\nIn this ${seasonName} season, God calls us to trust Him in practical ways today. Bring your burdens to Christ, choose obedience in the next right step, and let His peace guide your words and decisions. Even when answers are not immediate, God is present, faithful, and active in your life. Walk in hope, serve with humility, and remember that grace is new every morning.`,
-            reflectionQuestion: `What is one step of faith and obedience God is asking of me today through ${scripture}?`,
-            prayer: `Lord Jesus, thank You for Your living Word. Help me to trust You, obey You, and reflect Your love today. Strengthen my heart, direct my path, and fill me with peace. Amen.`,
-            seasonId,
-            calendarTag,
-        };
-    };
-
   const handleGenerate = async (params: any = {}) => {
     setLoading(true);
     
@@ -236,13 +211,7 @@ const Devotion: React.FC = () => {
         setGeneratedContent(result);
         setView('full');
     } else {
-                const fallback = buildFallbackDevotional(finalParams);
-                setGeneratedContent(fallback);
-                setView('full');
-                const aiMessage = getAiErrorMessage('');
-                if (aiMessage) {
-                    console.warn(`AI unavailable, using local devotional fallback: ${aiMessage}`);
-                }
+        alert("Could not generate devotion. Please check your API key or try again.");
     }
     setLoading(false);
   };
@@ -587,7 +556,7 @@ Prayer: ${generatedContent.prayer}
                     <button 
                         onClick={() => handleGenerate(plan)}
                         disabled={loading}
-                        className={`inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-transform active:scale-95 shadow-lg ${hasBgImage ? 'bg-white/90 hover:bg-white text-slate-900 border border-white/80' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                        className={`inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-transform active:scale-95 shadow-lg ${hasBgImage ? 'bg-white/20 backdrop-blur-md hover:bg-white/30 text-white border border-white/30' : 'bg-primary text-white hover:bg-blue-600'}`}
                     >
                         {loading ? <Loader2 className="animate-spin w-5 h-5"/> : <BookOpen className="w-5 h-5" />}
                         Read Full Devotion
