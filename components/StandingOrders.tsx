@@ -215,33 +215,68 @@ const StandingOrders = () => {
     }
   }, [docVersion, draftDocContent.length, reloadDraftContent]);
 
+  // Keep the active document source synchronized after async loads from Settings uploads.
+  useEffect(() => {
+    if (!docMode) return;
+
+    if (docVersion === 'draft') {
+      setDocContent(draftDocContent);
+      setDocFileName(draftDocFileName || 'Draft Constitution');
+      return;
+    }
+
+    setDocContent(mainDocContent);
+    setDocFileName(mainDocFileName);
+  }, [docMode, docVersion, draftDocContent, draftDocFileName, mainDocContent, mainDocFileName]);
+
+  const normalizeSoNumber = (value: string) => String(Number(value));
+
   const extractSoNumber = (input: string) => {
-    // Match "SO 60", "S.O 60", "s.o. 60", "60" at start, etc.
-    const match = input.trim().match(/^(?:s\.?\s*o\.?\s*)?(\d+)$/i);
-    return match ? match[1] : null;
+    // Accept exact SO queries like "SO 60", "S.O.60", "Standing Order 60", or "60".
+    const match = input.trim().match(/^(?:(?:standing\s*order|s\.?\s*o\.?)\s*)?(\d+)$/i);
+    return match ? normalizeSoNumber(match[1]) : null;
   };
+
+  const extractSoNumberLoose = (input: string) => {
+    // Accept mixed queries that still include an SO reference, e.g. "draft SO 60 appointments".
+    const match = input.match(/\b(?:standing\s*order|s\.?\s*o\.?)\s*(\d+)\b/i);
+    return match ? normalizeSoNumber(match[1]) : null;
+  };
+
+  const extractSingleNumberToken = (input: string) => {
+    // Accept plain numeric searches like "45" or mixed phrases like "draft 45" when there is exactly one number token.
+    const matches = input.match(/\d+/g);
+    if (!matches || matches.length !== 1) return null;
+    return normalizeSoNumber(matches[0]);
+  };
+
+  const getQuerySoNumber = (input: string) =>
+    extractSoNumber(input) || extractSoNumberLoose(input) || extractSingleNumberToken(input);
 
   const extractSoLabel = (input: string) => {
-    // Find SO reference anywhere in text (S.O, S. O, SO, s.o, etc.)
-    const looseMatch = input.match(/s\.?\s*o\.?\s*(\d+)/i);
-    return looseMatch ? `SO ${looseMatch[1]}` : null;
+    const looseMatch = input.match(/\b(?:standing\s*order|s\.?\s*o\.?)\s*(\d+)\b/i);
+    return looseMatch ? `SO ${normalizeSoNumber(looseMatch[1])}` : null;
   };
 
-  const getSoSearchPatterns = (soNumber: string) => [
-    `\\bS\\.O\\.?\\s*${soNumber}\\b`,
-    `\\bS\\s*O\\s*${soNumber}\\b`,
-    `\\bSO\\s*${soNumber}\\b`,
-    `(?:^|\\s|\\()${soNumber}\\.(?=\\s|$)`,
-    `(?:^|\\s)${soNumber}(?=\\s*[–-])`,
-  ];
+  const getSoSearchPatterns = (soNumber: string) => {
+    const normalized = normalizeSoNumber(soNumber);
+    return [
+      `\\bS\\.?\\s*O\\.?\\s*0*${normalized}\\b`,
+      `\\bStanding\\s*Order\\s*0*${normalized}\\b`,
+      `(?:^|[\\s(\\[])0*${normalized}(?=\\s*(?:[).,:;-]|$))`,
+      `\\b0*${normalized}\\b`,
+    ];
+  };
 
   const findSoMatchIndex = (text: string, soNumber: string): number => {
-    for (const pattern of getSoSearchPatterns(soNumber)) {
+    const normalized = normalizeSoNumber(soNumber);
+
+    for (const pattern of getSoSearchPatterns(normalized)) {
       const regex = new RegExp(pattern, 'i');
       const match = regex.exec(text);
       if (!match || match.index === undefined) continue;
 
-      const numberOffset = match[0].indexOf(soNumber);
+      const numberOffset = match[0].search(/\d+/);
       return match.index + Math.max(numberOffset, 0);
     }
 
@@ -249,8 +284,8 @@ const StandingOrders = () => {
   };
 
   const getDocResultLabel = (text: string) => {
-    const soNumber = extractSoNumber(searchQuery);
-    if (soNumber && findSoMatchIndex(text, soNumber) >= 0) {
+    const soNumber = getQuerySoNumber(searchQuery);
+    if (soNumber) {
       return `SO ${soNumber}`;
     }
 
@@ -260,7 +295,7 @@ const StandingOrders = () => {
   const getDocExcerptText = (text: string) => {
     if (!searchQuery.trim()) return text;
 
-    const soNumber = extractSoNumber(searchQuery);
+    const soNumber = getQuerySoNumber(searchQuery);
     const matchIndex = soNumber
       ? findSoMatchIndex(text, soNumber)
       : text.toLowerCase().indexOf(searchQuery.toLowerCase());
@@ -274,6 +309,44 @@ const StandingOrders = () => {
     const suffix = end < text.length ? ' ...' : '';
 
     return `${prefix}${text.slice(start, end).trim()}${suffix}`;
+  };
+
+  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const getHighlightedFullDocText = (text: string) => {
+    const soNumber = getQuerySoNumber(searchQuery.trim());
+    if (!soNumber) return text;
+
+    const safeNumber = escapeRegExp(soNumber);
+    const highlightRegex = new RegExp(
+      `(\\bS\\.?\\s*O\\.?\\s*0*${safeNumber}\\b|\\bStanding\\s*Order\\s*0*${safeNumber}\\b|\\b0*${safeNumber}\\b)`,
+      'gi'
+    );
+
+    const parts = text.split(highlightRegex);
+    if (parts.length <= 1) return text;
+
+    const isHighlightPart = (value: string) =>
+      new RegExp(
+        `^(?:\\bS\\.?\\s*O\\.?\\s*0*${safeNumber}\\b|\\bStanding\\s*Order\\s*0*${safeNumber}\\b|\\b0*${safeNumber}\\b)$`,
+        'i'
+      ).test(value);
+
+    return parts.map((part, index) => {
+      if (!part) return null;
+      if (isHighlightPart(part)) {
+        return (
+          <mark
+            key={`so-highlight-${index}`}
+            className="rounded bg-amber-200 px-1 font-semibold text-amber-900"
+          >
+            {part}
+          </mark>
+        );
+      }
+
+      return <React.Fragment key={`so-part-${index}`}>{part}</React.Fragment>;
+    });
   };
 
   const soMatchesInText = (text: string, soNumber: string): boolean => {
@@ -430,32 +503,87 @@ const StandingOrders = () => {
     setAiLoading(false);
   }
 
-  const filteredDocContent = docContent.filter(item => {
-    if (!searchQuery) return true;
-    
-    // Try to extract SO number from search input
-    const soNumber = extractSoNumber(searchQuery);
-    if (soNumber) {
-      // Search by SO number with all format variations
-      return soMatchesInText(item.text, soNumber);
+  const splitDocItemsByMultipleMatches = (items: DocContent[], soNumber: string | null): DocContent[] => {
+    if (!soNumber) return items;
+
+    const split: DocContent[] = [];
+
+    for (const item of items) {
+      if (!soMatchesInText(item.text, soNumber)) {
+        split.push(item);
+        continue;
+      }
+
+      // Find all occurrences of this SO number in the text
+      const patterns = getSoSearchPatterns(soNumber);
+      const matches: { index: number; length: number }[] = [];
+
+      for (const pattern of patterns) {
+        const regex = new RegExp(pattern, 'g');
+        let match;
+        while ((match = regex.exec(item.text)) !== null) {
+          matches.push({ index: match.index, length: match[0].length });
+        }
+      }
+
+      // Remove duplicates (same index)
+      const uniqueMatches = Array.from(
+        new Map(matches.map(m => [m.index, m])).values()
+      ).sort((a, b) => a.index - b.index);
+
+      if (uniqueMatches.length <= 1) {
+        // Single or no match, keep as-is
+        split.push(item);
+      } else {
+        // Multiple matches: create separate items for each occurrence
+        for (let i = 0; i < uniqueMatches.length; i++) {
+          split.push({
+            id: `${item.id}-so-match-${i}`,
+            text: item.text,
+            page: item.page,
+          });
+        }
+      }
     }
-    
-    // Fall back to keyword search (case insensitive)
-    return item.text.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+
+    return split;
+  };
+
+  const filteredDocContent = useMemo(() => {
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) return docContent;
+
+    const soNumber = getQuerySoNumber(trimmedQuery);
+
+    let filtered = docContent.filter(item => {
+      if (soNumber) {
+        // Numeric SO queries should only match explicit SO references, not page/paragraph numbers.
+        return soMatchesInText(item.text, soNumber);
+      }
+
+      return item.text.toLowerCase().includes(trimmedQuery.toLowerCase());
+    });
+
+    // If searching by SO number and results have multiple matches in one item, split them
+    if (soNumber) {
+      filtered = splitDocItemsByMultipleMatches(filtered, soNumber);
+    }
+
+    return filtered;
+  }, [searchQuery, docContent]);
 
   const filteredBookmarkedContent = docBookmarks
     .filter(item => {
-      if (!searchQuery) return true;
-      
-      const soNumber = extractSoNumber(searchQuery);
+      const trimmedQuery = searchQuery.trim();
+      if (!trimmedQuery) return true;
+
+      const soNumber = getQuerySoNumber(trimmedQuery);
       if (soNumber) {
-        // Search by SO number in text or note
+        // Numeric SO queries should only match explicit SO references, not page/paragraph numbers.
         return soMatchesInText(item.text, soNumber) || soMatchesInText(item.note || '', soNumber);
       }
-      
-      // Fall back to keyword search in text or note
-      return item.text.toLowerCase().includes(searchQuery.toLowerCase()) || (item.note || '').toLowerCase().includes(searchQuery.toLowerCase());
+
+      return item.text.toLowerCase().includes(trimmedQuery.toLowerCase()) || (item.note || '').toLowerCase().includes(trimmedQuery.toLowerCase());
     })
     .map(({ id, text, page }) => ({ id, text, page }));
 
@@ -497,14 +625,32 @@ const StandingOrders = () => {
     if (!container) return;
 
     const scrollToSelected = () => {
-      const target = document.getElementById(selectedDocItem.id);
-      if (!target) return;
-      const containerRect = container.getBoundingClientRect();
-      const targetRect = target.getBoundingClientRect();
-      container.scrollTop += targetRect.top - containerRect.top - 112;
+      // For split multi-match items, scroll to the base item ID
+      const baseId = selectedDocItem.id.includes('-so-match-')
+        ? selectedDocItem.id.split('-so-match-')[0]
+        : selectedDocItem.id;
+
+      const target = document.getElementById(baseId);
+      if (!target) {
+        console.warn('Scroll target not found:', baseId);
+        return;
+      }
+
+      // Use requestAnimationFrame to ensure layout is complete
+      requestAnimationFrame(() => {
+        const containerRect = container.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const scrollOffset = targetRect.top - containerRect.top - 112;
+        container.scrollTop += scrollOffset;
+
+        // Add highlight style
+        target.style.backgroundColor = 'rgb(254, 252, 231)'; // amber-50
+        target.style.boxShadow = '0 0 0 1px rgb(251, 191, 36)'; // ring-amber-300
+      });
     };
 
-    const timer = window.setTimeout(scrollToSelected, 250);
+    // Delay slightly to ensure DOM is ready
+    const timer = window.setTimeout(scrollToSelected, 100);
     return () => window.clearTimeout(timer);
   }, [showFullDoc, docMode, selectedDocItem, docContent]);
 
@@ -585,7 +731,7 @@ const StandingOrders = () => {
                         <div className="h-px flex-1 bg-stone-300" />
                       </div>
                     )}
-                    <p className="whitespace-pre-wrap font-serif text-[1.06rem] leading-9 tracking-[0.01em] text-stone-700 md:text-[1.12rem]">{item.text}</p>
+                    <p className="whitespace-pre-wrap font-serif text-[1.06rem] leading-9 tracking-[0.01em] text-stone-700 md:text-[1.12rem]">{getHighlightedFullDocText(item.text)}</p>
                   </div>
                 ))}
               </div>
@@ -806,6 +952,9 @@ const StandingOrders = () => {
                     <div className="space-y-3">
                       {visibleDocContent.map(item => {
                         const bookmark = docBookmarkMap.get(item.id);
+                        const resultLabel = getDocResultLabel(item.text);
+                        const badgeHeading = resultLabel ? 'SO' : item.page ? 'Page' : 'Text';
+                        const badgeValue = resultLabel ? resultLabel.replace(/^SO\s+/i, '') : item.page ?? 'Excerpt';
 
                         return (
                           <div
@@ -818,13 +967,13 @@ const StandingOrders = () => {
                           >
                             <div className="flex items-start gap-3">
                               <div className={`rounded-2xl px-3 py-2 text-center ${selectedDocItem?.id === item.id ? 'bg-amber-100 text-amber-800' : 'bg-emerald-50 text-emerald-700'}`}>
-                                <span className="block text-[10px] font-bold uppercase tracking-[0.22em]">{item.page ? 'Page' : 'Text'}</span>
-                                <span className="block text-sm font-bold">{item.page ?? 'Excerpt'}</span>
+                                <span className="block text-[10px] font-bold uppercase tracking-[0.22em]">{badgeHeading}</span>
+                                <span className="block text-sm font-bold">{badgeValue}</span>
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-start justify-between gap-3">
                                   <div>
-                                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-stone-400">{getDocResultLabel(item.text) || 'Constitution passage'}</p>
+                                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-stone-400">{resultLabel || 'Constitution passage'}</p>
                                     <p className="mt-2 line-clamp-3 font-serif text-base leading-7 text-slate-800">{getDocExcerptText(item.text)}</p>
                                   </div>
                                   <button

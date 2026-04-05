@@ -10,7 +10,7 @@ import {
 import Modal from './Modal';
 import { useModal } from '../hooks/useModal';
 import { getAiFeatureStatus } from '../services/geminiService';
-import { isDocxDocument, isPdfDocument, parseDocxFile, parsePdfFile } from '../utils/documentParsers';
+import { isDocxDocument, isPdfDocument, parseDocxFile, parsePdfFile, parseScannedPdfWithOcr } from '../utils/documentParsers';
 
 type ConstitutionStatus = {
   exists: boolean;
@@ -43,6 +43,16 @@ const Settings: React.FC = () => {
     filename: '',
     updatedAt: null,
   });
+
+  // OCR Review State
+  const [showOcrReview, setShowOcrReview] = useState(false);
+  const [ocrContent, setOcrContent] = useState<any[]>([]);
+  const [ocrPending, setOcrPending] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
+  const [ocrTargetId, setOcrTargetId] = useState<'standing_orders' | 'standing_orders_draft'>('standing_orders_draft');
+  const [ocrFileName, setOcrFileName] = useState('');
+  const [ocrStatus, setOcrStatus] = useState('Initializing OCR...');
+  const [ocrError, setOcrError] = useState<string | null>(null);
 
   // Security / PIN State
   const [oldPin, setOldPin] = useState('');
@@ -229,23 +239,87 @@ CREATE POLICY "Allow all"
 
   const uploadConstitutionDocument = async (
     file: File,
-    targetId: 'standing_orders' | 'standing_orders_draft'
+    targetId: 'standing_orders' | 'standing_orders_draft',
+    manualContent?: any[]
   ) => {
+    console.log('[Upload] Starting upload:', { fileName: file.name, targetId, hasManualContent: !!manualContent });
+    
     let content: any[] = [];
-    if (isPdfDocument(file)) {
-      content = await parsePdfFile(file);
-    } else if (isDocxDocument(file)) {
-      content = await parseDocxFile(file);
+    
+    // If manual content is provided, use it (from OCR review)
+    if (manualContent && Array.isArray(manualContent)) {
+      console.log('[Upload] Using manual content from OCR review');
+      content = manualContent;
     } else {
-      throw new Error('Please upload a PDF or DOCX file.');
+      // Try normal text extraction first
+      try {
+        console.log('[Upload] Attempting normal PDF/DOCX text extraction');
+        if (isPdfDocument(file)) {
+          console.log('[Upload] File is PDF, calling parsePdfFile');
+          content = await parsePdfFile(file);
+          console.log('[Upload] PDF parsing succeeded, got', content.length, 'items');
+        } else if (isDocxDocument(file)) {
+          console.log('[Upload] File is DOCX, calling parseDocxFile');
+          content = await parseDocxFile(file);
+          console.log('[Upload] DOCX parsing succeeded, got', content.length, 'items');
+        } else {
+          throw new Error('Please upload a PDF or DOCX file.');
+        }
+      } catch (err: any) {
+        console.error('[Upload] Text extraction failed:', { message: err.message, code: err.code });
+        
+        // If PDF is scanned, trigger OCR
+        if (err.message === 'PDF_IS_SCANNED' && isPdfDocument(file)) {
+          console.log('[Upload] Detected scanned PDF, triggering OCR workflow');
+          setOcrFileName(file.name);
+          setOcrTargetId(targetId);
+          setOcrPending(true);
+          setOcrProgress(0);
+          setOcrStatus('Initializing OCR engine...');
+          setOcrError(null);
+          setShowOcrReview(true); // Show modal immediately while OCR processes
+          
+          try {
+            console.log('[Upload] Starting OCR processing');
+            setOcrStatus('Loading Tesseract.js library (this may take ~30 seconds)...');
+            const ocrResults = await parseScannedPdfWithOcr(file, (progress) => {
+              console.log('[OCR] Progress:', progress);
+              setOcrProgress(progress);
+              setOcrStatus(`Processing pages... ${progress}% complete`);
+            });
+            
+            console.log('[Upload] OCR completed, got', ocrResults.length, 'items');
+            setOcrContent(ocrResults);
+            setOcrPending(false);
+            setOcrStatus('OCR Complete! Review and correct any errors.');
+            return; // Stop here, user will review in modal
+          } catch (ocrErr: any) {
+            console.error('[Upload] OCR failed:', { message: ocrErr.message, stack: ocrErr.stack });
+            setOcrPending(false);
+            const errorMsg = ocrErr.message || 'Could not process scanned PDF';
+            setOcrError(errorMsg);
+            setOcrStatus('OCR Failed');
+            showAlert(`OCR Error: ${errorMsg}`, 'error', 'OCR Failed');
+            return;
+          }
+        } else {
+          console.error('[Upload] Not a scanned PDF or other error:', err.message);
+          throw new Error(
+            'No extractable text was found in this file. Try a text-based PDF/DOCX (not scanned image-only PDF).'
+          );
+        }
+      }
     }
 
+    console.log('[Upload] Final content check:', { hasContent: !!content, length: content?.length });
+    
     if (!Array.isArray(content) || content.length === 0) {
       throw new Error(
         'No extractable text was found in this file. Try a text-based PDF/DOCX (not scanned image-only PDF).'
       );
     }
 
+    console.log('[Upload] Saving to Supabase:', { targetId, itemCount: content.length });
     const { error } = await (supabase as any)
       .from('uploaded_documents')
       .upsert(
@@ -258,8 +332,54 @@ CREATE POLICY "Allow all"
         { onConflict: 'id' }
       );
 
-    if (error) throw error;
+    if (error) {
+      console.error('[Upload] Supabase save error:', error);
+      throw error;
+    }
+    
+    console.log('[Upload] Supabase save successful');
     await loadConstitutionStatuses();
+  };
+
+  const handleSaveOcrContent = async () => {
+    if (!Array.isArray(ocrContent) || ocrContent.length === 0) {
+      showAlert('No content to save.', 'warning', 'Empty Content');
+      return;
+    }
+
+    try {
+      const { error } = await (supabase as any)
+        .from('uploaded_documents')
+        .upsert(
+          {
+            id: ocrTargetId,
+            filename: ocrFileName,
+            content: ocrContent,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'id' }
+        );
+
+      if (error) throw error;
+
+      setShowOcrReview(false);
+      setOcrContent([]);
+      setOcrFileName('');
+      await loadConstitutionStatuses();
+      showAlert('Constitution saved successfully!', 'success', 'Saved');
+    } catch (err: any) {
+      showAlert(`Failed to save: ${err.message}`, 'error', 'Save Error');
+    }
+  };
+
+  const handleOcrTextChange = (index: number, newText: string) => {
+    setOcrContent(prev => {
+      const updated = [...prev];
+      if (updated[index]) {
+        updated[index] = { ...updated[index], text: newText };
+      }
+      return updated;
+    });
   };
 
   const handleVerseSourceChange = (val: string) => {
@@ -634,6 +754,125 @@ CREATE POLICY "Allow all"
               If not customized, this defaults to your app login password.
             </p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // OCR Review Modal
+  if (showOcrReview) {
+    return (
+      <div className="max-w-6xl mx-auto py-8 animate-fade-in">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+          <div className="bg-amber-50 border-b border-amber-200 px-8 py-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileText className="w-6 h-6 text-amber-600" />
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Review OCR Extract</h2>
+                  <p className="text-sm text-gray-600 mt-1">The PDF was scanned. Please review and correct any OCR errors before saving.</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-semibold text-gray-600">{ocrFileName}</p>
+                {ocrPending ? (
+                  <div className="mt-2">
+                    <p className="text-xs text-amber-700 font-medium">{ocrProgress}% Complete</p>
+                    <div className="w-32 h-2 bg-amber-100 rounded-full mt-2 overflow-hidden">
+                      <div 
+                        className="h-full bg-amber-600 transition-all duration-500"
+                        style={{ width: `${ocrProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-green-700 mt-2 font-medium">✓ OCR Complete</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {ocrPending ? (
+            <div className="p-12 text-center space-y-6">
+              <Loader2 className="w-10 h-10 animate-spin text-amber-600 mx-auto" />
+              <div>
+                <p className="text-gray-800 font-semibold text-lg mb-2">Processing {ocrFileName}</p>
+                <p className="text-gray-600 mb-4">{ocrStatus}</p>
+                <div className="max-w-sm mx-auto">
+                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-amber-500 transition-all duration-700"
+                      style={{ width: `${ocrProgress}%` }}
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500 mt-3 font-mono">{ocrProgress}%</p>
+                </div>
+                <p className="text-xs text-gray-400 mt-6">
+                  ⚠️ First-time OCR setup downloads ~75MB. This is normal and will be cached.
+                </p>
+              </div>
+            </div>
+          ) : ocrError ? (
+            <div className="p-12 text-center space-y-6">
+              <AlertTriangle className="w-10 h-10 text-red-600 mx-auto" />
+              <div>
+                <p className="text-red-800 font-semibold text-lg mb-2">OCR Processing Failed</p>
+                <p className="text-red-600 bg-red-50 rounded-lg p-4 text-sm font-mono break-words">{ocrError}</p>
+                <button
+                  onClick={() => {
+                    setShowOcrReview(false);
+                    setOcrContent([]);
+                    setOcrError(null);
+                    setOcrFileName('');
+                  }}
+                  className="mt-6 px-6 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                {ocrContent.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">No content extracted</p>
+                ) : (
+                  ocrContent.map((item, index) => (
+                    <div key={item.id || index} className="border border-gray-200 rounded-lg p-4">
+                      {item.page && (
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Page {item.page}</p>
+                      )}
+                      <textarea
+                        value={item.text}
+                        onChange={(e) => handleOcrTextChange(index, e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-amber-500 focus:border-transparent min-h-32"
+                      />
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="border-t border-gray-200 px-8 py-4 flex gap-3 justify-end bg-gray-50">
+                <button
+                  onClick={() => {
+                    setShowOcrReview(false);
+                    setOcrContent([]);
+                    setOcrFileName('');
+                    setOcrError(null);
+                  }}
+                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveOcrContent}
+                  className="px-6 py-2 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition-colors flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" /> Save Corrected Constitution
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );

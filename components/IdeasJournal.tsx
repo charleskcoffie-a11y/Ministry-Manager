@@ -8,6 +8,26 @@ import {
 } from 'lucide-react';
 import { expandIdea } from '../services/geminiService';
 
+const isMissingIdeasTitleColumnError = (error: { message?: string } | null) => {
+    if (!error?.message) return false;
+    return /title column of 'ideas'/i.test(error.message) || /column\s+"?title"?\s+does not exist/i.test(error.message);
+};
+
+const getIdeaPayload = (idea: Partial<Idea>, omitTitle = false) => {
+    const payload: Partial<Idea> = {
+        title: idea.title ?? '',
+        idea_date: idea.idea_date,
+        place: idea.place ?? '',
+        note: idea.note ?? ''
+    };
+
+    if (omitTitle) {
+        delete payload.title;
+    }
+
+    return payload;
+};
+
 const IdeasJournal: React.FC = () => {
     const [ideas, setIdeas] = useState<Idea[]>([]);
     const [favorites, setFavorites] = useState<string[]>(() => {
@@ -67,14 +87,24 @@ const IdeasJournal: React.FC = () => {
     }
 
     try {
+                const payload = getIdeaPayload(currentIdea);
+
         if (currentIdea.id) {
             // Update
-            const { error } = await supabase.from('ideas').update(currentIdea).eq('id', currentIdea.id);
-            if (error) throw error;
+                        let { error } = await supabase.from('ideas').update(payload).eq('id', currentIdea.id);
+                        if (error && isMissingIdeasTitleColumnError(error)) {
+                            const legacyPayload = getIdeaPayload(currentIdea, true);
+                            ({ error } = await supabase.from('ideas').update(legacyPayload).eq('id', currentIdea.id));
+                        }
+                        if (error) throw error;
         } else {
             // Insert
-            const { error } = await supabase.from('ideas').insert([currentIdea]);
-            if (error) throw error;
+                        let { error } = await supabase.from('ideas').insert([payload]);
+                        if (error && isMissingIdeasTitleColumnError(error)) {
+                            const legacyPayload = getIdeaPayload(currentIdea, true);
+                            ({ error } = await supabase.from('ideas').insert([legacyPayload]));
+                        }
+                        if (error) throw error;
         }
         await fetchIdeas();
         closeModal();
