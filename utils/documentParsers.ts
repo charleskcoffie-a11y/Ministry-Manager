@@ -92,16 +92,12 @@ export const parseScannedPdfWithOcr = async (file: File, onProgress?: (progress:
 
   const extractedLines: ParsedDocumentContent[] = [];
   const totalPages = pdf.numPages;
-
-  console.log('[OCR] Creating shared Tesseract worker for', totalPages, 'pages');
   let worker: any = null;
   
   try {
     worker = await Tesseract.createWorker('eng');
-    console.log('[OCR] Worker created successfully');
 
     for (let pageIndex = 1; pageIndex <= totalPages; pageIndex += 1) {
-      console.log(`[OCR] Processing page ${pageIndex}/${totalPages}`);
       const page = await pdf.getPage(pageIndex);
       
       // Render page to canvas
@@ -111,17 +107,12 @@ export const parseScannedPdfWithOcr = async (file: File, onProgress?: (progress:
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 
-      if (!context) {
-        console.warn(`[OCR] Could not get canvas context for page ${pageIndex}`);
-        continue;
-      }
+      if (!context) continue;
 
-      console.log(`[OCR] Rendering page ${pageIndex} to canvas`);
       const renderTask = page.render({ canvasContext: context, viewport });
       await renderTask.promise;
 
       // Run OCR on the canvas image using shared worker
-      console.log(`[OCR] Running recognition on page ${pageIndex}`);
       const { data } = await worker.recognize(canvas);
       const pageText = data.text.trim();
 
@@ -131,28 +122,37 @@ export const parseScannedPdfWithOcr = async (file: File, onProgress?: (progress:
           text: pageText,
           page: pageIndex,
         });
-        console.log(`[OCR] Page ${pageIndex} extracted:`, pageText.substring(0, 100) + '...');
-      } else {
-        console.warn(`[OCR] Page ${pageIndex} returned empty text`);
       }
 
       // Report progress
       if (onProgress) {
         const progress = Math.round((pageIndex / totalPages) * 100);
-        console.log(`[OCR] Progress: ${progress}%`);
         onProgress(progress);
       }
     }
   } finally {
     if (worker) {
-      console.log('[OCR] Terminating worker');
       await worker.terminate();
-      console.log('[OCR] Worker terminated');
     }
   }
 
-  console.log('[OCR] OCR complete. Extracted', extractedLines.length, 'pages');
   return extractedLines;
+};
+
+const normalizeDocxLine = (line: string) => line.replace(/\s+/g, ' ').trim();
+
+const normalizeSoToken = (line: string) =>
+  line
+    .replace(/\bS\s*\.\s*O\s*\.?\s*/gi, 'S.O. ')
+    .replace(/\bStanding\s+Order\b/gi, 'Standing Order');
+
+const isHeadingLikeLine = (line: string) => {
+  const isUppercaseHeading = line.length <= 120 && /[A-Z]/.test(line) && line === line.toUpperCase();
+  const isNumberedHeading = /^\d{1,3}(?:\.\d+)*[.)]?\s+[A-Za-z]/.test(line);
+  const isSectionLabel = /^(?:chapter|section|part|appendix)\b/i.test(line);
+  const isSoHeading = /^(?:S\.?\s*O\.?|Standing\s*Order)\s*\d+/i.test(line);
+
+  return isUppercaseHeading || isNumberedHeading || isSectionLabel || isSoHeading;
 };
 
 export const parseDocxFile = async (file: File): Promise<ParsedDocumentContent[]> => {
@@ -160,9 +160,64 @@ export const parseDocxFile = async (file: File): Promise<ParsedDocumentContent[]
   const arrayBuffer = await file.arrayBuffer();
   const result = await mammoth.extractRawText({ arrayBuffer });
 
-  return result.value
-    .split('\n')
-    .map((line) => line.trim())
+  const rawLines = result.value.replace(/\r/g, '').split('\n');
+  const blocks: ParsedDocumentContent[] = [];
+  let currentPage: number | undefined;
+  let buffer = '';
+
+  const flushBuffer = () => {
+    const text = normalizeSoToken(normalizeDocxLine(buffer));
+    if (!text) return;
+    blocks.push({
+      id: `d-${blocks.length}`,
+      text,
+      page: currentPage,
+    });
+    buffer = '';
+  };
+
+  for (const rawLine of rawLines) {
+    const line = normalizeDocxLine(rawLine);
+
+    if (!line) {
+      flushBuffer();
+      continue;
+    }
+
+    const pageMatch = line.match(/^page\s+(\d+)$/i);
+    if (pageMatch) {
+      flushBuffer();
+      currentPage = Number(pageMatch[1]);
+      continue;
+    }
+
+    if (isHeadingLikeLine(line)) {
+      flushBuffer();
+      blocks.push({
+        id: `d-${blocks.length}`,
+        text: normalizeSoToken(line),
+        page: currentPage,
+      });
+      continue;
+    }
+
+    if (!buffer) {
+      buffer = line;
+    } else if (buffer.endsWith('-')) {
+      buffer = `${buffer.slice(0, -1)}${line}`;
+    } else {
+      buffer = `${buffer} ${line}`;
+    }
+  }
+
+  flushBuffer();
+
+  if (blocks.length > 0) {
+    return blocks;
+  }
+
+  return rawLines
+    .map((line) => normalizeSoToken(normalizeDocxLine(line)))
     .filter(Boolean)
     .map((line, index) => ({
       id: `d-${index}`,

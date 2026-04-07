@@ -242,35 +242,24 @@ CREATE POLICY "Allow all"
     targetId: 'standing_orders' | 'standing_orders_draft',
     manualContent?: any[]
   ) => {
-    console.log('[Upload] Starting upload:', { fileName: file.name, targetId, hasManualContent: !!manualContent });
-    
     let content: any[] = [];
     
     // If manual content is provided, use it (from OCR review)
     if (manualContent && Array.isArray(manualContent)) {
-      console.log('[Upload] Using manual content from OCR review');
       content = manualContent;
     } else {
       // Try normal text extraction first
       try {
-        console.log('[Upload] Attempting normal PDF/DOCX text extraction');
         if (isPdfDocument(file)) {
-          console.log('[Upload] File is PDF, calling parsePdfFile');
           content = await parsePdfFile(file);
-          console.log('[Upload] PDF parsing succeeded, got', content.length, 'items');
         } else if (isDocxDocument(file)) {
-          console.log('[Upload] File is DOCX, calling parseDocxFile');
           content = await parseDocxFile(file);
-          console.log('[Upload] DOCX parsing succeeded, got', content.length, 'items');
         } else {
           throw new Error('Please upload a PDF or DOCX file.');
         }
       } catch (err: any) {
-        console.error('[Upload] Text extraction failed:', { message: err.message, code: err.code });
-        
         // If PDF is scanned, trigger OCR
         if (err.message === 'PDF_IS_SCANNED' && isPdfDocument(file)) {
-          console.log('[Upload] Detected scanned PDF, triggering OCR workflow');
           setOcrFileName(file.name);
           setOcrTargetId(targetId);
           setOcrPending(true);
@@ -280,21 +269,17 @@ CREATE POLICY "Allow all"
           setShowOcrReview(true); // Show modal immediately while OCR processes
           
           try {
-            console.log('[Upload] Starting OCR processing');
             setOcrStatus('Loading Tesseract.js library (this may take ~30 seconds)...');
             const ocrResults = await parseScannedPdfWithOcr(file, (progress) => {
-              console.log('[OCR] Progress:', progress);
               setOcrProgress(progress);
               setOcrStatus(`Processing pages... ${progress}% complete`);
             });
             
-            console.log('[Upload] OCR completed, got', ocrResults.length, 'items');
             setOcrContent(ocrResults);
             setOcrPending(false);
             setOcrStatus('OCR Complete! Review and correct any errors.');
             return; // Stop here, user will review in modal
           } catch (ocrErr: any) {
-            console.error('[Upload] OCR failed:', { message: ocrErr.message, stack: ocrErr.stack });
             setOcrPending(false);
             const errorMsg = ocrErr.message || 'Could not process scanned PDF';
             setOcrError(errorMsg);
@@ -303,15 +288,12 @@ CREATE POLICY "Allow all"
             return;
           }
         } else {
-          console.error('[Upload] Not a scanned PDF or other error:', err.message);
           throw new Error(
             'No extractable text was found in this file. Try a text-based PDF/DOCX (not scanned image-only PDF).'
           );
         }
       }
     }
-
-    console.log('[Upload] Final content check:', { hasContent: !!content, length: content?.length });
     
     if (!Array.isArray(content) || content.length === 0) {
       throw new Error(
@@ -319,7 +301,6 @@ CREATE POLICY "Allow all"
       );
     }
 
-    console.log('[Upload] Saving to Supabase:', { targetId, itemCount: content.length });
     const { error } = await (supabase as any)
       .from('uploaded_documents')
       .upsert(
@@ -332,12 +313,7 @@ CREATE POLICY "Allow all"
         { onConflict: 'id' }
       );
 
-    if (error) {
-      console.error('[Upload] Supabase save error:', error);
-      throw error;
-    }
-    
-    console.log('[Upload] Supabase save successful');
+    if (error) throw error;
     await loadConstitutionStatuses();
   };
 
